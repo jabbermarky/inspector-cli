@@ -1,0 +1,25 @@
+{
+  "name": "inspector-cli",
+  "version": "1.0.0",
+  "description": "CLI for inspecting web sites",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "inspector": "./index.js"
+  },
+  "type": "module",
+  "author": "Mark Lummus",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^13.0.0",
+    "csv-parse": "^5.6.0",
+    "puppeteer": "^24.0.0",
+    "puppeteer-cluster": "^0.24.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-adblocker": "^2.13.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "scrapfly-sdk": "^0.6.9"
+  }
+}
