@@ -12,9 +12,7 @@ puppeteer.use(puppeteerStealth());
 import puppeteerAdblocker from "puppeteer-extra-plugin-adblocker";
 puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
 
-import { analyzeFilePath, loadCSVFromFile, myParseInt, Semaphore, parseCSV } from './utils.js';
-import { parse } from 'path';
-import { escape } from 'querystring';
+import { analyzeFilePath, loadCSVFromFile, myParseInt, Semaphore, parseCSV, segmentImageHeaderFooter } from './utils.js';
 
 export const client = new ScrapflyClient({ key: "scp-live-6bd7f34dcc694950955a9ce85e4a823b" });
 
@@ -66,6 +64,20 @@ program
         }
     });
 
+program
+    .command("footer")
+    .alias("header")
+    .description("Create image segments from the header and footer of an image")
+    .argument('<filename>', 'Image file to process')
+    .option('-h, --header <headerSize>', 'Size of the header segment', myParseInt, 1024)
+    .option('-f, --footer <footerSize>', 'Size of the footer segment', myParseInt, 1024)
+    .action(async (filename, _options) => {
+        const header = _options.header;
+        const footer = _options.footer;
+        //console.log(`Processing image file ${filename}, header size ${header}, footer size ${footer}`);
+        await segmentImageHeaderFooter(filename, { header, footer });
+    });
+
 program.parse(process.argv);
 program.showHelpAfterError();
 
@@ -79,7 +91,7 @@ const requestHeaders = {
     Referer: 'https://www.google.com/',
 };
 
-async function takeAScreenshotPuppeteer(url, path, width) {    
+async function takeAScreenshotPuppeteer(url, path, width) {
     await semaphore.acquire();
     console.log(`Taking a screenshot of ${url} with width ${width} and saving it to ${path}`);
     const browser = await puppeteer.launch({ headless: true, defaultViewport: { width: width, height: 1200 } });
@@ -94,7 +106,7 @@ async function takeAScreenshotPuppeteer(url, path, width) {
         await page.goto(url);
 
         const sizes = await page.evaluate(`[document.body.scrollWidth, document.body.scrollHeight]`);
-        console.log(`page size is ${sizes}, type ${typeof sizes} json ${JSON.stringify(sizes)} width: ${sizes[0]} height: ${sizes[1]}`);  
+        console.log(`page size is ${sizes}, type ${typeof sizes} json ${JSON.stringify(sizes)} width: ${sizes[0]} height: ${sizes[1]}`);
         await page.screenshot({ path: path, fullPage: true });
         return { url, path, width, sizes };
     } finally {

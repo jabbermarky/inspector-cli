@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import process from 'process';
 import { parse } from 'csv-parse/sync';
+import { Jimp } from 'jimp';
 
 export class Semaphore {
     constructor(max) {
@@ -88,4 +89,54 @@ export function parseCSV(csvData) {
         quote: '"',
         escape: '"'
     });
+}
+/**
+ * 
+ * SegmentImageHeaderFooterOptions
+ * @typedef {Object} SegmentImageHeaderFooterOptions
+ * @property {number} header - Size of the header segment
+ * @property {number} footer - Size of the footer segment
+ */
+
+/**
+ * segmentImageHeaderFooter - Create image segments from the header and footer of an image
+ * @param {string} filename 
+ * @param {SegmentImageHeaderFooterOptions} options 
+ */
+export async function segmentImageHeaderFooter(filename, options) {
+    try {
+        const image = await Jimp.read(filename);
+        const width = image.bitmap.width;
+        const height = image.bitmap.height;
+
+        const headerSize = options.header || 0;
+        const footerSize = options.footer || 0;
+        //console.log(`Processing image file ${filename}, header size ${headerSize}, footer size ${footerSize}`);
+        //console.log(`Image size: ${width} x ${height}`);
+
+        // Create header segment
+        if (headerSize > height || footerSize > height) {
+            throw new Error('Header or footer size exceeds image height');
+        }
+        if (headerSize === 0 && footerSize === 0) {
+            throw new Error('Header and footer size cannot be both 0');
+        }
+        if (headerSize > 0) {
+            const header = image.clone().crop({ x:0, y:0, w:width, h:headerSize });
+            const headerFilename = `${filename.split('.').slice(0, -1).join('.')}_header_${headerSize}.png`;
+            await header.write(headerFilename);
+            console.log(`Header segment created: ${headerFilename}`);
+        }
+
+        // Create footer segment
+        if (footerSize > 0) {
+            const footer = image.clone().crop({ x:0, y:height - footerSize, w:width, h:footerSize});
+            const footerFilename = `${filename.split('.').slice(0, -1).join('.')}_footer_${footerSize}.png`;
+            await footer.write(footerFilename);
+            console.log(`Footer segment created: ${footerFilename}`);
+        }
+
+    } catch (err) {
+        console.error(`Error processing image: `, err);
+    }
 }

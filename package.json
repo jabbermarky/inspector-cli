@@ -15,6 +15,7 @@
   "dependencies": {
     "commander": "^13.0.0",
     "csv-parse": "^5.6.0",
+    "jimp": "^1.6.0",
     "puppeteer": "^24.0.0",
     "puppeteer-cluster": "^0.24.0",
     "puppeteer-extra": "^3.3.6",
