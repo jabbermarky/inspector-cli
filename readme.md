@@ -14,7 +14,7 @@ path is a required argument that is the path of where to save the file. The defa
 
 Example:
 
-capture google home page into a file at path ./scrapes/google_home_1024.png
+capture google home page into a file at path ./scrapes/google_home_w1024.png
 ```
 inspector screenshot --width=1024 https://www.google.com google_home
 ```
@@ -34,8 +34,8 @@ Screenshots are taken per row @ 3 widths: 768, 1024, 1536.
     .alias("header")
     .description("Create image segments from the header and footer of an image")
     .argument('<filename>', 'Image file to process')
-    .option('-h, --header <headerSize>', 'Size of the header segment', myParseInt, 1024)
-    .option('-f, --footer <footerSize>', 'Size of the footer segment', myParseInt, 1024)
+    .option('-h, --header <headerSize>', 'Height of the header segment', myParseInt, 1024)
+    .option('-f, --footer <footerSize>', 'Height of the footer segment', myParseInt, 1024)
 
 
 ### Create image segments from the header and footer of an image file
@@ -49,7 +49,7 @@ inspector header [--header=<headerSize>] [--footer=<footerSize> <filepath>
 header is an option to specify the header height in px. Default is 1024. If 0 is passed, then no file is created.
 footer is an option to specify the footer height in px. Default is 1024. If 0 is passed, then no file is created.
 path is a required argument that is the path of the source image file. The default extension is .png.
-The section and width are appended to the filename. 
+The section and height are appended to the filename. 
 
 Example:
 
@@ -57,9 +57,10 @@ extract the header (height 512px) and footer (default height) from ./scrapes/goo
 
 ```
 inspector footer --header=512 ./scrapes/google_home_1024.png
+
 //creates 2 files:
-//  ./scrapes/google_home_1024_header_512.png
-//  ./scrapes/google_home_1024_footer_1024.png
+//  ./scrapes/google_home_1024_header_h512.png
+//  ./scrapes/google_home_1024_footer_h1024.png
 ```
 
 
