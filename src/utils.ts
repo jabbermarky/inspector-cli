@@ -49,7 +49,7 @@ export class Semaphore {
 export function analyzeFilePath(filePath: string, width: number): string {
 
     let ext = path.extname(filePath) || '.png';
-    let base = path.basename(filePath, ext) + '_' + width + ext;
+    let base = path.basename(filePath, ext) + '_w' + width + ext;
     let dir = path.dirname(filePath);
     // Check if the filepath has a directory
     if (!dir || dir === '.') {
@@ -113,7 +113,7 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
         }
         if (headerSize > 0) {
             const header = image.clone().crop({ x: 0, y: 0, w: width, h: headerSize });
-            const headerFilename = `${filename.split('.').slice(0, -1).join('.')}_header_${headerSize}.png` as `${string}.${string}`;
+            const headerFilename = `${filename.split('.').slice(0, -1).join('.')}_header_h${headerSize}.png` as `${string}.${string}`;
             await header.write(headerFilename);
             console.log(`Header segment created: ${headerFilename}`);
         }
@@ -121,13 +121,13 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
         // Create footer segment
         if (footerSize > 0) {
             const footer = image.clone().crop({ x: 0, y: height - footerSize, w: width, h: footerSize });
-            const footerFilename = `${filename.split('.').slice(0, -1).join('.')}_footer_${footerSize}.png` as `${string}.${string}`;
+            const footerFilename = `${filename.split('.').slice(0, -1).join('.')}_footer_h${footerSize}.png` as `${string}.${string}`;
             await footer.write(footerFilename);
             console.log(`Footer segment created: ${footerFilename}`);
         }
 
     } catch (err) {
-        console.error(`Error processing image: `, err);
+        console.error(`Error processing image: `, (err as Error).message);
     }
 }
 // define your custom headers
@@ -157,4 +157,13 @@ export async function takeAScreenshotPuppeteer(url:string, path:string, width:nu
         await browser.close();
     }
 } const semaphore = new Semaphore(2); // Limit to 2 concurrent tasks
+
+export function validJSON(str: string): boolean {
+    try {
+        JSON.parse(str);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
 
