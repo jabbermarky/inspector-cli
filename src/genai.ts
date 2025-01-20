@@ -21,6 +21,8 @@ export interface CallAssistantParams {
   model?: string;
   prompt?: string;
   assistant?: string; // assistant id
+  temperature?: number;
+  top_p?: number;
 }
 
 export interface CallAssistantResponse {
@@ -194,6 +196,15 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
       console.log('using model: ', params.model);
       createPollParams.model = params.model;
     }
+    if (params.temperature) {
+      console.log('using temperature: ', params.temperature);
+      createPollParams.temperature = params.temperature;
+    }
+    if (params.top_p) {
+      console.log('using top_p: ', params.top_p);
+      createPollParams.top_p = params.top_p;
+    }
+
     const thread = await openai.beta.threads.create({ messages });
     let thread_id = thread.id;
     const run = await openai.beta.threads.runs.createAndPoll(thread_id, createPollParams);

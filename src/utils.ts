@@ -70,6 +70,15 @@ export function myParseInt(value:string, _dummyPrevious:any) {
     return parsedValue;
 }
 
+export function myParseDecimal(value: string, _dummyPrevious: any) {
+    // parseFloat takes a string
+    const parsedValue = parseFloat(value);
+    if (isNaN(parsedValue)) {
+        throw new InvalidArgumentError('Not a number.');
+    }
+    return parsedValue;
+}
+
 export function loadCSVFromFile(filePath: string) {
     try {
         const data = fs.readFileSync(filePath, 'utf8');

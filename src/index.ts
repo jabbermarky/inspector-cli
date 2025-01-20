@@ -12,7 +12,7 @@ import {
     ScrapflyClient
 } from 'scrapfly-sdk';
 
-import { analyzeFilePath, loadCSVFromFile, myParseInt, parseCSV, segmentImageHeaderFooter, takeAScreenshotPuppeteer, validJSON } from './utils.js';
+import { analyzeFilePath, loadCSVFromFile, myParseDecimal, myParseInt, parseCSV, segmentImageHeaderFooter, takeAScreenshotPuppeteer, validJSON } from './utils.js';
 import { callAssistant, callChat, getOpenAIAssistants } from './genai.js';
 import { validateBrandiJsonSchema } from './brandi_json_schema.js';
 
@@ -111,16 +111,23 @@ program
     .description("Call the OpenAI assistant API")
     .option('-a, --assistant <assistant>', 'Specify the assistant to use')
     .option('-m, --model <model>', 'Model to use')
+    .option('-t, --temperature <temperature>', 'Temperature to use', myParseDecimal)
+    .option('-p, --top_p <top_p>', 'Top P to use')
     .option('-o, --outfile <outfile>', 'Save the output to a file')
     .argument('<screenshot...>', 'Screenshot file(s) to use')
     .action(async (screenshots: string[], _options) => {
         console.log('call assistant', screenshots);
         console.log('model', _options.model);
         console.log('assistant', _options.assistant);
+        console.log('temperature', _options.temperature);
+        console.log('top_p', _options.top_p);
+        let temperature : number = _options.temperature || 0.0;
         const params = {
             model: _options.model,
             screenshot: screenshots,
             assistant: _options.assistant,
+            temperature: _options.temperature,
+            top_p: _options.top_p,
         }
         let response = await callAssistant(params);
         if (response.data && Array.isArray(response.data)) {
@@ -136,7 +143,7 @@ program
                             let value = JSON.parse(valueString);
                             let output: {
                                 model: string
-                                temperature?: string | number;
+                                temperature?: number;
                                 top_p?: string | number;
                                 assistant?: string;
                                 screenshots: string[];
@@ -144,7 +151,7 @@ program
                                 value: any;
                             } = {
                                 model: response.run && response.run.model ? response.run.model : '?',
-                                temperature: response.run && response.run.temperature ? response.run.temperature.toString() : '?',
+                                temperature: response.run && response.run.temperature ? Number(response.run.temperature) : 0.0,
                                 top_p: response.run && response.run.top_p ? response.run.top_p : '?',
                                 assistant: response.run && response.run.assistant_id ? response.run.assistant_id : '?',
                                 screenshots: screenshots,
