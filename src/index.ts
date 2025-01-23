@@ -116,11 +116,11 @@ program
     .option('-o, --outfile <outfile>', 'Save the output to a file')
     .argument('<screenshot...>', 'Screenshot file(s) to use')
     .action(async (screenshots: string[], _options) => {
-        console.log('call assistant', screenshots);
-        console.log('model', _options.model);
-        console.log('assistant', _options.assistant);
-        console.log('temperature', _options.temperature);
-        console.log('top_p', _options.top_p);
+        console.log('calling assistant with these screenshots:', screenshots);
+        // if (_options.model) console.log('model', _options.model);
+        // if (_options.assistant) console.log('assistant', _options.assistant);
+        // if (_options.temperature) console.log('temperature', _options.temperature);
+        // if (_options.top_p) console.log('top_p', _options.top_p);
         let temperature : number = _options.temperature || 0.0;
         const params = {
             model: _options.model,
