@@ -9,7 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "npx ts-node src/index.ts",
-    "build": "npx tsc -b && chmod +x dist/index.js"
+    "build": "npx tsc -b && chmod +x dist/index.js",
+    "run" : "npx tsc -w"
   },
   "type": "module",
   "author": "Mark Lummus",
