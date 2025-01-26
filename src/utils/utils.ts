@@ -144,7 +144,41 @@ const requestHeaders = {
     Referer: 'https://www.google.com/',
 };
 
-export async function takeAScreenshotPuppeteer(url:string, path:string, width:number) {
+export async function takeAScreenshotPuppeteer(url: string, path: string, width: number) {
+    try {
+        // Validate the input
+        if (url === undefined || url === '') {
+            console.error(`Invalid URL: ${url}`);
+            return;
+        }   
+        if (!URL.canParse(url)) {
+            //confirm that url has a protocol
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+        }
+        let urlObj = new URL(url);
+        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+            console.error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
+            return;
+        }
+        if (path === undefined || path === '') {
+            console.error(`Invalid path`);
+            return;
+        }
+        if (width === undefined) {
+            console.error(`Invalid width`);
+            return;
+        }
+        if (width < 0) {
+            console.error(`Invalid width: ${width}, width must be greater than 0`);
+            return;
+        }
+    } catch (e) {
+        console.error(`Invalid URL: ${url}`, (e as Error).message);
+        return;
+    }
+
     await semaphore.acquire();
     console.log(`Taking a screenshot of ${url} with width ${width} and saving it to ${path}`);
     const browser = await puppeteer.launch({ headless: true, defaultViewport: { width: width, height: 1200 } });
