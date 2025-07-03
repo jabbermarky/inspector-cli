@@ -19,7 +19,6 @@ program
         // if (_options.assistant) console.log('assistant', _options.assistant);
         // if (_options.temperature) console.log('temperature', _options.temperature);
         // if (_options.top_p) console.log('top_p', _options.top_p);
-        let temperature: number = _options.temperature || 0.0;
         const params = {
             model: _options.model,
             screenshot: screenshots,
