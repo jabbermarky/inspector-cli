@@ -6,10 +6,29 @@ import { getConfig } from "./utils/config.js";
 import { withRetryOpenAI } from "./utils/retry.js";
 
 const logger = createModuleLogger('genai');
-const config = getConfig();
-
-const openai = new OpenAI({ apiKey: config.openai.apiKey });
 const BRANDI_JSON = 'asst_KetBa5TJspGM51mMsie3hBd5';
+
+// Lazy initialization of OpenAI client to avoid requiring API key at startup
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    const config = getConfig();
+    
+    // Validate OpenAI configuration strictly when actually needed
+    if (!config.openai.apiKey || config.openai.apiKey.length === 0) {
+      throw new Error('OPENAI_API_KEY is required for AI-powered commands. Please set it in your environment or .env file.');
+    }
+    
+    if (!config.openai.apiKey.startsWith('sk-')) {
+      throw new Error('OPENAI_API_KEY must start with "sk-"');
+    }
+    
+    openaiClient = new OpenAI({ apiKey: config.openai.apiKey });
+    logger.debug('OpenAI client initialized');
+  }
+  return openaiClient;
+}
 
 export interface CallAssistantParams {
   screenshot?: string | Array<string>; // filename
@@ -49,6 +68,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
     return { error: "no image parameter is defined" };
   }
 
+  const config = getConfig();
   const createParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
     model: params.model || config.openai.model,
     response_format: { "type": "json_object" },
@@ -119,6 +139,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
 
   // Call the OpenAI API with createParams
   try {
+    const openai = getOpenAIClient();
     const response = await withRetryOpenAI(
       () => openai.chat.completions.create(createParams),
       'OpenAI Chat API call'
@@ -180,6 +201,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
     // upload file
     let file: OpenAI.Files.FileObject;
     try {
+      const openai = getOpenAIClient();
       file = await withRetryOpenAI(
         () => openai.files.create({ file: fs.createReadStream(filename), purpose: 'vision' }),
         `File upload: ${filename}`
@@ -252,6 +274,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
       createPollParams.top_p = params.top_p;
     }
 
+    const openai = getOpenAIClient();
     const thread = await withRetryOpenAI(
       () => openai.beta.threads.create({ messages }),
       'Create thread'
@@ -297,6 +320,7 @@ async function cleanupUploadedFiles(fileIds: string[]): Promise<void> {
   
   logger.debug('Cleaning up uploaded files', { fileIds });
   
+  const openai = getOpenAIClient();
   for (const fileId of fileIds) {
     try {
       await withRetryOpenAI(
@@ -313,6 +337,7 @@ async function cleanupUploadedFiles(fileIds: string[]): Promise<void> {
 
 export async function getOpenAIAssistants(): Promise<any> {
   try {
+    const openai = getOpenAIClient();
     const response = await withRetryOpenAI(
       () => openai.beta.assistants.list(),
       'List OpenAI assistants'

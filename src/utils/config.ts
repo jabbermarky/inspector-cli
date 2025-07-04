@@ -48,19 +48,24 @@ export interface InspectorConfig {
 }
 
 export class ConfigValidator {
-  private static validateOpenAIConfig(config: any): void {
-    if (!config.openai?.apiKey) {
-      throw new Error('OPENAI_API_KEY is required');
+  private static validateOpenAIConfig(config: any, strict: boolean = false): void {
+    // Only require API key in strict mode (when actually using OpenAI features)
+    if (strict && !config.openai?.apiKey) {
+      throw new Error('OPENAI_API_KEY is required for AI-powered commands. Please set it in your environment or .env file.');
     }
     
-    if (typeof config.openai.apiKey !== 'string' || config.openai.apiKey.length === 0) {
-      throw new Error('OPENAI_API_KEY must be a non-empty string');
+    // Validate API key format only if it's provided and not empty
+    if (config.openai?.apiKey && config.openai.apiKey.length > 0) {
+      if (typeof config.openai.apiKey !== 'string') {
+        throw new Error('OPENAI_API_KEY must be a string');
+      }
+      
+      if (!config.openai.apiKey.startsWith('sk-')) {
+        throw new Error('OPENAI_API_KEY must start with "sk-"');
+      }
     }
     
-    if (!config.openai.apiKey.startsWith('sk-')) {
-      throw new Error('OPENAI_API_KEY must start with "sk-"');
-    }
-    
+    // Always validate other OpenAI config parameters
     if (config.openai.temperature < 0 || config.openai.temperature > 2) {
       throw new Error('OpenAI temperature must be between 0 and 2');
     }
@@ -127,15 +132,20 @@ export class ConfigValidator {
     }
   }
   
-  public static validate(config: any): void {
-    logger.debug('Validating configuration');
+  public static validate(config: any, strictOpenAI: boolean = false): void {
+    logger.debug('Validating configuration', { strictOpenAI });
     
-    this.validateOpenAIConfig(config);
+    this.validateOpenAIConfig(config, strictOpenAI);
     this.validatePuppeteerConfig(config);
     this.validateAppConfig(config);
     this.validateAPIConfig(config);
     
     logger.debug('Configuration validation completed');
+  }
+  
+  public static validateForOpenAI(config: any): void {
+    logger.debug('Validating configuration for OpenAI usage');
+    this.validateOpenAIConfig(config, true);
   }
 }
 
