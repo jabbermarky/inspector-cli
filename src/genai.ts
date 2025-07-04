@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import fs from 'fs';
-import { SYSTEM_PROMPT_1, SYSTEM_PROMPT_2 } from "./prompts.js";
+import { SYSTEM_PROMPT_2 } from "./prompts.js";
 import { createModuleLogger } from "./utils/logger.js";
 import { getConfig } from "./utils/config.js";
 
@@ -8,7 +8,6 @@ const logger = createModuleLogger('genai');
 const config = getConfig();
 
 const openai = new OpenAI({ apiKey: config.openai.apiKey });
-const BRANDI = 'asst_0gvshl7GZDs6dCUIvxLzWLaj';
 const BRANDI_JSON = 'asst_KetBa5TJspGM51mMsie3hBd5';
 
 export interface CallAssistantParams {
@@ -49,7 +48,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
     return { error: "no image parameter is defined" };
   }
 
-  let createParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
+  const createParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
     model: params.model || config.openai.model,
     response_format: { "type": "json_object" },
     messages: [],
@@ -70,7 +69,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
     // Proceed with processing screenshot file
     try {
       // Read the file as base64 encoded data
-      let base64_image: string | null = readBase64File(params.screenshot);
+      const base64_image: string | null = readBase64File(params.screenshot);
       createParams.messages = [
         { role: "system", content: SYSTEM_PROMPT_2 },
         {
@@ -88,7 +87,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
     }
   } else if (params.screenshot && Array.isArray(params.screenshot)) {
     console.log(`callChat screenshot is ${JSON.stringify(params.screenshot,null,2)}`);
-    let images: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+    const images: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
     for (const screenshot of params.screenshot) {
       // Validate file path
       if (!fs.existsSync(screenshot)) {
@@ -97,7 +96,7 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
       // Proceed with processing screenshot file
       try {
         // Read the file as base64 encoded data
-        let base64_image: string | null = readBase64File(screenshot);
+        const base64_image: string | null = readBase64File(screenshot);
         images.push({
           role: "user",
           content: [
@@ -146,7 +145,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
     let file: OpenAI.Files.FileObject;
     try {
       file = await openai.files.create({ file: fs.createReadStream(filename), purpose: 'vision' });
-      let message: OpenAI.Beta.Threads.ThreadCreateAndRunParams.Thread.Message = {
+      const message: OpenAI.Beta.Threads.ThreadCreateAndRunParams.Thread.Message = {
         role: "user",
         content: [
           {
@@ -165,13 +164,13 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
   }
 
   try {
-    let messages: OpenAI.Beta.Threads.ThreadCreateAndRunParams.Thread.Message[] = [];
+    const messages: OpenAI.Beta.Threads.ThreadCreateAndRunParams.Thread.Message[] = [];
 
     if (params.url && !params.screenshot) {
       messages.push({ role: "user", content: `What can you tell me about ${params.url}?` });
     } else if (params.screenshot && typeof params.screenshot === 'string') {
       // single file in params.screenshot
-      let fileMessageResponse = await fileMessageBuilder(params.screenshot);
+      const fileMessageResponse = await fileMessageBuilder(params.screenshot);
       if (fileMessageResponse.message) {
         messages.push(fileMessageResponse.message);
       } else {
@@ -180,7 +179,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
     } else if (params.screenshot && Array.isArray(params.screenshot)) {
       for (const screenshot of params.screenshot) {
         // multiple files in params.screenshot
-        let fileMessageResponse = await fileMessageBuilder(screenshot);
+        const fileMessageResponse = await fileMessageBuilder(screenshot);
         if (fileMessageResponse.message) {
           messages.push(fileMessageResponse.message);
         } else {
@@ -188,7 +187,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
         }
       }
     }
-    let createPollParams: OpenAI.Beta.Threads.ThreadCreateAndRunPollParams = {
+    const createPollParams: OpenAI.Beta.Threads.ThreadCreateAndRunPollParams = {
       assistant_id: params.assistant || BRANDI_JSON
     };
     if (params.assistant) {
@@ -208,7 +207,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
     }
 
     const thread = await openai.beta.threads.create({ messages });
-    let thread_id = thread.id;
+    const thread_id = thread.id;
     const run = await openai.beta.threads.runs.createAndPoll(thread_id, createPollParams);
 
     if (run.status === 'completed') {

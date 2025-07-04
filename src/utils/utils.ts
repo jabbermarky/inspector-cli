@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import process from 'process';
 import { parse } from 'csv-parse/sync';
 import { Jimp } from 'jimp';
 import { InvalidArgumentError } from 'commander';
@@ -75,9 +74,9 @@ export function analyzeFilePath(filePath: string, width: number): string {
         throw new Error('Invalid file path: path contains unsafe characters');
     }
 
-    let ext = path.extname(filePath) || '.png';
-    let base = path.basename(filePath, ext) + '_w' + width + ext;
-    let dir = path.dirname(filePath);
+    const ext = path.extname(filePath) || '.png';
+    const base = path.basename(filePath, ext) + '_w' + width + ext;
+    const dir = path.dirname(filePath);
     
     // Check if the filepath has a directory
     if (!dir || dir === '.') {
@@ -234,7 +233,7 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
                 logger.debug(`Added https:// protocol to URL: ${url}`);
             }
         }
-        let urlObj = new URL(url);
+        const urlObj = new URL(url);
         if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
             throw new Error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
         }
@@ -322,7 +321,7 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
 export function validJSON(str: string): boolean {
     try {
         JSON.parse(str);
-    } catch (e) {
+    } catch {
         return false;
     }
     return true;
@@ -356,7 +355,7 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
             url = 'https://' + url;
         }
     }
-    let urlObj = new URL(url);
+    const urlObj = new URL(url);
     if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
         console.error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
         return { cms: "Unknown", error: "Invalid URL protocol" };

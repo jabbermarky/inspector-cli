@@ -1,18 +1,15 @@
 #!/usr/bin/env node
 import process from 'process';
 import figlet from 'figlet';
+import { createModuleLogger } from './utils/logger.js';
 
+const _logger = createModuleLogger('cli');
 
 process.removeAllListeners('warning');
+// Banner output is appropriate for CLI applications
 console.log(figlet.textSync('Inspector CLI'));
 
 import { program } from "commander";
-// import {
-//     ScrapflyClient
-// } from 'scrapfly-sdk';
-
-
-//export const client = new ScrapflyClient({ key: "scp-live-6bd7f34dcc694950955a9ce85e4a823b" });
 
 program
     .version("1.0.0")

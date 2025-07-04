@@ -1,0 +1,23 @@
+# Build outputs
+dist/
+build/
+*.js.map
+
+# Dependencies
+node_modules/
+
+# Coverage and test outputs
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Config files that should maintain their format
+package-lock.json
+*.min.js
+*.min.css
+
+# Documentation that might have specific formatting
+CHANGELOG.md

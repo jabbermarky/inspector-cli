@@ -1,5 +1,8 @@
 import { program } from 'commander';
 import { callChat } from '../genai.js';
+import { createModuleLogger } from '../utils/logger.js';
+
+const logger = createModuleLogger('chat');
 
 program
     .command("chat")
@@ -11,9 +14,16 @@ program
             model: _options.model,
             screenshot: screenshots,
         };
-        let response = await callChat(params);
+        logger.info('Starting chat API call', { model: params.model, screenshots: screenshots.length });
+        const response = await callChat(params);
         if (response.content) {
+            // CLI output is appropriate for user interaction
             console.log(response.content);
+            logger.info('Chat API call completed successfully');
+        } else if (response.error) {
+            logger.error('Chat API call failed', { error: response.error });
+            console.error('Chat error:', response.error);
+            process.exit(1);
         }
     }
     );

@@ -3,6 +3,9 @@ import fs from 'fs';
 import { validateBrandiJsonSchema } from '../brandi_json_schema.js';
 import { callAssistant } from '../genai.js';
 import { myParseDecimal, validJSON } from '../utils/utils.js';
+import { createModuleLogger } from '../utils/logger.js';
+
+const logger = createModuleLogger('assistant');
 
 program
     .command("assistant")
@@ -14,7 +17,7 @@ program
     .option('-o, --outfile <outfile>', 'Save the output to a file')
     .argument('<screenshot...>', 'Screenshot file(s) to use')
     .action(async (screenshots: string[], _options) => {
-        console.log('calling assistant with these screenshots:', screenshots);
+        logger.info('Starting assistant API call', { screenshots: screenshots.length, options: _options });
         // if (_options.model) console.log('model', _options.model);
         // if (_options.assistant) console.log('assistant', _options.assistant);
         // if (_options.temperature) console.log('temperature', _options.temperature);
@@ -26,7 +29,7 @@ program
             temperature: _options.temperature,
             top_p: _options.top_p,
         };
-        let response = await callAssistant(params);
+        const response = await callAssistant(params);
         if (response.data && Array.isArray(response.data)) {
             //      for (const message of messages.data.reverse()) {
             //        console.log(`${message.role} > `, message.content[0]);
@@ -35,10 +38,10 @@ program
                 if (message.role === "assistant") {
                     const content = message.content[0];
                     if (content.type === "text") {
-                        let valueString = content.text.value;
+                        const valueString = content.text.value;
                         if (validJSON(valueString) && validateBrandiJsonSchema(valueString)) {
-                            let value = JSON.parse(valueString);
-                            let output: {
+                            const value = JSON.parse(valueString);
+                            const output: {
                                 model: string;
                                 temperature?: number;
                                 top_p?: string | number;
@@ -56,9 +59,10 @@ program
                                 value,
                             };
 
+                            // CLI output for user interaction
                             console.log(`site name: ${value.name}`);
                             console.log(`page type: ${value.page_type} - ${value.page_type_reason}`);
-                            let methods = value.payment_methods.map((method: any) => {
+                            const methods = value.payment_methods.map((method: any) => {
                                 return `${method.type} ${method.size} ${method.format}`;
                             }
                             );
@@ -68,9 +72,21 @@ program
                             console.log(`model: ${response.run && response.run.model ? response.run.model : '?'}`);
                             console.log(`assistant: ${response.run && response.run.assistant_id ? response.run.assistant_id : '?'}`);
                             console.log(`top_p: ${response.run && response.run.top_p ? response.run.top_p : '?'}`);
+                            
+                            // Structured logging for monitoring
+                            logger.info('Assistant analysis completed', {
+                                siteName: value.name,
+                                pageType: value.page_type,
+                                paymentMethods: value.payment_methods.length,
+                                tokensUsed: response.run?.usage?.total_tokens,
+                                model: response.run?.model,
+                                assistant: response.run?.assistant_id
+                            });
+                            
                             if (_options.outfile) {
                                 fs.writeFileSync(_options.outfile, JSON.stringify(output, null, 2));
                                 console.log(`Output written to ${_options.outfile}`);
+                                logger.info('Output file written', { outfile: _options.outfile });
                             }
                         }
                         break;
@@ -78,7 +94,9 @@ program
                 }
             }
         } else if (response.error) {
+            logger.error('Assistant API call failed', { error: response.error });
             console.error('callAssistant error: ', response.error);
+            process.exit(1);
         }
     }
     );

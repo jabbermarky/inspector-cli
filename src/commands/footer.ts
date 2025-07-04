@@ -1,5 +1,8 @@
 import { program } from 'commander';
 import { myParseInt, segmentImageHeaderFooter } from '../utils/utils.js';
+import { createModuleLogger } from '../utils/logger.js';
+
+const logger = createModuleLogger('footer');
 
 program
     .command("footer")
@@ -12,9 +15,11 @@ program
         try {
             const header = _options.header;
             const footer = _options.footer;
-            console.log(`Creating Header/Footer from image file ${filename}: header size ${header}, footer size ${footer}`);
+            logger.info('Starting image segmentation', { filename, header, footer });
             await segmentImageHeaderFooter(filename, { header, footer });
+            logger.info('Image segmentation completed successfully', { filename });
         } catch (error) {
+            logger.error('Image segmentation failed', { filename }, error as Error);
             console.error('Image segmentation failed:', (error as Error).message);
             process.exit(1);
         }

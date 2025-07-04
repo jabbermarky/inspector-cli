@@ -2,6 +2,7 @@
 /node_modules
 /scrapes
 /src/takeAScreenshotScrapFly.js
+/src/takeAScreenshotScrapFly.js.disabled
 /dist
 /blah.json
 /do_chat.sh

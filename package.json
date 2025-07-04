@@ -16,6 +16,12 @@
     "test:paths": "./test_critical_fixes.sh | grep -A 50 'Path Validation'",
     "test:csv": "./test_critical_fixes.sh | grep -A 50 'CSV Race Condition'",
     "test:cleanup": "./test_critical_fixes.sh | grep -A 50 'Error Handling'",
+    "lint": "eslint . --ext .ts,.js",
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "quality": "npm run lint && npm run format:check",
+    "quality:fix": "npm run lint:fix && npm run format",
     "pretest": "npm run build",
     "posttest": "echo 'Tests completed. See TESTING.md for more information.'"
   },
@@ -43,6 +49,13 @@
   "devDependencies": {
     "@types/ajv": "^1.0.4",
     "@types/figlet": "^1.7.0",
-    "@types/node": "^22.10.7"
+    "@types/node": "^22.10.7",
+    "@typescript-eslint/eslint-plugin": "^8.35.1",
+    "@typescript-eslint/parser": "^8.35.1",
+    "eslint": "^9.30.1",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.35.1"
   }
 }

@@ -1,5 +1,4 @@
-import Ajv from 'ajv';
-import { JSONSchemaType } from 'ajv';
+import Ajv, { JSONSchemaType } from 'ajv';
 
 // Create an Ajv instance
 const ajv = new Ajv();
@@ -68,7 +67,7 @@ export function validateBrandiJsonSchema(value: string | any): boolean {
     if (typeof value === 'string') {
         try {
             value = JSON.parse(value)
-        } catch (e) {
+        } catch {
             return false;
         }
     }

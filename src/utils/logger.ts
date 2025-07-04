@@ -1,5 +1,4 @@
 import { createWriteStream, WriteStream } from 'fs';
-import { join } from 'path';
 
 export enum LogLevel {
     DEBUG = 0,
