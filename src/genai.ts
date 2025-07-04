@@ -10,7 +10,6 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
-//const OPENAI_API_KEY = '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';
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 const BRANDI = 'asst_0gvshl7GZDs6dCUIvxLzWLaj';
 const BRANDI_JSON = 'asst_KetBa5TJspGM51mMsie3hBd5';

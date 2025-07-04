@@ -7,9 +7,13 @@ program
     .argument('<url>', 'URL to take a screenshot of')
     .argument('<path>', 'Path to save the screenshot')
     .option('-w, --width <width>', 'Specify the width of the screenshot', myParseInt)
-    .action((url, path, options) => {
-        let width = options.width || 768;
-        path = analyzeFilePath(path, width);
-        //takeAScreenshotScrapFly(url, path);
-        takeAScreenshotPuppeteer(url, path, width);
+    .action(async (url, path, options) => {
+        try {
+            let width = options.width || 768;
+            path = analyzeFilePath(path, width);
+            await takeAScreenshotPuppeteer(url, path, width);
+        } catch (error) {
+            console.error('Screenshot failed:', (error as Error).message);
+            process.exit(1);
+        }
     });

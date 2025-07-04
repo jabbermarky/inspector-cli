@@ -7,10 +7,17 @@
     "inspector": "dist/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx ts-node src/index.ts",
     "build": "npx tsc -b && chmod +x dist/index.js",
-    "run" : "npx tsc -w"
+    "start": "npx ts-node src/index.ts",
+    "dev": "npx tsc -w",
+    "test": "./test_comprehensive.sh",
+    "test:quick": "./test_quick.sh",
+    "test:security": "./test_critical_fixes.sh | grep -A 50 'API Key Security'",
+    "test:paths": "./test_critical_fixes.sh | grep -A 50 'Path Validation'",
+    "test:csv": "./test_critical_fixes.sh | grep -A 50 'CSV Race Condition'",
+    "test:cleanup": "./test_critical_fixes.sh | grep -A 50 'Error Handling'",
+    "pretest": "npm run build",
+    "posttest": "echo 'Tests completed. See TESTING.md for more information.'"
   },
   "type": "module",
   "author": "Mark Lummus",

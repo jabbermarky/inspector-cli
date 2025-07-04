@@ -63,4 +63,36 @@ inspector footer --header=512 ./scrapes/google_home_1024.png
 //  ./scrapes/google_home_1024_footer_h1024.png
 ```
 
+## Development Commands
+
+### Build and Run
+- `npm run build` - Compile TypeScript to JavaScript and make the binary executable
+- `npm run start` - Run the application using ts-node (development)
+- `npm run dev` - Run TypeScript compiler in watch mode for development
+
+### Testing
+- `npm test` - Run comprehensive test suite for all critical fixes
+- `npm run test:quick` - Run quick verification tests (2-3 minutes)
+- `npm run test:security` - Test API key security and path validation
+- `npm run test:paths` - Test file path validation and security
+- `npm run test:csv` - Test CSV processing and race condition fixes
+- `npm run test:cleanup` - Test error handling and resource cleanup
+
+See [TESTING.md](TESTING.md) for detailed testing information.
+
+### Other Commands
+- `inspector detect-cms <url>` - Detect CMS (WordPress, Joomla, Drupal) on a website
+- `inspector chat <screenshot...>` - Analyze screenshots using OpenAI Chat API
+- `inspector assistant <screenshot...>` - Analyze screenshots using OpenAI Assistant API
+- `inspector assistants` - List available OpenAI assistants
+
+## Environment Setup
+
+Required environment variables:
+```bash
+OPENAI_API_KEY=your-openai-api-key-here
+```
+
+You can set this in a `.env` file in the project root.
+
 

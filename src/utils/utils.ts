@@ -47,14 +47,42 @@ export class Semaphore {
 }
 
 export function analyzeFilePath(filePath: string, width: number): string {
+    // Input validation
+    if (!filePath || typeof filePath !== 'string') {
+        throw new Error('Invalid file path: path must be a non-empty string');
+    }
+    
+    if (width === undefined || width <= 0) {
+        throw new Error('Invalid width: width must be a positive number');
+    }
+
+    // Security: Prevent directory traversal attacks
+    if (filePath.includes('..') || filePath.includes('~')) {
+        throw new Error('Invalid file path: path cannot contain ".." or "~"');
+    }
+
+    // Security: Restrict to safe characters
+    const safePathRegex = /^[a-zA-Z0-9._/-]+$/;
+    if (!safePathRegex.test(filePath)) {
+        throw new Error('Invalid file path: path contains unsafe characters');
+    }
 
     let ext = path.extname(filePath) || '.png';
     let base = path.basename(filePath, ext) + '_w' + width + ext;
     let dir = path.dirname(filePath);
+    
     // Check if the filepath has a directory
     if (!dir || dir === '.') {
         filePath = path.join('./scrapes', base);
     } else {
+        // Security: Ensure the resolved path is within safe boundaries
+        const resolvedPath = path.resolve(dir, base);
+        const safePath = path.resolve('./scrapes');
+        
+        if (!resolvedPath.startsWith(safePath) && !resolvedPath.startsWith(path.resolve('.'))) {
+            throw new Error('Invalid file path: path must be within current directory or scrapes folder');
+        }
+        
         filePath = path.join(dir, base);
     }
 
@@ -85,7 +113,7 @@ export function loadCSVFromFile(filePath: string) {
         return data;
     } catch (err) {
         console.error(`Error reading file from disk: ${err}`);
-        process.exit(1);
+        throw new Error(`Failed to read CSV file: ${filePath}`);
     }
 }
 
@@ -104,22 +132,47 @@ export function parseCSV(csvData: string): any {
 }
 export async function segmentImageHeaderFooter(filename: string, options: SegmentImageHeaderFooterOptions) {
     try {
+        // Input validation
+        if (!filename || typeof filename !== 'string') {
+            throw new Error('Invalid filename: filename must be a non-empty string');
+        }
+
+        // Security: Prevent directory traversal attacks
+        if (filename.includes('..') || filename.includes('~')) {
+            throw new Error('Invalid filename: filename cannot contain ".." or "~"');
+        }
+
+        // Security: Restrict to safe characters
+        const safePathRegex = /^[a-zA-Z0-9._/-]+$/;
+        if (!safePathRegex.test(filename)) {
+            throw new Error('Invalid filename: filename contains unsafe characters');
+        }
+
+        // Check if file exists
+        if (!fs.existsSync(filename)) {
+            throw new Error(`File does not exist: ${filename}`);
+        }
+
         const image = await Jimp.read(filename);
         const width = image.bitmap.width;
         const height = image.bitmap.height;
 
         const headerSize = options.header || 0;
         const footerSize = options.footer || 0;
-        //console.log(`Processing image file ${filename}, header size ${headerSize}, footer size ${footerSize}`);
-        //console.log(`Image size: ${width} x ${height}`);
-
-        // Create header segment
+        
+        // Validate header and footer sizes
+        if (headerSize < 0 || footerSize < 0) {
+            throw new Error('Header and footer sizes must be non-negative');
+        }
+        
         if (headerSize > height || footerSize > height) {
             throw new Error('Header or footer size exceeds image height');
         }
+        
         if (headerSize === 0 && footerSize === 0) {
             throw new Error('Header and footer size cannot be both 0');
         }
+        
         if (headerSize > 0) {
             const header = image.clone().crop({ x: 0, y: 0, w: width, h: headerSize });
             const headerFilename = `${filename.split('.').slice(0, -1).join('.')}_header_h${headerSize}.png` as `${string}.${string}`;
@@ -137,6 +190,7 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
 
     } catch (err) {
         console.error(`Error processing image: `, (err as Error).message);
+        throw err;
     }
 }
 // define your custom headers
@@ -145,11 +199,13 @@ const requestHeaders = {
 };
 
 export async function takeAScreenshotPuppeteer(url: string, path: string, width: number) {
+    let browser: any = null;
+    let semaphoreAcquired = false;
+    
     try {
         // Validate the input
         if (url === undefined || url === '') {
-            console.error(`Invalid URL: ${url}`);
-            return;
+            throw new Error(`Invalid URL: ${url}`);
         }
         if (!URL.canParse(url)) {
             //confirm that url has a protocol
@@ -159,34 +215,24 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
         }
         let urlObj = new URL(url);
         if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-            console.error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
-            return;
+            throw new Error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
         }
         if (path === undefined || path === '') {
-            console.error(`Invalid path`);
-            return;
+            throw new Error(`Invalid path`);
         }
         if (width === undefined) {
-            console.error(`Invalid width`);
-            return;
+            throw new Error(`Invalid width`);
         }
         if (width < 0) {
-            console.error(`Invalid width: ${width}, width must be greater than 0`);
-            return;
+            throw new Error(`Invalid width: ${width}, width must be greater than 0`);
         }
-    } catch (e) {
-        console.error(`Invalid URL: ${url}`, (e as Error).message);
-        return;
-    }
 
-    await semaphore.acquire();
-    console.log(`Taking a screenshot of ${url} with width ${width} and saving it to ${path}`);
-    const browser = await puppeteer.launch({ headless: true, defaultViewport: { width: width, height: 1200 } });
-    browser.on('disconnected', () => {
-        console.log('Browser closed or disconnected');
-        semaphore.release();
-    });
-    try {
+        await semaphore.acquire();
+        semaphoreAcquired = true;
+        console.log(`Taking a screenshot of ${url} with width ${width} and saving it to ${path}`);
+        
+        browser = await puppeteer.launch({ headless: true, defaultViewport: { width: width, height: 1200 } });
+        
         const page = await browser.newPage();
         await page.setExtraHTTPHeaders({ ...requestHeaders });
         await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15');
@@ -195,9 +241,22 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
         const sizes: Array<any> = await page.evaluate(() => [document.body.scrollWidth, document.body.scrollHeight]) as any[];
         console.log(`page size is ${sizes}, type ${typeof sizes} json ${JSON.stringify(sizes)} width: ${sizes[0]} height: ${sizes[1]}`);
         await page.screenshot({ path: path, fullPage: true });
+        
         return { url, path, width, sizes };
+    } catch (e) {
+        console.error(`Error taking screenshot of ${url}:`, (e as Error).message);
+        throw e;
     } finally {
-        await browser.close();
+        if (browser) {
+            try {
+                await browser.close();
+            } catch (e) {
+                console.error('Error closing browser:', (e as Error).message);
+            }
+        }
+        if (semaphoreAcquired) {
+            semaphore.release();
+        }
     }
 } const semaphore = new Semaphore(2); // Limit to 2 concurrent tasks
 
