@@ -3,6 +3,7 @@ import fs from 'fs';
 import { SYSTEM_PROMPT_2 } from "./prompts.js";
 import { createModuleLogger } from "./utils/logger.js";
 import { getConfig } from "./utils/config.js";
+import { withRetryOpenAI } from "./utils/retry.js";
 
 const logger = createModuleLogger('genai');
 const config = getConfig();
@@ -118,16 +119,20 @@ export async function callChat(params: CallAssistantParams): Promise<CallAssista
 
   // Call the OpenAI API with createParams
   try {
-    const response = await openai.chat.completions.create(createParams);
+    const response = await withRetryOpenAI(
+      () => openai.chat.completions.create(createParams),
+      'OpenAI Chat API call'
+    );
     if (response.choices && response.choices.length > 0 && response.choices[0].message) { 
-      //console.log('callChat response', JSON.stringify(response.choices[0].message, null, 2));
+      logger.debug('Chat API call successful', { messageLength: response.choices[0].message.content?.length });
       return { content: response.choices[0].message.content };
     } else {
-      console.log('callChat response', JSON.stringify(response, null, 2));
+      logger.warn('Chat API returned unexpected response format', { response });
       return { content: JSON.stringify(response, null, 2) };
     }
 
   } catch (err) {
+    logger.error('Chat API call failed after retries', { error: (err as Error).message });
     return { error: (err as Error).message };
   }
 }
@@ -137,14 +142,54 @@ interface fileMessageBuilderResponse {
 }
 
 export async function callAssistant(params: CallAssistantParams): Promise<CallAssistantResponse> {
+  logger.debug('Starting assistant API call', { params: { ...params, screenshot: params.screenshot ? '[HIDDEN]' : undefined } });
+  
   if (!params.screenshot && !params.url) {
+    logger.error('Missing required parameters for assistant API call');
     return { error: "no image parameter is defined" };
   }
-  async function fileMessageBuilder( filename:string): Promise<fileMessageBuilderResponse> {
+  
+  // Track uploaded files for cleanup
+  const uploadedFileIds: string[] = [];
+  async function fileMessageBuilder(filename: string): Promise<fileMessageBuilderResponse> {
+    // Validate file exists and is readable
+    if (!fs.existsSync(filename)) {
+      logger.error(`File not found: ${filename}`);
+      return { error: `File not found: ${filename}` };
+    }
+    
+    try {
+      const stats = fs.statSync(filename);
+      if (stats.size === 0) {
+        logger.error(`File is empty: ${filename}`);
+        return { error: `File is empty: ${filename}` };
+      }
+      
+      // Check file size limit (OpenAI has a 20MB limit)
+      if (stats.size > 20 * 1024 * 1024) {
+        logger.error(`File too large: ${filename} (${stats.size} bytes)`);
+        return { error: `File too large: ${filename} (${stats.size} bytes, max 20MB)` };
+      }
+      
+      logger.debug(`Uploading file: ${filename}`, { size: stats.size });
+    } catch (err) {
+      logger.error(`Error checking file: ${filename}`, { error: (err as Error).message });
+      return { error: `Error checking file: ${(err as Error).message}` };
+    }
+    
     // upload file
     let file: OpenAI.Files.FileObject;
     try {
-      file = await openai.files.create({ file: fs.createReadStream(filename), purpose: 'vision' });
+      file = await withRetryOpenAI(
+        () => openai.files.create({ file: fs.createReadStream(filename), purpose: 'vision' }),
+        `File upload: ${filename}`
+      );
+      
+      logger.debug(`File uploaded successfully: ${filename}`, { fileId: file.id });
+      
+      // Track file for cleanup
+      uploadedFileIds.push(file.id);
+      
       const message: OpenAI.Beta.Threads.ThreadCreateAndRunParams.Thread.Message = {
         role: "user",
         content: [
@@ -159,6 +204,7 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
       }
       return { message };    
     } catch (err) {
+      logger.error(`Failed to upload file: ${filename}`, { error: (err as Error).message });
       return { error: (err as Error).message };
     }
   }
@@ -206,34 +252,75 @@ export async function callAssistant(params: CallAssistantParams): Promise<CallAs
       createPollParams.top_p = params.top_p;
     }
 
-    const thread = await openai.beta.threads.create({ messages });
+    const thread = await withRetryOpenAI(
+      () => openai.beta.threads.create({ messages }),
+      'Create thread'
+    );
     const thread_id = thread.id;
-    const run = await openai.beta.threads.runs.createAndPoll(thread_id, createPollParams);
+    const run = await withRetryOpenAI(
+      () => openai.beta.threads.runs.createAndPoll(thread_id, createPollParams),
+      'Create and poll thread run'
+    );
 
     if (run.status === 'completed') {
-      const messages = await openai.beta.threads.messages.list(
-        run.thread_id
+      const messages = await withRetryOpenAI(
+        () => openai.beta.threads.messages.list(run.thread_id),
+        'List thread messages'
       );
-      //console.log('run', JSON.stringify(run, null, 2));
+      
+      // Clean up uploaded files
+      await cleanupUploadedFiles(uploadedFileIds);
+      
+      logger.info('Assistant API call completed successfully', { threadId: run.thread_id });
       return { data: messages.data, messages, run:run };
 
     } else {
-      console.log(run.status);
+      logger.warn('Assistant run did not complete', { status: run.status, threadId: run.thread_id });
+      
+      // Clean up uploaded files even on failure
+      await cleanupUploadedFiles(uploadedFileIds);
+      
       return { content: JSON.stringify(run, null, 2) };
     }
   } catch (err) {
-    console.error("Got error calling OpenAI assistant", err);
-    console.log("stack: ", JSON.stringify((err as Error), null, 2));
+    logger.error('Assistant API call failed', { error: (err as Error).message, stack: (err as Error).stack });
+    
+    // Clean up uploaded files on error
+    await cleanupUploadedFiles(uploadedFileIds);
+    
     return { error: (err as Error).message };
+  }
+}
+
+async function cleanupUploadedFiles(fileIds: string[]): Promise<void> {
+  if (fileIds.length === 0) return;
+  
+  logger.debug('Cleaning up uploaded files', { fileIds });
+  
+  for (const fileId of fileIds) {
+    try {
+      await withRetryOpenAI(
+        () => openai.files.del(fileId),
+        `Delete file: ${fileId}`
+      );
+      logger.debug(`File deleted successfully: ${fileId}`);
+    } catch (err) {
+      logger.warn(`Failed to delete file: ${fileId}`, { error: (err as Error).message });
+      // Continue with other files even if one fails
+    }
   }
 }
 
 export async function getOpenAIAssistants(): Promise<any> {
   try {
-    const response = await openai.beta.assistants.list();
+    const response = await withRetryOpenAI(
+      () => openai.beta.assistants.list(),
+      'List OpenAI assistants'
+    );
+    logger.info('Successfully fetched OpenAI assistants', { count: response.data.length });
     return { list: response.data };
   } catch (err) {
-    console.error("Error fetching OpenAI assistants:", err);
+    logger.error('Error fetching OpenAI assistants', { error: (err as Error).message });
     return { error: err };
   }
 }

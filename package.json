@@ -10,7 +10,10 @@
     "build": "npx tsc -b && chmod +x dist/index.js",
     "start": "npx ts-node src/index.ts",
     "dev": "npx tsc -w",
-    "test": "./test_comprehensive.sh",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "./test_comprehensive.sh",
     "test:quick": "./test_quick.sh",
     "test:security": "./test_critical_fixes.sh | grep -A 50 'API Key Security'",
     "test:paths": "./test_critical_fixes.sh | grep -A 50 'Path Validation'",
@@ -22,8 +25,8 @@
     "format:check": "prettier --check .",
     "quality": "npm run lint && npm run format:check",
     "quality:fix": "npm run lint:fix && npm run format",
-    "pretest": "npm run build",
-    "posttest": "echo 'Tests completed. See TESTING.md for more information.'"
+    "pretest:integration": "npm run build",
+    "posttest:integration": "echo 'Integration tests completed. See TESTING.md for more information.'"
   },
   "type": "module",
   "author": "Mark Lummus",
@@ -49,13 +52,16 @@
   "devDependencies": {
     "@types/ajv": "^1.0.4",
     "@types/figlet": "^1.7.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
     "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.5.1",
+    "jest": "^30.0.4",
     "prettier": "^3.6.2",
+    "ts-jest": "^29.4.0",
     "typescript-eslint": "^8.35.1"
   }
 }

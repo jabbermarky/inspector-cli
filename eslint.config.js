@@ -49,6 +49,8 @@ export default [
       '*.js.map',
       'coverage/**',
       '.nyc_output/**',
+      'jest.config.cjs',
+      'jest.setup.js',
     ],
   },
 ];

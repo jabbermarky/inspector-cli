@@ -5,6 +5,7 @@ import { Jimp } from 'jimp';
 import { InvalidArgumentError } from 'commander';
 import { createModuleLogger } from './logger.js';
 import { getConfig } from './config.js';
+import { withRetry } from './retry.js';
 
 const logger = createModuleLogger('utils');
 const config = getConfig();
@@ -466,54 +467,85 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
         if (result.cms === "WordPress") {
             return result;
         }
-        // --- Joomla ---
-        const hasJoomlaMeta = await page.$eval(
-            'meta[name="generator"]',
-            el => (el as HTMLMetaElement).content.toLowerCase(),
+        // --- Joomla Detection ---
+        const hasJoomlaMeta = await withRetry(
+            () => page.$eval(
+                'meta[name="generator"]',
+                el => (el as HTMLMetaElement).content.toLowerCase(),
+            ),
+            { maxRetries: 1, initialDelayMs: 500 },
+            'Joomla meta detection'
         ).catch(() => "");
+        
         if (hasJoomlaMeta.includes("joomla")) {
-            console.log(`Found Joomla meta tag: ${hasJoomlaMeta}`);
+            logger.debug('Joomla detected via meta tag', { metaContent: hasJoomlaMeta });
             return { cms: "Joomla", version: hasJoomlaMeta.match(/joomla!\s*([\d.]+)/i)?.[1] };
         }
+        
         if (
             html.includes("content=\"Joomla!") ||
-//            html.includes("/media/system/js/") ||
-//            html.includes("com_content") ||
             html.includes("joomla")
         ) {
-            console.log(`Found Joomla content in HTML`);
+            logger.debug('Joomla detected via HTML content');
             return { cms: "Joomla" };
         }
 
-        // --- Drupal ---
-        const hasDrupalMeta = await page.$eval(
-            'meta[name="generator"]',
-            el => (el as HTMLMetaElement).content.toLowerCase(),
+        // --- Drupal Detection ---
+        const hasDrupalMeta = await withRetry(
+            () => page.$eval(
+                'meta[name="generator"]',
+                el => (el as HTMLMetaElement).content.toLowerCase(),
+            ),
+            { maxRetries: 1, initialDelayMs: 500 },
+            'Drupal meta detection'
         ).catch(() => "");
+        
         if (hasDrupalMeta.includes("drupal")) {
-            console.log(`Found Drupal meta tag: ${hasDrupalMeta}`);
+            logger.debug('Drupal detected via meta tag', { metaContent: hasDrupalMeta });
             return { cms: "Drupal", version: hasDrupalMeta.match(/drupal\s*([\d.]+)/i)?.[1] };
         }
+        
         if (
             html.includes("/sites/all/") ||
             html.includes("/misc/drupal.js") ||
             html.includes("drupal-settings-json") ||
             html.includes("Drupal.settings")
         ) {
-            console.log(`Found Drupal content in HTML`);
+            logger.debug('Drupal detected via HTML content');
             return { cms: "Drupal" };
         }
-        const drupalChangelog = await page.goto(url.replace(/\/$/, "") + "/CHANGELOG.txt", { waitUntil: "domcontentloaded" }).catch(() => null);
+        
+        // Check for Drupal changelog file
+        const drupalChangelogUrl = url.replace(/\/$/, "") + "/CHANGELOG.txt";
+        const drupalChangelog = await withRetry(
+            () => page.goto(drupalChangelogUrl, { waitUntil: "domcontentloaded" }),
+            { maxRetries: 1, initialDelayMs: 500 },
+            'Drupal changelog check'
+        ).catch(err => {
+            logger.debug('Drupal changelog not accessible', { error: err.message });
+            return null;
+        });
+        
         if (drupalChangelog && drupalChangelog.status() === 200) {
             const text = await drupalChangelog.text();
-            if (text.includes("Drupal")) return { cms: "Drupal" };
+            if (text.includes("Drupal")) {
+                logger.debug('Drupal detected via changelog');
+                return { cms: "Drupal" };
+            }
         }
 
-        return { cms: "Unknown" };
+        logger.debug('CMS detection completed', { cms: result.cms, url });
+        return result;
     } catch (error) {
-        console.error(`Error detecting CMS for ${url}:`, (error as  Error).message);
-        return { cms: "Unknown", error: (error as Error).message };
+        logger.error('Error during CMS detection', { error: (error as Error).message, url });
+        return { cms: "Unknown", error: error instanceof Error ? error.message : 'Unknown error' };
     } finally {
-        await browser.close();
+        await withRetry(
+            () => browser.close(),
+            { maxRetries: 2, initialDelayMs: 1000 },
+            'Browser close'
+        ).catch((err: unknown) => {
+            logger.warn('Failed to close browser cleanly', { error: String(err) });
+        });
     }
 }
