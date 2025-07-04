@@ -4,13 +4,21 @@ import process from 'process';
 import { parse } from 'csv-parse/sync';
 import { Jimp } from 'jimp';
 import { InvalidArgumentError } from 'commander';
+import { createModuleLogger } from './logger.js';
+import { getConfig } from './config.js';
+
+const logger = createModuleLogger('utils');
+const config = getConfig();
 
 import puppeteer from "puppeteer-extra";
 import puppeteerStealth from "puppeteer-extra-plugin-stealth";
 import puppeteerAdblocker from "puppeteer-extra-plugin-adblocker";
 
 puppeteer.use(puppeteerStealth());
-puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
+// Only use adblocker if enabled in config
+if (config.puppeteer.blockAds) {
+  puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
+}
 
 interface SegmentImageHeaderFooterOptions {
     header?: number;
@@ -73,14 +81,14 @@ export function analyzeFilePath(filePath: string, width: number): string {
     
     // Check if the filepath has a directory
     if (!dir || dir === '.') {
-        filePath = path.join('./scrapes', base);
+        filePath = path.join(config.app.screenshotDir, base);
     } else {
         // Security: Ensure the resolved path is within safe boundaries
         const resolvedPath = path.resolve(dir, base);
-        const safePath = path.resolve('./scrapes');
+        const safePath = path.resolve(config.app.screenshotDir);
         
         if (!resolvedPath.startsWith(safePath) && !resolvedPath.startsWith(path.resolve('.'))) {
-            throw new Error('Invalid file path: path must be within current directory or scrapes folder');
+            throw new Error('Invalid file path: path must be within current directory or screenshot folder');
         }
         
         filePath = path.join(dir, base);
@@ -109,10 +117,12 @@ export function myParseDecimal(value: string, _dummyPrevious: any) {
 
 export function loadCSVFromFile(filePath: string) {
     try {
+        logger.debug(`Loading CSV file: ${filePath}`);
         const data = fs.readFileSync(filePath, 'utf8');
+        logger.info(`Successfully loaded CSV file: ${filePath}`, { size: data.length });
         return data;
     } catch (err) {
-        console.error(`Error reading file from disk: ${err}`);
+        logger.error(`Failed to read CSV file: ${filePath}`, { filePath }, err as Error);
         throw new Error(`Failed to read CSV file: ${filePath}`);
     }
 }
@@ -131,7 +141,10 @@ export function parseCSV(csvData: string): any {
     });
 }
 export async function segmentImageHeaderFooter(filename: string, options: SegmentImageHeaderFooterOptions) {
+    const startTime = Date.now();
     try {
+        logger.debug(`Starting image segmentation for: ${filename}`, { options });
+        
         // Input validation
         if (!filename || typeof filename !== 'string') {
             throw new Error('Invalid filename: filename must be a non-empty string');
@@ -156,6 +169,7 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
         const image = await Jimp.read(filename);
         const width = image.bitmap.width;
         const height = image.bitmap.height;
+        logger.debug(`Image dimensions: ${width}x${height}`);
 
         const headerSize = options.header || 0;
         const footerSize = options.footer || 0;
@@ -177,7 +191,7 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
             const header = image.clone().crop({ x: 0, y: 0, w: width, h: headerSize });
             const headerFilename = `${filename.split('.').slice(0, -1).join('.')}_header_h${headerSize}.png` as `${string}.${string}`;
             await header.write(headerFilename);
-            console.log(`Header segment created: ${headerFilename}`);
+            logger.info(`Header segment created: ${headerFilename}`, { headerSize });
         }
 
         // Create footer segment
@@ -185,11 +199,14 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
             const footer = image.clone().crop({ x: 0, y: height - footerSize, w: width, h: footerSize });
             const footerFilename = `${filename.split('.').slice(0, -1).join('.')}_footer_h${footerSize}.png` as `${string}.${string}`;
             await footer.write(footerFilename);
-            console.log(`Footer segment created: ${footerFilename}`);
+            logger.info(`Footer segment created: ${footerFilename}`, { footerSize });
         }
 
+        const duration = Date.now() - startTime;
+        logger.performance('Image segmentation', duration);
+
     } catch (err) {
-        console.error(`Error processing image: `, (err as Error).message);
+        logger.error(`Error processing image: ${filename}`, { filename, options }, err as Error);
         throw err;
     }
 }
@@ -201,8 +218,11 @@ const requestHeaders = {
 export async function takeAScreenshotPuppeteer(url: string, path: string, width: number) {
     let browser: any = null;
     let semaphoreAcquired = false;
+    const startTime = Date.now();
     
     try {
+        logger.debug(`Starting screenshot capture`, { url, path, width });
+        
         // Validate the input
         if (url === undefined || url === '') {
             throw new Error(`Invalid URL: ${url}`);
@@ -211,6 +231,7 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
             //confirm that url has a protocol
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 url = 'https://' + url;
+                logger.debug(`Added https:// protocol to URL: ${url}`);
             }
         }
         let urlObj = new URL(url);
@@ -229,36 +250,74 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
 
         await semaphore.acquire();
         semaphoreAcquired = true;
-        console.log(`Taking a screenshot of ${url} with width ${width} and saving it to ${path}`);
+        logger.info(`Taking screenshot: ${url} -> ${path}`, { url, path, width });
         
-        browser = await puppeteer.launch({ headless: true, defaultViewport: { width: width, height: 1200 } });
+        browser = await puppeteer.launch({ 
+            headless: config.puppeteer.headless, 
+            defaultViewport: { width: width, height: config.puppeteer.viewport.height } 
+        });
+        logger.debug(`Browser launched successfully`);
         
         const page = await browser.newPage();
+        
+        // Set timeout for navigation
+        page.setDefaultTimeout(config.puppeteer.timeout);
+        
         await page.setExtraHTTPHeaders({ ...requestHeaders });
-        await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1.1 Safari/605.1.15');
+        await page.setUserAgent(config.puppeteer.userAgent);
+        
+        // Block images if configured
+        if (config.puppeteer.blockImages) {
+            await page.setRequestInterception(true);
+            page.on('request', (req: any) => {
+                if (req.resourceType() === 'image') {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
+        }
+        
+        const navigationStart = Date.now();
         await page.goto(url);
+        const navigationTime = Date.now() - navigationStart;
+        logger.debug(`Page navigation completed`, { navigationTime });
 
         const sizes: Array<any> = await page.evaluate(() => [document.body.scrollWidth, document.body.scrollHeight]) as any[];
-        console.log(`page size is ${sizes}, type ${typeof sizes} json ${JSON.stringify(sizes)} width: ${sizes[0]} height: ${sizes[1]}`);
+        logger.debug(`Page dimensions detected`, { scrollWidth: sizes[0], scrollHeight: sizes[1] });
+        
+        const screenshotStart = Date.now();
         await page.screenshot({ path: path, fullPage: true });
+        const screenshotTime = Date.now() - screenshotStart;
+        
+        const totalDuration = Date.now() - startTime;
+        logger.screenshot(url, path, width);
+        logger.performance('Screenshot capture', totalDuration);
+        logger.debug(`Screenshot timings`, { 
+            navigation: navigationTime, 
+            screenshot: screenshotTime, 
+            total: totalDuration 
+        });
         
         return { url, path, width, sizes };
     } catch (e) {
-        console.error(`Error taking screenshot of ${url}:`, (e as Error).message);
+        logger.error(`Screenshot failed for ${url}`, { url, path, width }, e as Error);
         throw e;
     } finally {
         if (browser) {
             try {
                 await browser.close();
+                logger.debug(`Browser closed successfully`);
             } catch (e) {
-                console.error('Error closing browser:', (e as Error).message);
+                logger.warn('Error closing browser', {}, e as Error);
             }
         }
         if (semaphoreAcquired) {
             semaphore.release();
+            logger.debug(`Semaphore released`);
         }
     }
-} const semaphore = new Semaphore(2); // Limit to 2 concurrent tasks
+} const semaphore = new Semaphore(config.puppeteer.maxConcurrency);
 
 export function validJSON(str: string): boolean {
     try {
@@ -303,9 +362,18 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
         return { cms: "Unknown", error: "Invalid URL protocol" };
     }
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+        headless: config.puppeteer.headless,
+        defaultViewport: { 
+            width: config.puppeteer.viewport.width, 
+            height: config.puppeteer.viewport.height 
+        }
+    });
     try {
         const page = await browser.newPage();
+        page.setDefaultTimeout(config.puppeteer.timeout);
+        await page.setUserAgent(config.puppeteer.userAgent);
+        
         let result: CMSDetectionResult = { cms: "Unknown" };
 
         const mainResponse = await page.goto(url, { waitUntil: "domcontentloaded" });

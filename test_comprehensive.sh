@@ -63,7 +63,7 @@ fi
 unset OPENAI_API_KEY
 
 # Test missing API key
-if timeout 5s node dist/index.js assistants 2>&1 | grep -q "OpenAI API key is not set"; then
+if timeout 5s node dist/index.js assistants 2>&1 | grep -q "OPENAI_API_KEY is required"; then
     log_success "Missing API key detection"
     ((PASSED_TESTS++))
 else
@@ -72,9 +72,9 @@ else
 fi
 ((TOTAL_TESTS++))
 
-# Test invalid API key
+# Test invalid API key (first test format validation)
 export OPENAI_API_KEY="invalid-key"
-if timeout 5s node dist/index.js assistants 2>&1 | grep -q "Error\|error\|AuthenticationError"; then
+if timeout 5s node dist/index.js assistants 2>&1 | grep -q "OPENAI_API_KEY must start with"; then
     log_success "Invalid API key handling"
     ((PASSED_TESTS++))
 else
@@ -87,6 +87,9 @@ fi
 if [ -f .env.temp.test ]; then
     mv .env.temp.test .env
 fi
+
+# Set valid API key for remaining tests
+export OPENAI_API_KEY="sk-test-key-for-validation-tests"
 
 # Test 2: Path Validation
 echo -e "\n${BLUE}=== Testing Path Validation ===${NC}"

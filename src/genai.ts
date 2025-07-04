@@ -1,16 +1,13 @@
 import OpenAI from "openai";
 import fs from 'fs';
-import dotenv from 'dotenv';
 import { SYSTEM_PROMPT_1, SYSTEM_PROMPT_2 } from "./prompts.js";
+import { createModuleLogger } from "./utils/logger.js";
+import { getConfig } from "./utils/config.js";
 
-dotenv.config();
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.error("OpenAI API key is not set");
-  process.exit(1);
-}
+const logger = createModuleLogger('genai');
+const config = getConfig();
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: config.openai.apiKey });
 const BRANDI = 'asst_0gvshl7GZDs6dCUIvxLzWLaj';
 const BRANDI_JSON = 'asst_KetBa5TJspGM51mMsie3hBd5';
 
@@ -45,23 +42,29 @@ function readBase64File(filePath: string): string | null {
 }
 
 export async function callChat(params: CallAssistantParams): Promise<CallAssistantResponse> {
+  logger.debug('Starting chat API call', { params: { ...params, screenshot: params.screenshot ? '[HIDDEN]' : undefined } });
+  
   if (!params.screenshot && !params.url) {
+    logger.error('Missing required parameters for chat API call');
     return { error: "no image parameter is defined" };
   }
 
   let createParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
-    model: params.model || "chatgpt-4o-latest",
+    model: params.model || config.openai.model,
     response_format: { "type": "json_object" },
     messages: [],
-    max_tokens: 4000,
+    max_tokens: config.openai.maxTokens,
+    temperature: params.temperature || config.openai.temperature,
+    top_p: params.top_p || config.openai.topP,
   }
 
-  console.log('callChat model', createParams.model);
+  logger.info('Calling OpenAI Chat API', { model: createParams.model, maxTokens: createParams.max_tokens });
 
   if (params.screenshot && typeof params.screenshot === 'string') {
-    console.log(`callChat screenshot is ${params.screenshot}`);
+    logger.debug(`Processing single screenshot file: ${params.screenshot}`);
     // Validate file path
     if (!fs.existsSync(params.screenshot)) {
+      logger.error(`Screenshot file not found: ${params.screenshot}`);
       return { error: "screenshot file does not exist" };
     }
     // Proceed with processing screenshot file

@@ -1,0 +1,32 @@
+{
+  "openai": {
+    "model": "gpt-4o",
+    "temperature": 0.7,
+    "topP": 1.0,
+    "maxTokens": 4096
+  },
+  "puppeteer": {
+    "headless": true,
+    "timeout": 30000,
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "blockAds": true,
+    "blockImages": false,
+    "maxConcurrency": 2
+  },
+  "app": {
+    "environment": "development",
+    "screenshotDir": "./scrapes",
+    "logLevel": "DEBUG",
+    "logFormat": "text"
+  },
+  "api": {
+    "retryAttempts": 3,
+    "retryDelay": 1000,
+    "requestTimeout": 60000,
+    "enableCaching": false
+  }
+}
