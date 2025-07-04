@@ -91,3 +91,6 @@ inspector detect_cms https://example.com
 - Screenshot files are automatically organized with width suffixes
 - The semaphore system prevents browser resource exhaustion during batch operations
 - AI responses are validated against specific JSON schemas for structured data extraction
+
+## Working Guidelines
+- Always ask before proceeding to the next TODO
