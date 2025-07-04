@@ -14,7 +14,13 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - `npm run run` - Run TypeScript compiler in watch mode for development
 
 ### Testing
-- No test framework is currently configured (test script returns error)
+- `npm test` - Run Jest unit tests for core functionality
+- `npm run test:watch` - Run Jest tests in watch mode for development  
+- `npm run test:coverage` - Run tests with coverage reporting
+- `npm run test:integration` - Run comprehensive shell-based integration tests
+- Jest is configured with TypeScript support and ES modules
+- Unit tests cover retry logic, error handling, and core utilities
+- Integration tests validate end-to-end workflows and critical fixes
 
 ## Architecture
 
@@ -34,8 +40,11 @@ The application uses Commander.js with a modular command architecture. Each comm
 - `eval.ts` - Evaluation utilities
 
 ### Core Modules
-- `genai.ts` - OpenAI API integration with support for both Chat and Assistant APIs
+- `genai.ts` - OpenAI API integration with support for both Chat and Assistant APIs, includes retry logic and resource cleanup
 - `utils/utils.ts` - Utility functions including Puppeteer screenshot capture, CSV parsing, image processing with Jimp, and CMS detection
+- `utils/retry.ts` - Exponential backoff retry utility for API resilience and error handling
+- `utils/config.ts` - Comprehensive configuration management with validation
+- `utils/logger.ts` - Structured logging system with multiple levels and formats
 - `brandi_json_schema.ts` - JSON schema validation for AI responses
 - `prompts.ts` - System prompts for AI interactions
 
@@ -54,9 +63,12 @@ Screenshots are saved to `./scrapes/` directory with filename format: `{name}_w{
 
 ### AI Integration
 - Uses OpenAI Assistant API for structured analysis of website screenshots
-- Supports both single and multiple image analysis
+- Supports both single and multiple image analysis  
 - Validates responses against predefined JSON schemas
 - Configurable model, temperature, and top_p parameters
+- **Error Handling**: Implements exponential backoff retry logic for API failures
+- **Resource Management**: Automatic cleanup of uploaded files to prevent billing issues
+- **File Validation**: Size limits (20MB), existence checks, and proper error handling
 
 ### Environment Configuration
 - Requires `OPENAI_API_KEY` environment variable
@@ -87,10 +99,14 @@ inspector detect_cms https://example.com
 ## Development Notes
 
 - The application uses ES modules (`"type": "module"` in package.json)
-- TypeScript configuration is in `tsconfig.json`
+- TypeScript configuration is in `tsconfig.json` with Jest type support
 - Screenshot files are automatically organized with width suffixes
 - The semaphore system prevents browser resource exhaustion during batch operations
 - AI responses are validated against specific JSON schemas for structured data extraction
+- **Error Handling**: Comprehensive retry logic with exponential backoff for all external API calls
+- **Testing**: Jest framework for unit tests, shell scripts for integration testing
+- **Code Quality**: ESLint and Prettier configured for consistent code style
+- **Logging**: Structured logging with configurable levels and output formats
 
 ## Working Guidelines
 - Always ask before proceeding to the next TODO

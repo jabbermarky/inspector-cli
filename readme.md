@@ -71,7 +71,14 @@ inspector footer --header=512 ./scrapes/google_home_1024.png
 - `npm run dev` - Run TypeScript compiler in watch mode for development
 
 ### Testing
-- `npm test` - Run comprehensive test suite for all critical fixes
+
+#### Unit Tests (Jest)
+- `npm test` - Run Jest unit tests for core functionality
+- `npm run test:watch` - Run Jest tests in watch mode for development
+- `npm run test:coverage` - Run tests with coverage reporting
+
+#### Integration Tests (Shell Scripts)
+- `npm run test:integration` - Run comprehensive integration test suite
 - `npm run test:quick` - Run quick verification tests (2-3 minutes)
 - `npm run test:security` - Test API key security and path validation
 - `npm run test:paths` - Test file path validation and security
@@ -79,6 +86,14 @@ inspector footer --header=512 ./scrapes/google_home_1024.png
 - `npm run test:cleanup` - Test error handling and resource cleanup
 
 See [TESTING.md](TESTING.md) for detailed testing information.
+
+### Code Quality
+- `npm run lint` - Run ESLint to check code quality
+- `npm run lint:fix` - Fix ESLint errors automatically
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run quality` - Run both linting and format checking
+- `npm run quality:fix` - Fix both linting and formatting issues
 
 ### Other Commands
 - `inspector detect-cms <url>` - Detect CMS (WordPress, Joomla, Drupal) on a website

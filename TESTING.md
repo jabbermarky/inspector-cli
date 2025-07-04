@@ -77,6 +77,21 @@ This document describes the automated test scripts for verifying the 4 critical 
 - **Fix**: Comprehensive path validation and sanitization
 - **Tests**: Verify security restrictions and safe path handling
 
+### 5. Comprehensive Error Handling ✅ (NEW)
+- **Issue**: Lack of retry logic and proper error handling for API calls
+- **Fix**: Exponential backoff retry utility with comprehensive error handling
+- **Features**:
+  - Retry logic for OpenAI API calls with exponential backoff
+  - File validation (size, existence, readability) before processing
+  - Automatic resource cleanup for OpenAI file uploads
+  - Timeout handling for CMS detection operations
+  - Network error handling with graceful degradation
+- **Tests**: 
+  - Unit tests for retry utility covering 13 scenarios
+  - Network error simulation and recovery validation
+  - OpenAI-specific error handling verification
+  - Resource cleanup and file validation testing
+
 ## Test Services Used
 
 - **httpbin.org**: Reliable HTTP testing service
@@ -94,22 +109,31 @@ npm run build
 export OPENAI_API_KEY="your-test-key"
 ```
 
-### Quick Test Run
+### Unit Tests
 ```bash
+# Run all unit tests
+npm test
+
+# Development mode with file watching
+npm run test:watch
+
+# Generate coverage reports
+npm run test:coverage
+open coverage/index.html  # View coverage report
+```
+
+### Integration Tests
+```bash
+# Quick integration tests
 ./test_quick.sh
-```
 
-### Full Test Suite
-```bash
+# Full integration test suite
 ./test_critical_fixes.sh
-```
 
-### Individual Test Categories
-```bash
-# Run only security tests
+# Specific test categories
 ./test_critical_fixes.sh | grep -A 20 "API Key Security"
 
-# Check for resource leaks specifically
+# Check for resource leaks
 ps aux | grep -E "(chrome|puppeteer)" | wc -l
 ./test_quick.sh
 ps aux | grep -E "(chrome|puppeteer)" | wc -l
@@ -117,7 +141,13 @@ ps aux | grep -E "(chrome|puppeteer)" | wc -l
 
 ## Expected Results
 
-### Successful Test Run
+### Successful Unit Test Run
+- All 13 retry utility tests pass
+- Test coverage reports generated in `coverage/` directory
+- No test failures or timeout issues
+- Coverage metrics for core utilities and error handling
+
+### Successful Integration Test Run
 - All security vulnerabilities blocked
 - No hanging browser processes
 - Proper error messages for invalid inputs
