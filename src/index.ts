@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file BEFORE any other imports
+dotenv.config();
+
 import process from 'process';
 import figlet from 'figlet';
 import { createModuleLogger } from './utils/logger.js';

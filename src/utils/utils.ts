@@ -8,16 +8,23 @@ import { getConfig } from './config.js';
 import { withRetry } from './retry.js';
 
 const logger = createModuleLogger('utils');
-const config = getConfig();
 
 import puppeteer from "puppeteer-extra";
 import puppeteerStealth from "puppeteer-extra-plugin-stealth";
 import puppeteerAdblocker from "puppeteer-extra-plugin-adblocker";
 
-puppeteer.use(puppeteerStealth());
-// Only use adblocker if enabled in config
-if (config.puppeteer.blockAds) {
-  puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
+// Configure puppeteer plugins lazily when first accessed
+let puppeteerConfigured = false;
+function ensurePuppeteerConfigured() {
+  if (!puppeteerConfigured) {
+    const config = getConfig();
+    puppeteer.use(puppeteerStealth());
+    // Only use adblocker if enabled in config
+    if (config.puppeteer.blockAds) {
+      puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
+    }
+    puppeteerConfigured = true;
+  }
 }
 
 interface SegmentImageHeaderFooterOptions {
@@ -81,11 +88,11 @@ export function analyzeFilePath(filePath: string, width: number): string {
     
     // Check if the filepath has a directory
     if (!dir || dir === '.') {
-        filePath = path.join(config.app.screenshotDir, base);
+        filePath = path.join(getConfig().app.screenshotDir, base);
     } else {
         // Security: Ensure the resolved path is within safe boundaries
         const resolvedPath = path.resolve(dir, base);
-        const safePath = path.resolve(config.app.screenshotDir);
+        const safePath = path.resolve(getConfig().app.screenshotDir);
         
         if (!resolvedPath.startsWith(safePath) && !resolvedPath.startsWith(path.resolve('.'))) {
             throw new Error('Invalid file path: path must be within current directory or screenshot folder');
@@ -216,6 +223,8 @@ const requestHeaders = {
 };
 
 export async function takeAScreenshotPuppeteer(url: string, path: string, width: number) {
+    ensurePuppeteerConfigured();
+    const config = getConfig();
     let browser: any = null;
     let semaphoreAcquired = false;
     const startTime = Date.now();
@@ -248,7 +257,7 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
             throw new Error(`Invalid width: ${width}, width must be greater than 0`);
         }
 
-        await semaphore.acquire();
+        await getSemaphore().acquire();
         semaphoreAcquired = true;
         logger.info(`Taking screenshot: ${url} -> ${path}`, { url, path, width });
         
@@ -313,11 +322,20 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
             }
         }
         if (semaphoreAcquired) {
-            semaphore.release();
+            getSemaphore().release();
             logger.debug(`Semaphore released`);
         }
     }
-} const semaphore = new Semaphore(config.puppeteer.maxConcurrency);
+}
+
+// Lazy semaphore initialization
+let semaphore: Semaphore | null = null;
+function getSemaphore(): Semaphore {
+    if (!semaphore) {
+        semaphore = new Semaphore(getConfig().puppeteer.maxConcurrency);
+    }
+    return semaphore;
+}
 
 export function validJSON(str: string): boolean {
     try {
@@ -345,6 +363,9 @@ export interface CMSDetectionResult {
 }
 
 export async function detectCMS(url: string): Promise<CMSDetectionResult> {
+    ensurePuppeteerConfigured();
+    const config = getConfig();
+    
     // Validate the input
     if (url === undefined || url === '') {
         console.error(`Invalid URL: ${url}`);
