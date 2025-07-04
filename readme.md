@@ -30,37 +30,30 @@ The first row of the file is a header and will be skipped.
 
 Screenshots are taken per row @ 3 widths: 768, 1024, 1536.
 
-    .command("footer")
-    .alias("header")
-    .description("Create image segments from the header and footer of an image")
-    .argument('<filename>', 'Image file to process')
-    .option('-h, --header <headerSize>', 'Height of the header segment', myParseInt, 1024)
-    .option('-f, --footer <footerSize>', 'Height of the footer segment', myParseInt, 1024)
-
-
 ### Create image segments from the header and footer of an image file
+```bash
+inspector footer [--header=<headerSize>] [--footer=<footerSize>] <filename>
+# or
+inspector header [--header=<headerSize>] [--footer=<footerSize>] <filename>
 ```
-inspector footer [--header=<headerSize>] [--footer=<footerSize> <filepath>
-or
-inspector header [--header=<headerSize>] [--footer=<footerSize> <filepath>
 
-```
+- **Arguments**: `<filename>` - Image file to process
+- **Options**:
+  - `-h, --header <headerSize>` - Height of the header segment in pixels (default: 1024)
+  - `-f, --footer <footerSize>` - Height of the footer segment in pixels (default: 1024)
+- **Note**: If 0 is passed for either option, no file is created for that segment
+- **Output**: Files are created with segment type and height appended to filename
 
-header is an option to specify the header height in px. Default is 1024. If 0 is passed, then no file is created.
-footer is an option to specify the footer height in px. Default is 1024. If 0 is passed, then no file is created.
-path is a required argument that is the path of the source image file. The default extension is .png.
-The section and height are appended to the filename. 
+**Example:**
 
-Example:
+Extract header (512px) and footer (default 1024px) from an image:
 
-extract the header (height 512px) and footer (default height) from ./scrapes/google_home_1024.png; 
-
-```
+```bash
 inspector footer --header=512 ./scrapes/google_home_1024.png
 
-//creates 2 files:
-//  ./scrapes/google_home_1024_header_h512.png
-//  ./scrapes/google_home_1024_footer_h1024.png
+# Creates 2 files:
+# ./scrapes/google_home_1024_header_h512.png
+# ./scrapes/google_home_1024_footer_h1024.png
 ```
 
 ## Development Commands
@@ -95,11 +88,70 @@ See [TESTING.md](TESTING.md) for detailed testing information.
 - `npm run quality` - Run both linting and format checking
 - `npm run quality:fix` - Fix both linting and formatting issues
 
-### Other Commands
-- `inspector detect-cms <url>` - Detect CMS (WordPress, Joomla, Drupal) on a website
-- `inspector chat <screenshot...>` - Analyze screenshots using OpenAI Chat API
-- `inspector assistant <screenshot...>` - Analyze screenshots using OpenAI Assistant API
-- `inspector assistants` - List available OpenAI assistants
+### AI Analysis Commands
+
+#### Analyze screenshots with OpenAI Chat API
+```bash
+inspector chat [--model=<model>] <screenshot...>
+```
+
+- **Arguments**: One or more screenshot files to analyze
+- **Options**: 
+  - `-m, --model <model>` - OpenAI model to use (default: chatgpt-4o-latest)
+- **Example**: `inspector chat -m gpt-4o screenshot1.png screenshot2.png`
+
+#### Analyze screenshots with OpenAI Assistant API
+```bash
+inspector assistant [options] <screenshot...>
+```
+
+- **Arguments**: One or more screenshot files to analyze
+- **Options**:
+  - `-a, --assistant <assistant>` - Specify the assistant to use
+  - `-m, --model <model>` - Model to use
+  - `-t, --temperature <temperature>` - Temperature setting (decimal)
+  - `-p, --top_p <top_p>` - Top P setting
+  - `-o, --outfile <outfile>` - Save output to a file
+- **Example**: `inspector assistant -m gpt-4o -t 0.5 -o analysis.json screenshot.png`
+
+#### List available OpenAI assistants
+```bash
+inspector assistants
+```
+
+- **Description**: Lists all available OpenAI assistants with their IDs and names
+- **Example**: `inspector assistants`
+
+### Evaluation Command
+
+#### Evaluate assistant against screenshots (NOT IMPLEMENTED)
+```bash
+inspector eval <assistant> <infilename> [options]
+```
+
+- **Arguments**:
+  - `<assistant>` - Assistant ID to use for evaluation
+  - `<infilename>` - JSON file containing evaluation data
+- **Options**:
+  - `-o, --outfile <outfile>` - Save output to a file
+  - `-t, --temperature <temperature>` - Temperature setting
+  - `-p, --top_p <top_p>` - Top P setting
+- **Status**: ⚠️ **NOT IMPLEMENTED** - Command defined but functionality not complete
+
+### CMS Detection
+
+#### Detect Content Management System
+```bash
+inspector detect-cms <url>
+```
+
+- **Description**: Analyzes a website to detect if it uses WordPress, Joomla, or Drupal
+- **Arguments**: `<url>` - Website URL to analyze
+- **Features**: 
+  - Detects CMS type and version
+  - Identifies WordPress plugins
+  - Checks for CMS-specific endpoints and files
+- **Example**: `inspector detect-cms https://example.com`
 
 ## Environment Setup
 

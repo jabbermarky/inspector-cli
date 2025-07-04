@@ -74,26 +74,62 @@ Screenshots are saved to `./scrapes/` directory with filename format: `{name}_w{
 - Requires `OPENAI_API_KEY` environment variable
 - Uses dotenv for configuration management
 
-## Common Usage Patterns
+## Complete Command Reference
 
-### Screenshot Capture
+### Core Commands
+
+#### Screenshot Capture
 ```bash
+# Single screenshot
+inspector screenshot [--width=<width>] <url> <path>
+
+# Batch processing from CSV
+inspector csv <csv_file>
+
+# Image segmentation
+inspector footer [--header=<size>] [--footer=<size>] <filename>
+inspector header [--header=<size>] [--footer=<size>] <filename>  # alias
+```
+
+#### AI Analysis
+```bash
+# Chat API analysis
+inspector chat [--model=<model>] <screenshot...>
+
+# Assistant API analysis
+inspector assistant [options] <screenshot...>
+# Options: -a/--assistant, -m/--model, -t/--temperature, -p/--top_p, -o/--outfile
+
+# List available assistants
+inspector assistants
+
+# Evaluation (NOT IMPLEMENTED)
+inspector eval <assistant> <infilename> [options]
+```
+
+#### Utility Commands
+```bash
+# CMS detection
+inspector detect-cms <url>
+```
+
+### Example Usage Patterns
+
+```bash
+# Take screenshot at specific width
 inspector screenshot --width=1024 https://example.com site_name
-```
 
-### Batch Processing
-```bash
+# Process multiple URLs from CSV
 inspector csv input_file.csv
-```
 
-### AI Analysis
-```bash
-inspector assistant -m gpt-4o -t 0.5 screenshot1.png screenshot2.png
-```
+# Analyze screenshots with specific model and temperature
+inspector assistant -m gpt-4o -t 0.5 -o results.json screenshot1.png screenshot2.png
 
-### CMS Detection
-```bash
-inspector detect_cms https://example.com
+# Detect CMS and version
+inspector detect-cms https://example.com
+
+# Extract header and footer from screenshot
+inspector footer --header=800 --footer=600 screenshot.png
 ```
 
 ## Development Notes
