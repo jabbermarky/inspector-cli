@@ -53,6 +53,8 @@ class WordPressPluginStrategy implements DetectionStrategy {
             };
 
         } catch (error) {
+            // Debug: Check if this should be logged at current level
+            // console.log('DEBUG: WordPress plugin error, should log WARN?', logger);
             logger.warn('WordPress plugin detection failed', {
                 url,
                 error: (error as Error).message

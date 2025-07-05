@@ -1,10 +1,10 @@
+import { getConfig } from './config.js';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 import { Jimp } from 'jimp';
 import { InvalidArgumentError } from 'commander';
 import { createModuleLogger } from './logger.js';
-import { getConfig } from './config.js';
 import { withRetry } from './retry.js';
 import { analyzeFilePath, loadCSVFromFile, validateFilePath } from './file/index.js';
 

@@ -1,8 +1,8 @@
+import { getConfig } from "./utils/config.js";
 import OpenAI from "openai";
 import fs from 'fs';
 import { SYSTEM_PROMPT_2 } from "./prompts.js";
 import { createModuleLogger } from "./utils/logger.js";
-import { getConfig } from "./utils/config.js";
 import { withRetryOpenAI } from "./utils/retry.js";
 
 const logger = createModuleLogger('genai');

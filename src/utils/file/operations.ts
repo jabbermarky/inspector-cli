@@ -1,7 +1,7 @@
+import { getConfig } from '../config.js';
 import fs from 'fs';
 import path from 'path';
 import { createModuleLogger } from '../logger.js';
-import { getConfig } from '../config.js';
 
 const logger = createModuleLogger('file-operations');
 

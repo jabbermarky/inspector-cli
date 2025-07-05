@@ -189,6 +189,8 @@ export class ConfigManager {
     ConfigValidator.validate(mergedConfig, false);
     
     // Update logger configuration based on loaded config
+    // Debug: Check what log level is being set
+    // console.log('DEBUG: Config setting log level to:', mergedConfig.app.logLevel, 'which maps to LogLevel:', LogLevel[mergedConfig.app.logLevel]);
     updateLoggerConfig({
       level: LogLevel[mergedConfig.app.logLevel],
       file: mergedConfig.app.logFile,

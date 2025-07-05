@@ -1,10 +1,10 @@
+import { getConfig } from '../config.js';
 import puppeteerExtra from 'puppeteer-extra';
 import { Browser, Page, HTTPRequest } from 'puppeteer';
 import puppeteerStealth from 'puppeteer-extra-plugin-stealth';
 import puppeteerAdblocker from 'puppeteer-extra-plugin-adblocker';
 import { BrowserManager, DetectionPage, CMSDetectionConfig, CMSNetworkError, BrowserConfig } from './types.js';
 import { createModuleLogger } from '../logger.js';
-import { getConfig } from '../config.js';
 import { getSemaphore } from '../utils.js';
 
 const logger = createModuleLogger('cms-browser-manager');
