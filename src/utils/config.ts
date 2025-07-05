@@ -54,8 +54,8 @@ export class ConfigValidator {
       throw new Error('OPENAI_API_KEY is required for AI-powered commands. Please set it in your environment or .env file.');
     }
     
-    // Validate API key format only if it's provided and not empty
-    if (config.openai?.apiKey && config.openai.apiKey.length > 0) {
+    // Validate API key format only in strict mode (when actually using OpenAI features)
+    if (strict && config.openai?.apiKey && config.openai.apiKey.length > 0) {
       if (typeof config.openai.apiKey !== 'string') {
         throw new Error('OPENAI_API_KEY must be a string');
       }
@@ -185,8 +185,8 @@ export class ConfigManager {
     // Merge configurations (env takes precedence)
     const mergedConfig = this.mergeConfigurations(fileConfig, envConfig);
     
-    // Validate the final configuration
-    ConfigValidator.validate(mergedConfig);
+    // Validate the final configuration (non-strict for OpenAI - only validate when actually needed)
+    ConfigValidator.validate(mergedConfig, false);
     
     // Update logger configuration based on loaded config
     updateLoggerConfig({
