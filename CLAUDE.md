@@ -14,39 +14,104 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - `npm run run` - Run TypeScript compiler in watch mode for development
 
 ### Testing
+**Unit Tests (Jest)**
 - `npm test` - Run Jest unit tests for core functionality
 - `npm run test:watch` - Run Jest tests in watch mode for development  
-- `npm run test:coverage` - Run tests with coverage reporting
-- `npm run test:integration` - Run comprehensive shell-based integration tests
-- Jest is configured with TypeScript support and ES modules
-- Unit tests cover retry logic, error handling, and core utilities
-- Integration tests validate end-to-end workflows and critical fixes
+- `npm run test:coverage` - Run tests with coverage reporting and HTML reports
+
+**Integration Tests (Shell Scripts)**
+- `npm run test:integration` - Run comprehensive end-to-end workflow validation
+- `npm run test:quick` - Run quick smoke tests (2-3 minutes)
+- `npm run test:security` - Test API key security and validation
+- `npm run test:paths` - Test file path validation and security measures
+- `npm run test:csv` - Test CSV processing and race condition fixes
+- `npm run test:cleanup` - Test error handling and resource cleanup
+
+**Code Quality**
+- `npm run lint` - ESLint code quality checks with TypeScript support
+- `npm run lint:fix` - Automatic ESLint error fixing
+- `npm run format` - Code formatting with Prettier
+- `npm run format:check` - Check code formatting compliance
+- `npm run quality` - Combined linting and formatting validation
+- `npm run quality:fix` - Fix both linting and formatting issues
 
 ## Architecture
 
 ### Entry Point
-- `src/index.ts` - Main CLI application entry point that configures Commander.js and imports all command modules
+- `src/index.ts` - Main CLI application entry point with dotenv configuration, figlet banner, and command imports
+- Uses ES modules (`"type": "module"`) with proper environment variable loading
+- Implements lazy initialization to avoid requiring OpenAI API key for non-AI commands
 
 ### Command Structure
 The application uses Commander.js with a modular command architecture. Each command is implemented in its own file in `src/commands/`:
 
-- `screenshot.ts` - Single URL screenshot capture
-- `csv.ts` - Batch screenshot processing from CSV files
-- `footer.ts` - Image segmentation for header/footer extraction
-- `assistant.ts` - OpenAI Assistant API integration for image analysis
-- `chat.ts` - OpenAI Chat API integration
-- `assistants.ts` - List available OpenAI assistants
-- `detect_cms.ts` - CMS detection with CSV batch processing (WordPress, Joomla, Drupal)
-- `eval.ts` - Evaluation utilities
+- `screenshot.ts` - Single URL screenshot capture with validation and error handling
+- `csv.ts` - Batch screenshot processing from CSV files with semaphore-based concurrency control
+- `footer.ts` - Image segmentation for header/footer extraction using Jimp
+- `assistant.ts` - OpenAI Assistant API integration with file upload and resource cleanup
+- `chat.ts` - OpenAI Chat API integration with vision capabilities
+- `assistants.ts` - List available OpenAI assistants with lazy client initialization
+- `detect_cms.ts` - Enhanced CMS detection with CSV batch processing, auto-detection, and real-time progress
+- `eval.ts` - Evaluation utilities (placeholder implementation)
 
 ### Core Modules
-- `genai.ts` - OpenAI API integration with support for both Chat and Assistant APIs, includes retry logic and resource cleanup
-- `utils/utils.ts` - Utility functions including Puppeteer screenshot capture, CSV parsing, image processing with Jimp, and CMS detection
-- `utils/retry.ts` - Exponential backoff retry utility for API resilience and error handling
-- `utils/config.ts` - Comprehensive configuration management with validation
-- `utils/logger.ts` - Structured logging system with multiple levels and formats
+
+#### Configuration & Environment
+- `utils/config.ts` - **Enterprise-grade configuration management**:
+  - TypeScript interfaces with comprehensive validation
+  - ConfigManager singleton with lazy initialization
+  - Support for environment variables, config files, and defaults
+  - Separate validation for OpenAI-dependent operations
+  - Environment-specific settings (development/production/test)
+
+#### Utility Libraries
+- `utils/utils.ts` - **Core utility functions**:
+  - Puppeteer screenshot capture with stealth mode and ad blocking
+  - CSV parsing with flexible column detection
+  - Image processing and segmentation with Jimp
+  - CMS detection with timeout handling
+  - Semaphore-based concurrency control
+  - File path validation and security checks
+
+- `utils/retry.ts` - **Resilient API integration**:
+  - Exponential backoff retry logic for API failures
+  - OpenAI-specific error handling and rate limiting
+  - Configurable retry parameters and operation naming
+  - Network error detection and graceful degradation
+
+- `utils/logger.ts` - **Production logging system**:
+  - Structured logging with multiple output formats (text/JSON)
+  - Configurable log levels (DEBUG, INFO, WARN, ERROR, SILENT)
+  - Module-specific loggers with performance tracking
+  - File and console output options
+  - API call logging and error tracking
+
+#### AI Integration
+- `genai.ts` - **OpenAI API integration**:
+  - Lazy client initialization to avoid startup dependencies
+  - Support for both Chat and Assistant APIs
+  - File upload with validation and automatic cleanup
+  - Retry logic with exponential backoff
+  - Resource management to prevent billing issues
+  
 - `brandi_json_schema.ts` - JSON schema validation for AI responses
 - `prompts.ts` - System prompts for AI interactions
+
+### Testing Architecture
+
+#### Unit Testing (Jest)
+- **Framework**: Jest with TypeScript support and ES modules
+- **Configuration**: `jest.config.cjs` with coverage reporting and timeout handling
+- **Test Structure**: 
+  - `src/utils/__tests__/retry.test.ts` - Comprehensive retry utility testing
+  - Coverage collection for core utilities and error handling
+  - Module name mapping for ES module compatibility
+
+#### Integration Testing (Shell Scripts)
+- **Comprehensive Testing**: `test_comprehensive.sh` - Full end-to-end workflow validation
+- **Quick Validation**: `test_quick.sh` - Fast smoke tests for CI/CD
+- **Security Testing**: `test_critical_fixes.sh` - API key security and path validation
+- **Specialized Tests**: Targeted testing for CSV processing, error handling, and cleanup
 
 ### Key Dependencies
 - **Puppeteer** with stealth and adblocker plugins for web scraping
@@ -137,15 +202,64 @@ inspector footer --header=800 --footer=600 screenshot.png
 
 ## Development Notes
 
-- The application uses ES modules (`"type": "module"` in package.json)
-- TypeScript configuration is in `tsconfig.json` with Jest type support
-- Screenshot files are automatically organized with width suffixes
-- The semaphore system prevents browser resource exhaustion during batch operations
-- AI responses are validated against specific JSON schemas for structured data extraction
-- **Error Handling**: Comprehensive retry logic with exponential backoff for all external API calls
-- **Testing**: Jest framework for unit tests, shell scripts for integration testing
-- **Code Quality**: ESLint and Prettier configured for consistent code style
-- **Logging**: Structured logging with configurable levels and output formats
+### Technical Architecture
+- **ES Modules**: Full ES module support (`"type": "module"` in package.json)
+- **TypeScript**: Comprehensive TypeScript configuration with Jest integration
+- **Lazy Initialization**: Components initialize only when needed to avoid startup dependencies
+- **Configuration Management**: Environment variable loading with .env file support
+- **Concurrency Control**: Semaphore-based resource management prevents browser exhaustion
+
+### Production Features
+- **Error Resilience**: Exponential backoff retry logic for all external API calls
+- **Resource Management**: Automatic cleanup of temporary files and API resources
+- **Security**: Path validation, API key validation, and safe file operations
+- **Performance**: Concurrent processing with configurable limits
+- **Monitoring**: Structured logging with performance tracking and error reporting
+
+### Quality Assurance
+- **Testing Strategy**: Jest unit tests + shell script integration tests
+- **Code Quality**: ESLint + Prettier with automated fixing
+- **Type Safety**: Comprehensive TypeScript interfaces and validation
+- **Coverage**: HTML coverage reports with configurable thresholds
+- **Documentation**: Extensive markdown documentation for all components
+
+### File Organization
+- Screenshot files: `./scrapes/{name}_w{width}.png`
+- Test coverage: `./coverage/` with HTML reports
+- Configuration: Optional `inspector.config.json` and `.env` files
+- Documentation: Comprehensive `.md` files for all major components
+
+## Documentation Architecture
+
+The project includes comprehensive documentation covering all aspects of development and usage:
+
+### Core Documentation
+- **`CLAUDE.md`** - This file: Architecture overview and development guidance
+- **`CLI_REFERENCE.md`** - Complete command reference with examples and options
+- **`readme.md`** - Quick start guide and basic usage examples
+
+### Technical Documentation
+- **`TESTING.md`** - Testing strategy, framework documentation, and test execution
+- **`ERROR_HANDLING.md`** - Retry logic, error handling patterns, and production features
+- **`CONFIGURATION.md`** - Configuration management, environment variables, and validation
+- **`LOGGING.md`** - Logging system architecture and configuration options
+- **`CODE_QUALITY.md`** - ESLint, Prettier setup, and code style guidelines
+
+### Analysis Documentation
+- **`REVIEW_FINDINGS.md`** - Code review findings and improvement recommendations
+- **Additional Files**: Various analysis and planning documents
+
+### Usage Documentation
+All commands include:
+- Comprehensive help text
+- Input validation with clear error messages
+- Example usage patterns
+- Output format documentation
+- Error handling guidance
 
 ## Working Guidelines
-- Always ask before proceeding to the next TODO
+- **Documentation First**: All new features require documentation updates
+- **Testing Required**: Both unit and integration tests for new functionality
+- **Code Quality**: All code must pass ESLint and Prettier checks
+- **Error Handling**: Implement retry logic and graceful degradation
+- **Security**: Validate all inputs and handle sensitive data appropriately
