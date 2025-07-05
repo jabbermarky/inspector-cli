@@ -26,20 +26,35 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
             const detected = await detectCMS(url);
             completed++;
             
-            const result: CMSResult = {
-                url,
-                success: !detected.error,
-                cms: detected.cms,
-                version: detected.version
-            };
-            
-            // Real-time progress update
-            const cleanUrl = cleanUrlForDisplay(url);
-            const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
-                           `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
-            console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
-            
-            results.push(result);
+            // Check if detectCMS returned an error (vs throwing an exception)
+            if (detected.error) {
+                const result: CMSResult = {
+                    url,
+                    success: false,
+                    error: detected.error
+                };
+                
+                // Real-time error update
+                const cleanUrl = cleanUrlForDisplay(url);
+                console.log(`[${completed}/${total}] ✗ ${cleanUrl} → Error: ${result.error}`);
+                
+                results.push(result);
+            } else {
+                const result: CMSResult = {
+                    url,
+                    success: true,
+                    cms: detected.cms,
+                    version: detected.version
+                };
+                
+                // Real-time progress update
+                const cleanUrl = cleanUrlForDisplay(url);
+                const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
+                               `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
+                console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
+                
+                results.push(result);
+            }
             
         } catch (error) {
             completed++;
