@@ -1,5 +1,5 @@
 import { program } from 'commander';
-import { detectCMS, detectInputType, extractUrlsFromCSV, cleanUrlForDisplay, getSemaphore } from '../utils/utils.js';
+import { detectCMS, detectInputType, extractUrlsFromCSV, cleanUrlForDisplay } from '../utils/utils.js';
 import { createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('detect-cms');
@@ -19,13 +19,10 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
     
     console.log(`Processing CMS detection for ${total} URLs...`);
     
-    // Process URLs with concurrency control
-    const promises = urls.map(async (url) => {
-        let semaphoreAcquired = false;
+    // Process URLs sequentially to avoid browser resource conflicts
+    // The individual detectCMS calls handle their own browser management
+    for (const url of urls) {
         try {
-            await getSemaphore().acquire();
-            semaphoreAcquired = true;
-            
             const detected = await detectCMS(url);
             completed++;
             
@@ -43,7 +40,6 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
             console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
             
             results.push(result);
-            return result;
             
         } catch (error) {
             completed++;
@@ -58,16 +54,9 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
             console.log(`[${completed}/${total}] ✗ ${cleanUrl} → Error: ${result.error}`);
             
             results.push(result);
-            return result;
-            
-        } finally {
-            if (semaphoreAcquired) {
-                getSemaphore().release();
-            }
         }
-    });
+    }
     
-    await Promise.all(promises);
     return results;
 }
 
