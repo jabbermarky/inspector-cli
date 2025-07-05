@@ -42,9 +42,11 @@ export class HtmlContentStrategy implements DetectionStrategy {
                 }
             }
 
-            // Calculate confidence based on match ratio
-            const confidence = matchCount / this.signatures.length;
-            const adjustedConfidence = confidence * 0.8; // HTML content is less reliable than meta tags
+            // Calculate confidence based on match ratio with minimum threshold
+            const baseConfidence = matchCount / this.signatures.length;
+            // Ensure minimum confidence of 0.5 if any signature matches
+            const minConfidence = matchCount > 0 ? 0.5 : 0;
+            const adjustedConfidence = Math.max(minConfidence, baseConfidence * 0.8);
 
             logger.debug(`HTML content detection completed`, {
                 url,

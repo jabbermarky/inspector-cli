@@ -97,10 +97,26 @@ export interface CMSDetector {
 }
 
 /**
+ * Browser configuration for CMS detection
+ */
+export interface BrowserConfig {
+    timeout?: number;
+    userAgent?: string;
+    viewport?: {
+        width: number;
+        height: number;
+    };
+    blockResources?: boolean;
+    blockedResourceTypes?: string[];
+}
+
+/**
  * Browser manager interface
  */
 export interface BrowserManager {
     createPage(url: string): Promise<DetectionPage>;
+    closePage(page: DetectionPage): Promise<void>;
+    close(): Promise<void>;
     cleanup(): Promise<void>;
     isResourceBlocked(resourceType: string): boolean;
 }

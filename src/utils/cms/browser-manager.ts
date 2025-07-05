@@ -2,7 +2,7 @@ import puppeteerExtra from 'puppeteer-extra';
 import { Browser, Page, HTTPRequest } from 'puppeteer';
 import puppeteerStealth from 'puppeteer-extra-plugin-stealth';
 import puppeteerAdblocker from 'puppeteer-extra-plugin-adblocker';
-import { BrowserManager, DetectionPage, CMSDetectionConfig, CMSNetworkError } from './types.js';
+import { BrowserManager, DetectionPage, CMSDetectionConfig, CMSNetworkError, BrowserConfig } from './types.js';
 import { createModuleLogger } from '../logger.js';
 import { getConfig } from '../config.js';
 import { getSemaphore } from '../utils.js';
@@ -32,9 +32,18 @@ export class CMSBrowserManager implements BrowserManager {
     private page: Page | null = null;
     private semaphoreAcquired = false;
     private readonly config: CMSDetectionConfig;
+    private readonly browserConfig: BrowserConfig;
 
-    constructor() {
+    constructor(browserConfig?: BrowserConfig) {
         this.config = this.getDetectionConfig();
+        this.browserConfig = {
+            timeout: 5000,
+            userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
+            viewport: { width: 1024, height: 768 },
+            blockResources: true,
+            blockedResourceTypes: ['image', 'stylesheet', 'font'],
+            ...browserConfig
+        };
     }
 
     /**
@@ -77,7 +86,7 @@ export class CMSBrowserManager implements BrowserManager {
             this.page.setDefaultNavigationTimeout(this.config.timeout.navigation);
 
             // Setup resource blocking for performance
-            if (this.config.browser.blockResources) {
+            if (this.browserConfig.blockResources) {
                 await this.setupResourceBlocking();
             }
 
@@ -119,21 +128,30 @@ export class CMSBrowserManager implements BrowserManager {
         await this.page.setRequestInterception(true);
         
         this.page.on('request', (request: HTTPRequest) => {
-            const resourceType = request.resourceType();
-            const url = request.url();
+            try {
+                const resourceType = request.resourceType();
+                const url = request.url();
 
-            // Block unnecessary resources but allow essential ones
-            if (this.isResourceBlocked(resourceType)) {
-                request.abort();
-            } else if (resourceType === 'script') {
-                // Allow scripts that might contain CMS information
-                if (this.isEssentialScript(url)) {
-                    request.continue();
-                } else {
+                // Block unnecessary resources but allow essential ones
+                if (this.isResourceBlocked(resourceType)) {
                     request.abort();
+                } else if (resourceType === 'script') {
+                    // Allow scripts that might contain CMS information
+                    if (this.isEssentialScript(url)) {
+                        request.continue();
+                    } else {
+                        request.abort();
+                    }
+                } else {
+                    request.continue();
                 }
-            } else {
-                request.continue();
+            } catch (error) {
+                // Silently handle request interception errors
+                try {
+                    request.continue();
+                } catch {
+                    // Ignore if request is already handled
+                }
             }
         });
     }
@@ -142,7 +160,8 @@ export class CMSBrowserManager implements BrowserManager {
      * Determine if a resource type should be blocked
      */
     isResourceBlocked(resourceType: string): boolean {
-        const blockedTypes = ['image', 'font', 'media', 'stylesheet'];
+        if (!resourceType) return false;
+        const blockedTypes = this.browserConfig.blockedResourceTypes || ['image', 'font', 'media', 'stylesheet'];
         return blockedTypes.includes(resourceType);
     }
 
@@ -160,6 +179,39 @@ export class CMSBrowserManager implements BrowserManager {
         ];
         
         return essentialPatterns.some(pattern => url.toLowerCase().includes(pattern));
+    }
+
+    /**
+     * Close a specific page
+     */
+    async closePage(page: DetectionPage): Promise<void> {
+        try {
+            await page.close();
+            logger.debug('Browser page closed');
+        } catch (error) {
+            logger.warn('Error closing page', { error: (error as Error).message });
+        } finally {
+            if (this.semaphoreAcquired) {
+                getSemaphore().release();
+                this.semaphoreAcquired = false;
+                logger.debug('Semaphore released');
+            }
+        }
+    }
+
+    /**
+     * Close browser and all pages
+     */
+    async close(): Promise<void> {
+        try {
+            if (this.browser) {
+                await this.browser.close();
+                this.browser = null;
+                logger.debug('Browser closed');
+            }
+        } catch (error) {
+            logger.warn('Error closing browser', { error: (error as Error).message });
+        }
     }
 
     /**
