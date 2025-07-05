@@ -28,7 +28,7 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
             
             const result: CMSResult = {
                 url,
-                success: true,
+                success: !detected.error,
                 cms: detected.cms,
                 version: detected.version
             };
