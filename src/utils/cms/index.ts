@@ -4,7 +4,6 @@ import { WordPressDetector } from './detectors/wordpress.js';
 import { JoomlaDetector } from './detectors/joomla.js';
 import { DrupalDetector } from './detectors/drupal.js';
 import { createModuleLogger } from '../logger.js';
-import { validateFilePath } from '../file/index.js';
 
 const logger = createModuleLogger('cms-detection');
 
