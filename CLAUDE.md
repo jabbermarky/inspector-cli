@@ -271,3 +271,4 @@ All commands include:
 
 ## Workflow Guidelines
 - When asked to table an action, add or move it to the Backlog Features list in the TODO markdown file
+- **After a complex task review and update the TODO markdown file**

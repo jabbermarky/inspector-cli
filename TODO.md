@@ -32,7 +32,37 @@ This document tracks all pending tasks, improvements, and architectural changes 
 - [x] Add network error handling with graceful degradation
 - [x] Add comprehensive error handling for CSV processing
 - [x] Implement exponential backoff retry logic for API resilience
+- [x] **Extract CMS detection from utils.ts into focused module** (MAJOR REFACTORING COMPLETED)
+  - [x] Created modular CMS detection system in `src/utils/cms/`
+  - [x] Implemented strategy pattern architecture with base detector class
+  - [x] Added WordPress, Joomla, and Drupal specific detectors
+  - [x] Created pluggable detection strategies (meta-tag, HTML content, API endpoint, plugin detection)
+  - [x] Implemented browser manager with resource optimization and semaphore control
+  - [x] Added comprehensive timeout and retry handling with exponential backoff
+- [x] **Refactor detectCMS() function** (COMPLEXITY REDUCED: 207 lines → 30 lines)
+  - [x] Transformed monolithic function into modular, testable components
+  - [x] Implemented confidence-based result aggregation with weighted scoring
+  - [x] Added early exit optimization for confident detections
+  - [x] Maintained backward compatibility through re-exports
+- [x] **Add comprehensive tests for CMS detection timeout and retry behavior**
+  - [x] Created 28 passing unit tests covering all detection scenarios
+  - [x] Added timeout handling tests for individual strategies
+  - [x] Implemented network error retry behavior tests
+  - [x] Added concurrent strategy execution tests
+  - [x] Included error categorization and resource management tests
 
+## Decompose into Reusable Services ##
+- [ ] **Isolate business logic into one or more modules or services**
+  - [ ] Services are pure, stateless, serializable, and side-effect-free
+  - [ ] All errors should be returned in the output object (not thrown) or use a Result pattern
+  - [ ] Define input and output schemas
+  - [ ] Avoid CLI/process dependencies in service code
+- [ ] **Separate CLI + Commands from services**
+- [ ] **Create a new Browser Extension that leverages Capture/Analyze and CMS Detection services**
+- [ ] **Replace Node-only APIs**
+- [ ] **Create MCP tool versions of the primary services: CMS Detection and Capture/Analyze** 
+
+## Reduce Dependencies by Incorporating Logic from Included NPM Modules ##
 ## 🔥 High Priority Tasks
 
 ### Critical Security Issues
@@ -58,7 +88,7 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [x] Extract file operations (`src/utils/file/`)
   - [ ] Extract image processing (`src/utils/image/`)
   - [ ] Extract browser automation (`src/utils/browser/`)
-  - [ ] Extract CMS detection (`src/utils/cms/`)
+  - [x] **Extract CMS detection (`src/utils/cms/`)** ✅ COMPLETED
   - [ ] Extract concurrency control (`src/utils/concurrency/`)
 
 - [ ] **Implement Result pattern for consistent error handling**
@@ -68,7 +98,7 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Standardize error handling across all commands
 
 - [ ] **Reduce function complexity** (Target: max 30 lines per function)
-  - [ ] Refactor `detectCMS()` function (currently 100+ lines)
+  - [x] **Refactor `detectCMS()` function** ✅ COMPLETED (reduced from 207 lines to 30 lines)
   - [ ] Refactor `takeAScreenshotPuppeteer()` function
   - [ ] Break down complex conditional logic into smaller functions
   - [ ] Extract validation logic into dedicated validators
@@ -116,11 +146,11 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Test rate limiting scenarios
   - [ ] Test file upload error scenarios
 
-- [ ] **Add tests for CMS detection timeout and retry behavior**
-  - [ ] Test timeout scenarios with various websites
-  - [ ] Test retry logic for network failures
-  - [ ] Test concurrent detection limits
-  - [ ] Test malformed URL handling
+- [x] **Add tests for CMS detection timeout and retry behavior** ✅ COMPLETED
+  - [x] Test timeout scenarios with various websites
+  - [x] Test retry logic for network failures  
+  - [x] Test concurrent detection limits
+  - [x] Test malformed URL handling
 
 - [ ] **Add comprehensive test coverage**
   - [x] Unit tests for retry utility (comprehensive coverage)
@@ -181,13 +211,13 @@ This document tracks all pending tasks, improvements, and architectural changes 
 
 ## 📊 Complexity Reduction Targets
 
-| Component | Current State | Target State | Priority |
-|-----------|---------------|--------------|----------|
-| `utils.ts` | 634 lines, 19 exports | 5 modules, max 150 lines each | 🔥 High |
-| `detectCMS()` | 100+ lines, high complexity | <30 lines, complexity ≤5 | 🔥 High |
-| Error handling | Mixed patterns | Consistent Result pattern | 🔥 High |
-| Try-catch blocks | 33 in utils.ts | Max 3 per module | 🚀 Medium |
-| Function size | 100+ lines average | Max 30 lines | 🚀 Medium |
+| Component | Current State | Target State | Priority | Status |
+|-----------|---------------|--------------|----------|---------|
+| `utils.ts` | 634 lines, 19 exports | 5 modules, max 150 lines each | 🔥 High | 🔄 In Progress (CMS ✅) |
+| `detectCMS()` | ~~100+ lines, high complexity~~ | ~~<30 lines, complexity ≤5~~ | ~~🔥 High~~ | ✅ **COMPLETED** |
+| Error handling | Mixed patterns | Consistent Result pattern | 🔥 High | 🔄 In Progress |
+| Try-catch blocks | 33 in utils.ts | Max 3 per module | 🚀 Medium | 🔄 In Progress |
+| Function size | 100+ lines average | Max 30 lines | 🚀 Medium | 🔄 In Progress |
 
 ### Reliability Patterns
 - [ ] **Implement advanced reliability patterns**
@@ -245,8 +275,17 @@ Each task should include:
 ---
 
 **Last Updated**: July 5, 2025  
-**Total Tasks**: 68 (42 completed, 26 pending)  
+**Total Tasks**: 68 (45 completed, 23 pending)  
 **Focus Areas**: Critical security issues, architecture cleanup, comprehensive error handling, production readiness
+
+### 🎉 Major Achievement - CMS Detection Refactoring
+**Recently completed major architectural improvement:**
+- ✅ Extracted entire CMS detection system into modular architecture
+- ✅ Reduced `detectCMS()` function complexity from 207 lines to 30 lines  
+- ✅ Implemented strategy pattern with pluggable detection methods
+- ✅ Added comprehensive test coverage (28 passing tests)
+- ✅ Maintained backward compatibility through re-exports
+- ✅ Added robust timeout and retry handling
 
 ### Recent Updates from REVIEW_FINDINGS.md Analysis
 - Added 21 critical security, reliability, and production readiness items
