@@ -40,9 +40,13 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
                 
                 results.push(result);
             } else {
+                // Success means we detected a known CMS (WordPress, Joomla, Drupal)
+                // "Unknown" CMS counts as a failed detection
+                const isKnownCMS = detected.cms && detected.cms !== 'Unknown';
+                
                 const result: CMSResult = {
                     url,
-                    success: true,
+                    success: isKnownCMS,
                     cms: detected.cms,
                     version: detected.version
                 };
@@ -51,7 +55,12 @@ async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
                 const cleanUrl = cleanUrlForDisplay(url);
                 const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
                                `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
-                console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
+                
+                if (isKnownCMS) {
+                    console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
+                } else {
+                    console.log(`[${completed}/${total}] ✗ ${cleanUrl} → ${cmsInfo} (no known CMS detected)`);
+                }
                 
                 results.push(result);
             }
@@ -93,20 +102,23 @@ function displayBatchResults(results: CMSResult[]) {
     console.log(`✓ ${successful.length} successful, ✗ ${failed.length} failed\n`);
     
     if (successful.length > 0) {
-        console.log('Successful detections:');
+        console.log('Successful detections (known CMS found):');
         successful.forEach(result => {
             const cleanUrl = cleanUrlForDisplay(result.url);
-            const cmsInfo = result.cms === 'Unknown' ? 'Unknown' : 
-                           `${result.cms}${result.version ? ` ${result.version}` : ''}`;
+            const cmsInfo = `${result.cms}${result.version ? ` ${result.version}` : ''}`;
             console.log(`- ${cleanUrl}: ${cmsInfo}`);
         });
     }
     
     if (failed.length > 0) {
-        console.log(`\nFailed URLs:`);
+        console.log(`\nFailed detections:`);
         failed.forEach(result => {
             const cleanUrl = cleanUrlForDisplay(result.url);
-            console.log(`- ${cleanUrl}: ${result.error}`);
+            if (result.error) {
+                console.log(`- ${cleanUrl}: Error - ${result.error}`);
+            } else {
+                console.log(`- ${cleanUrl}: Unknown (no known CMS detected)`);
+            }
         });
     }
 }
