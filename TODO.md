@@ -46,13 +46,6 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Break down complex conditional logic into smaller functions
   - [ ] Extract validation logic into dedicated validators
 
-### Missing Core Features
-- [ ] **Complete eval.ts implementation** (currently placeholder)
-  - [ ] Design evaluation framework architecture
-  - [ ] Implement assistant performance evaluation
-  - [ ] Add evaluation metrics and reporting
-  - [ ] Create evaluation dataset management
-
 ## 🚀 Medium Priority Tasks
 
 ### Architecture Improvements
@@ -146,6 +139,14 @@ This document tracks all pending tasks, improvements, and architectural changes 
 | Error handling | Mixed patterns | Consistent Result pattern | 🔥 High |
 | Try-catch blocks | 33 in utils.ts | Max 3 per module | 🚀 Medium |
 | Function size | 100+ lines average | Max 30 lines | 🚀 Medium |
+
+### Backlog Features
+- [ ] **Complete eval.ts implementation** (currently placeholder)
+  - [ ] Design evaluation framework architecture
+  - [ ] Implement assistant performance evaluation
+  - [ ] Add evaluation metrics and reporting
+  - [ ] Create evaluation dataset management
+
 
 ## 📝 Notes
 

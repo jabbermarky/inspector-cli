@@ -263,3 +263,11 @@ All commands include:
 - **Code Quality**: All code must pass ESLint and Prettier checks
 - **Error Handling**: Implement retry logic and graceful degradation
 - **Security**: Validate all inputs and handle sensitive data appropriately
+
+## Dev Workflow
+
+### Project Management
+- Use the TODO list markdown file when planning and for all todos
+
+## Workflow Guidelines
+- When asked to table an action, add or move it to the Backlog Features list in the TODO markdown file
