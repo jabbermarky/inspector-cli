@@ -219,52 +219,111 @@ asst_ghi789 - Content Reviewer
 
 ### 7. CMS Detection
 
-Analyzes websites to detect Content Management Systems and their configurations.
+Analyzes websites to detect Content Management Systems and their configurations. Supports both single URL analysis and batch processing from CSV files.
 
 ```bash
-inspector detect-cms <url>
+inspector detect-cms <input>
 ```
 
 **Arguments:**
-- `<url>` - Website URL to analyze (required)
+- `<input>` - Website URL or CSV file containing URLs (required)
+
+**Input Types:**
+- **Single URL**: Direct website analysis
+- **CSV File**: Batch processing with flexible column detection
 
 **Features:**
-- Detects WordPress, Joomla, and Drupal
-- Identifies CMS versions when available
-- Lists WordPress plugins found in HTML
-- Checks for CMS-specific endpoints and files
-- Includes retry logic and timeout handling
+- **Detection**: WordPress, Joomla, and Drupal
+- **Version Identification**: CMS versions when available
+- **Plugin Discovery**: WordPress plugins found in HTML
+- **Endpoint Testing**: CMS-specific API endpoints and files
+- **Batch Processing**: Concurrent analysis with progress tracking
+- **Error Resilience**: Continues processing if individual URLs fail
+- **Smart Input Detection**: Automatically detects URL vs CSV file
+
+**CSV Support:**
+- **Flexible Format**: Looks for 'url', 'urls', 'website', or 'link' columns
+- **Case Insensitive**: Column names can be uppercase or lowercase
+- **Ignores Other Columns**: Processes only URL data
+- **Concurrency Control**: Uses semaphore for controlled parallelism
 
 **Detection Methods:**
-- Meta tag analysis
-- HTML content scanning
+- Meta tag analysis (`generator` meta tags)
+- HTML content scanning for CMS signatures
 - API endpoint testing (WordPress JSON API)
 - File existence checks (CHANGELOG.txt for Drupal)
+- Header analysis for CMS indicators
 
 **Examples:**
+
+**Single URL Analysis:**
 ```bash
 # Basic CMS detection
 inspector detect-cms https://example.com
 
-# WordPress site with plugins
+# WordPress site analysis
 inspector detect-cms https://wordpress-site.com
-
-# Test with different CMS types
-inspector detect-cms https://joomla-site.com
-inspector detect-cms https://drupal-site.com
 ```
 
-**Sample Output:**
-```json
-{
-  "cms": "WordPress",
-  "version": "6.2.1",
-  "plugins": [
-    {"name": "woocommerce"},
-    {"name": "yoast-seo"}
-  ]
-}
+**CSV Batch Processing:**
+```bash
+# Process URLs from CSV file
+inspector detect-cms websites.csv
+
+# Works with various CSV formats
+inspector detect-cms product_list.csv
 ```
+
+**CSV Format Examples:**
+```csv
+# Simple format
+url,path
+https://example.com,example_site
+https://shop.example.com,shop_site
+
+# Alternative column names (all supported)
+URL,description
+https://wordpress-site.com,WordPress Blog
+https://joomla-site.com,Company Site
+
+# Mixed case (works fine)
+Website,Notes
+https://drupal-site.com,News Portal
+```
+
+**Single URL Output:**
+```
+Detected CMS for https://example.com:
+CMS: WordPress
+Version: 6.2.1
+```
+
+**CSV Batch Output:**
+```
+Processing CMS detection for 10 URLs...
+[1/10] ✓ example.com → WordPress 6.2.1
+[2/10] ✓ shop-site.com → Unknown
+[3/10] ✗ bad-url.com → Error: Connection timeout
+...
+
+CMS Detection Results (10 URLs processed):
+✓ 8 successful, ✗ 2 failed
+
+Successful detections:
+- example.com: WordPress 6.2.1
+- shop-site.com: Unknown
+- drupal-site.com: Drupal 9.4.0
+
+Failed URLs:
+- bad-url.com: Connection timeout
+- broken-site.com: Invalid response
+```
+
+**Performance:**
+- **Concurrent Processing**: Respects `config.puppeteer.maxConcurrency` setting
+- **Real-time Progress**: Live updates during batch processing
+- **Error Continuation**: Individual failures don't stop batch processing
+- **Clean URL Display**: Shows URLs without protocol for readability
 
 ### 8. Assistant Evaluation (Not Implemented)
 

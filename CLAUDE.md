@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Inspector CLI is a command-line tool for analyzing websites and e-commerce integrations, specifically designed for inspecting PayPal integrations. The tool provides web scraping capabilities, screenshot generation, CMS detection, and AI-powered analysis of website content.
+Inspector CLI is a command-line tool for analyzing websites and e-commerce integrations, specifically designed for inspecting PayPal integrations. The tool provides web scraping capabilities, screenshot generation, CMS detection with batch processing, and AI-powered analysis of website content.
 
 ## Development Commands
 
@@ -36,7 +36,7 @@ The application uses Commander.js with a modular command architecture. Each comm
 - `assistant.ts` - OpenAI Assistant API integration for image analysis
 - `chat.ts` - OpenAI Chat API integration
 - `assistants.ts` - List available OpenAI assistants
-- `detect_cms.ts` - CMS detection (WordPress, Joomla, Drupal)
+- `detect_cms.ts` - CMS detection with CSV batch processing (WordPress, Joomla, Drupal)
 - `eval.ts` - Evaluation utilities
 
 ### Core Modules
@@ -109,8 +109,8 @@ inspector eval <assistant> <infilename> [options]
 
 #### Utility Commands
 ```bash
-# CMS detection
-inspector detect-cms <url>
+# CMS detection (single URL or CSV batch)
+inspector detect-cms <url-or-csv>
 ```
 
 ### Example Usage Patterns
@@ -125,8 +125,11 @@ inspector csv input_file.csv
 # Analyze screenshots with specific model and temperature
 inspector assistant -m gpt-4o -t 0.5 -o results.json screenshot1.png screenshot2.png
 
-# Detect CMS and version
+# Detect CMS and version (single URL)
 inspector detect-cms https://example.com
+
+# Batch CMS detection from CSV
+inspector detect-cms websites.csv
 
 # Extract header and footer from screenshot
 inspector footer --header=800 --footer=600 screenshot.png

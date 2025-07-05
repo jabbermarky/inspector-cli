@@ -330,7 +330,7 @@ export async function takeAScreenshotPuppeteer(url: string, path: string, width:
 
 // Lazy semaphore initialization
 let semaphore: Semaphore | null = null;
-function getSemaphore(): Semaphore {
+export function getSemaphore(): Semaphore {
     if (!semaphore) {
         semaphore = new Semaphore(getConfig().puppeteer.maxConcurrency);
     }
@@ -344,6 +344,68 @@ export function validJSON(str: string): boolean {
         return false;
     }
     return true;
+}
+
+// Auto-detect if input is URL or CSV file
+export function detectInputType(input: string): 'url' | 'csv' {
+    // Check for .csv extension first
+    if (input.toLowerCase().endsWith('.csv')) {
+        return 'csv';
+    }
+    
+    // Check if it's a URL
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+        return 'url';
+    }
+    
+    // Try parsing as URL
+    try {
+        new URL(input.startsWith('http') ? input : `https://${input}`);
+        return 'url';
+    } catch {
+        // If URL parsing fails, assume it's a file
+        return 'csv';
+    }
+}
+
+// Extract URLs from CSV with flexible column detection
+export function extractUrlsFromCSV(csvPath: string): string[] {
+    const csvData = loadCSVFromFile(csvPath);
+    const lines = parseCSV(csvData);
+    
+    if (lines.length === 0) {
+        throw new Error('CSV file is empty');
+    }
+    
+    // Find the URL column (case-insensitive)
+    const header = lines[0].map((col: string) => col.toLowerCase().trim());
+    const urlColumnIndex = header.findIndex((col: string) => 
+        col === 'url' || col === 'urls' || col === 'website' || col === 'link'
+    );
+    
+    if (urlColumnIndex === -1) {
+        throw new Error('No URL column found. Expected column names: url, urls, website, or link');
+    }
+    
+    // Extract URLs from the identified column (skip header)
+    const urls: string[] = [];
+    for (let i = 1; i < lines.length; i++) {
+        const url = lines[i][urlColumnIndex]?.trim();
+        if (url && url.length > 0) {
+            urls.push(url);
+        }
+    }
+    
+    if (urls.length === 0) {
+        throw new Error('No valid URLs found in CSV file');
+    }
+    
+    return urls;
+}
+
+// Clean URL for display (remove protocol)
+export function cleanUrlForDisplay(url: string): string {
+    return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 }
 
 export interface CMSPluginResult {

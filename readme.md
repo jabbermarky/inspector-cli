@@ -140,18 +140,50 @@ inspector eval <assistant> <infilename> [options]
 
 ### CMS Detection
 
-#### Detect Content Management System
+#### Detect Content Management System (Single URL or Batch CSV)
 ```bash
-inspector detect-cms <url>
+inspector detect-cms <input>
 ```
 
-- **Description**: Analyzes a website to detect if it uses WordPress, Joomla, or Drupal
-- **Arguments**: `<url>` - Website URL to analyze
+- **Description**: Analyzes websites to detect if they use WordPress, Joomla, or Drupal. Supports both single URL analysis and batch processing from CSV files.
+- **Arguments**: `<input>` - Website URL or CSV file containing URLs
+- **Auto-Detection**: Automatically determines if input is a URL or CSV file
 - **Features**: 
-  - Detects CMS type and version
-  - Identifies WordPress plugins
-  - Checks for CMS-specific endpoints and files
-- **Example**: `inspector detect-cms https://example.com`
+  - **CMS Detection**: WordPress, Joomla, and Drupal with version identification
+  - **Plugin Discovery**: WordPress plugins found in HTML content
+  - **Batch Processing**: Concurrent analysis with real-time progress tracking
+  - **Error Resilience**: Continues processing if individual URLs fail
+  - **Flexible CSV**: Supports various column names (url, website, link)
+  - **Clean Output**: Progress indicators and comprehensive summary results
+
+**Single URL Example:**
+```bash
+inspector detect-cms https://example.com
+```
+
+**CSV Batch Example:**
+```bash
+inspector detect-cms websites.csv
+```
+
+**Sample CSV format:**
+```csv
+url,description
+https://wordpress-site.com,Main Site
+https://joomla-site.com,Company Blog
+https://drupal-site.com,News Portal
+```
+
+**Batch Output Example:**
+```
+Processing CMS detection for 3 URLs...
+[1/3] ✓ wordpress-site.com → WordPress 6.2.1
+[2/3] ✓ joomla-site.com → Unknown  
+[3/3] ✓ drupal-site.com → Drupal 9.4.0
+
+CMS Detection Results (3 URLs processed):
+✓ 3 successful, ✗ 0 failed
+```
 
 ## Environment Setup
 

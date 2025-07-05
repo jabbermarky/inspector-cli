@@ -16,7 +16,7 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
       
       // General code quality rules
-      'no-console': 'warn',
+      'no-console': 'off',
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'no-var': 'error',

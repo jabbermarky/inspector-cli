@@ -1,28 +1,146 @@
 import { program } from 'commander';
-import { detectCMS } from '../utils/utils.js';
+import { detectCMS, detectInputType, extractUrlsFromCSV, cleanUrlForDisplay, getSemaphore } from '../utils/utils.js';
 import { createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('detect-cms');
 
+interface CMSResult {
+    url: string;
+    success: boolean;
+    cms?: string;
+    version?: string;
+    error?: string;
+}
+
+async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
+    const results: CMSResult[] = [];
+    const total = urls.length;
+    let completed = 0;
+    
+    console.log(`Processing CMS detection for ${total} URLs...`);
+    
+    // Process URLs with concurrency control
+    const promises = urls.map(async (url) => {
+        let semaphoreAcquired = false;
+        try {
+            await getSemaphore().acquire();
+            semaphoreAcquired = true;
+            
+            const detected = await detectCMS(url);
+            completed++;
+            
+            const result: CMSResult = {
+                url,
+                success: true,
+                cms: detected.cms,
+                version: detected.version
+            };
+            
+            // Real-time progress update
+            const cleanUrl = cleanUrlForDisplay(url);
+            const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
+                           `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
+            console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
+            
+            results.push(result);
+            return result;
+            
+        } catch (error) {
+            completed++;
+            const result: CMSResult = {
+                url,
+                success: false,
+                error: (error as Error).message
+            };
+            
+            // Real-time error update
+            const cleanUrl = cleanUrlForDisplay(url);
+            console.log(`[${completed}/${total}] ✗ ${cleanUrl} → Error: ${result.error}`);
+            
+            results.push(result);
+            return result;
+            
+        } finally {
+            if (semaphoreAcquired) {
+                getSemaphore().release();
+            }
+        }
+    });
+    
+    await Promise.all(promises);
+    return results;
+}
+
+function displaySingleResult(url: string, detected: any) {
+    console.log(`Detected CMS for ${url}:`);
+    if (detected && detected.cms) {
+        console.log(`CMS: ${detected.cms}`);
+        console.log(`Version: ${detected.version ?? 'Unknown'}`);
+    } else {
+        console.log(`No CMS detected for ${url}`);
+    }
+}
+
+function displayBatchResults(results: CMSResult[]) {
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+    
+    console.log(`\nCMS Detection Results (${results.length} URLs processed):`);
+    console.log(`✓ ${successful.length} successful, ✗ ${failed.length} failed\n`);
+    
+    if (successful.length > 0) {
+        console.log('Successful detections:');
+        successful.forEach(result => {
+            const cleanUrl = cleanUrlForDisplay(result.url);
+            const cmsInfo = result.cms === 'Unknown' ? 'Unknown' : 
+                           `${result.cms}${result.version ? ` ${result.version}` : ''}`;
+            console.log(`- ${cleanUrl}: ${cmsInfo}`);
+        });
+    }
+    
+    if (failed.length > 0) {
+        console.log(`\nFailed URLs:`);
+        failed.forEach(result => {
+            const cleanUrl = cleanUrlForDisplay(result.url);
+            console.log(`- ${cleanUrl}: ${result.error}`);
+        });
+    }
+}
+
 program
     .command("detect-cms")
-    .description("Detect if the url is powered by a CMS and save it to path")
-    .argument('<url>', 'URL to detect')
-//    .argument('<path>', 'Path to save the screenshot')
-    .action(async (url, _path, _options) => {
-//        path = analyzeFilePath(path, width);
-        logger.info('Starting CMS detection', { url });
-        const detected = await detectCMS(url);
-        
-        // CLI output is appropriate for user interaction
-        console.log(`Detected CMS for ${url}:`);
-        if (detected) {
-            console.log(`CMS: ${detected.cms}`);
-            console.log(`Version: ${detected.version ?? 'Unknown'}`);
-            logger.info('CMS detection completed', { url, cms: detected.cms, version: detected.version });
-        }
-        else {
-            console.log(`No CMS detected for ${url}`);
-            logger.info('No CMS detected', { url });
+    .description("Detect CMS for a single URL or batch process URLs from a CSV file")
+    .argument('<input>', 'URL to detect or CSV file containing URLs')
+    .action(async (input, _options) => {
+        try {
+            const inputType = detectInputType(input);
+            
+            if (inputType === 'url') {
+                // Single URL processing
+                logger.info('Starting CMS detection for single URL', { url: input });
+                const detected = await detectCMS(input);
+                displaySingleResult(input, detected);
+                logger.info('CMS detection completed', { url: input, cms: detected.cms, version: detected.version });
+                
+            } else {
+                // CSV batch processing
+                logger.info('Starting CSV batch CMS detection', { file: input });
+                const urls = extractUrlsFromCSV(input);
+                logger.info('Extracted URLs from CSV', { count: urls.length });
+                
+                const results = await processCMSDetectionBatch(urls);
+                displayBatchResults(results);
+                
+                logger.info('CSV batch CMS detection completed', { 
+                    total: results.length, 
+                    successful: results.filter(r => r.success).length,
+                    failed: results.filter(r => !r.success).length
+                });
+            }
+            
+        } catch (error) {
+            logger.error('CMS detection failed', { input }, error as Error);
+            console.error('CMS detection failed:', (error as Error).message);
+            process.exit(1);
         }
     });
