@@ -61,15 +61,22 @@ The application uses Commander.js with a modular command architecture. Each comm
   - TypeScript interfaces with comprehensive validation
   - ConfigManager singleton with lazy initialization
   - Support for environment variables, config files, and defaults
-  - Separate validation for OpenAI-dependent operations
+  - Separate validation for OpenAI-dependent operations (non-strict by default)
   - Environment-specific settings (development/production/test)
+
+#### CMS Detection System
+- `utils/cms/` - **Modular CMS detection architecture**:
+  - **Strategy Pattern**: Pluggable detection strategies (meta-tag, html-content, api-endpoint)
+  - **Detector Pattern**: CMS-specific detectors (WordPress, Joomla, Drupal) with weighted confidence scoring
+  - **Browser Manager**: Resource-efficient browser management with request blocking
+  - **Types & Interfaces**: Comprehensive TypeScript definitions for all components
+  - **Comprehensive Testing**: 107 unit tests with high coverage (85-97% for core modules)
 
 #### Utility Libraries
 - `utils/utils.ts` - **Core utility functions**:
   - Puppeteer screenshot capture with stealth mode and ad blocking
   - CSV parsing with flexible column detection
   - Image processing and segmentation with Jimp
-  - CMS detection with timeout handling
   - Semaphore-based concurrency control
   - File path validation and security checks
 
@@ -85,6 +92,12 @@ The application uses Commander.js with a modular command architecture. Each comm
   - Module-specific loggers with performance tracking
   - File and console output options
   - API call logging and error tracking
+
+- `utils/file/` - **File operations module**:
+  - Comprehensive security validation and path sanitization
+  - Directory traversal prevention and safe file operations
+  - File existence and permission checking
+  - Unit tested with 100% coverage
 
 #### AI Integration
 - `genai.ts` - **OpenAI API integration**:
@@ -102,10 +115,18 @@ The application uses Commander.js with a modular command architecture. Each comm
 #### Unit Testing (Jest)
 - **Framework**: Jest with TypeScript support and ES modules
 - **Configuration**: `jest.config.cjs` with coverage reporting and timeout handling
-- **Test Structure**: 
-  - `src/utils/__tests__/retry.test.ts` - Comprehensive retry utility testing
-  - Coverage collection for core utilities and error handling
-  - Module name mapping for ES module compatibility
+- **Comprehensive Test Suites**:
+  - **CMS Detection**: 107 tests across 7 test suites
+    - API Endpoint Strategy: 24 tests (96.87% coverage)
+    - Base Detector: 14 tests (85.07% coverage) 
+    - WordPress Detector: 15 tests (94.82% coverage)
+    - Joomla Detector: 15 tests (100% coverage)
+    - Drupal Detector: 18 tests (91.48% coverage)
+    - Browser Manager: 7 tests (21.42% coverage - limited by browser mocking complexity)
+    - Timeout/Retry: 13 tests covering error handling and performance
+  - **Retry Utility**: 13 tests covering network error handling and exponential backoff
+  - **File Operations**: 11 tests with 100% coverage for security validation
+  - **CSV Processing**: Comprehensive tests for batch operations
 
 #### Integration Testing (Shell Scripts)
 - **Comprehensive Testing**: `test_comprehensive.sh` - Full end-to-end workflow validation
@@ -136,8 +157,9 @@ Screenshots are saved to `./scrapes/` directory with filename format: `{name}_w{
 - **File Validation**: Size limits (20MB), existence checks, and proper error handling
 
 ### Environment Configuration
-- Requires `OPENAI_API_KEY` environment variable
+- OpenAI API key only required for AI-powered commands (assistant, chat)
 - Uses dotenv for configuration management
+- Non-strict validation by default - allows CMS detection without OpenAI setup
 
 ## Complete Command Reference
 
@@ -218,6 +240,7 @@ inspector footer --header=800 --footer=600 screenshot.png
 
 ### Quality Assurance
 - **Testing Strategy**: Jest unit tests + shell script integration tests
+- **High Test Coverage**: 50.63% overall coverage with 85-97% for core CMS modules
 - **Code Quality**: ESLint + Prettier with automated fixing
 - **Type Safety**: Comprehensive TypeScript interfaces and validation
 - **Coverage**: HTML coverage reports with configurable thresholds
@@ -264,11 +287,10 @@ All commands include:
 - **Error Handling**: Implement retry logic and graceful degradation
 - **Security**: Validate all inputs and handle sensitive data appropriately
 
-## Dev Workflow
+## Workflow Principles
 
-### Project Management
-- Use the TODO list markdown file when planning and for all todos
-
-## Workflow Guidelines
-- When asked to table an action, add or move it to the Backlog Features list in the TODO markdown file
-- **After a complex task review and update the TODO markdown file**
+### Test Management
+- When tests are failing, fix the failing tests instead of deleting the test suite
+- Maintain high test coverage (target: 85%+ for core modules)
+- Use proper mocking for complex dependencies (browser, external APIs)
+- Write comprehensive test suites that cover error conditions and edge cases

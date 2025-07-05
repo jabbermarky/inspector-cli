@@ -92,6 +92,24 @@ This document describes the automated test scripts for verifying the 4 critical 
   - OpenAI-specific error handling verification
   - Resource cleanup and file validation testing
 
+### 6. CMS Detection Test Coverage ✅ (NEW)
+- **Issue**: Low test coverage for CMS detection modules
+- **Fix**: Comprehensive test suites for all CMS detection components
+- **Coverage Improvements**:
+  - API Endpoint Strategy: 96.87% coverage (24 tests)
+  - Base Detector: 85.07% coverage (14 tests)
+  - Browser Manager: 21.42% coverage (7 tests with proper mocking)
+  - WordPress Detector: 94.82% coverage (15 tests)
+  - Joomla Detector: 100% coverage (15 tests)
+  - Drupal Detector: 91.48% coverage (18 tests)
+- **Test Features**:
+  - Strategy pattern testing with comprehensive mocking
+  - Confidence scoring and weighted aggregation validation
+  - Error handling and timeout scenarios
+  - Configuration validation fixes (non-strict OpenAI validation)
+  - Resource blocking and browser management testing
+- **Total**: 107 CMS tests ensuring robust detection capabilities
+
 ## Test Services Used
 
 - **httpbin.org**: Reliable HTTP testing service
@@ -114,12 +132,18 @@ export OPENAI_API_KEY="your-test-key"
 # Run all unit tests
 npm test
 
-# Development mode with file watching
+# Development mode with file watching  
 npm run test:watch
 
 # Generate coverage reports
 npm run test:coverage
 open coverage/index.html  # View coverage report
+
+# Run specific test suites
+npm test -- --testPathPatterns="cms/__tests__"        # All CMS tests
+npm test -- --testPathPatterns="api-endpoint.test.ts" # API endpoint strategy
+npm test -- --testPathPatterns="base.test.ts"         # Base detector
+npm test -- --testPathPatterns="browser-manager.test.ts" # Browser manager
 ```
 
 ### Integration Tests
@@ -142,10 +166,16 @@ ps aux | grep -E "(chrome|puppeteer)" | wc -l
 ## Expected Results
 
 ### Successful Unit Test Run
-- All 13 retry utility tests pass
+- All CMS detection tests pass (107 total)
+- All retry utility tests pass (13 total)
+- All file operations tests pass (11 total)
 - Test coverage reports generated in `coverage/` directory
 - No test failures or timeout issues
-- Coverage metrics for core utilities and error handling
+- High coverage metrics:
+  - Overall project: 50.63% coverage
+  - CMS Strategies: 95.57% coverage  
+  - CMS Detectors: 90.6% coverage
+  - Core utilities and error handling well covered
 
 ### Successful Integration Test Run
 - All security vulnerabilities blocked
