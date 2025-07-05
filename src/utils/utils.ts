@@ -6,6 +6,7 @@ import { InvalidArgumentError } from 'commander';
 import { createModuleLogger } from './logger.js';
 import { getConfig } from './config.js';
 import { withRetry } from './retry.js';
+import { analyzeFilePath, loadCSVFromFile, validateFilePath } from './file/index.js';
 
 const logger = createModuleLogger('utils');
 
@@ -61,48 +62,8 @@ export class Semaphore {
     }
 }
 
-export function analyzeFilePath(filePath: string, width: number): string {
-    // Input validation
-    if (!filePath || typeof filePath !== 'string') {
-        throw new Error('Invalid file path: path must be a non-empty string');
-    }
-    
-    if (width === undefined || width <= 0) {
-        throw new Error('Invalid width: width must be a positive number');
-    }
-
-    // Security: Prevent directory traversal attacks
-    if (filePath.includes('..') || filePath.includes('~')) {
-        throw new Error('Invalid file path: path cannot contain ".." or "~"');
-    }
-
-    // Security: Restrict to safe characters
-    const safePathRegex = /^[a-zA-Z0-9._/-]+$/;
-    if (!safePathRegex.test(filePath)) {
-        throw new Error('Invalid file path: path contains unsafe characters');
-    }
-
-    const ext = path.extname(filePath) || '.png';
-    const base = path.basename(filePath, ext) + '_w' + width + ext;
-    const dir = path.dirname(filePath);
-    
-    // Check if the filepath has a directory
-    if (!dir || dir === '.') {
-        filePath = path.join(getConfig().app.screenshotDir, base);
-    } else {
-        // Security: Ensure the resolved path is within safe boundaries
-        const resolvedPath = path.resolve(dir, base);
-        const safePath = path.resolve(getConfig().app.screenshotDir);
-        
-        if (!resolvedPath.startsWith(safePath) && !resolvedPath.startsWith(path.resolve('.'))) {
-            throw new Error('Invalid file path: path must be within current directory or screenshot folder');
-        }
-        
-        filePath = path.join(dir, base);
-    }
-
-    return filePath;
-}
+// Re-export file operations for backward compatibility
+export { analyzeFilePath, loadCSVFromFile, validateFilePath } from './file/index.js';
 
 export function myParseInt(value: string, _dummyPrevious: any) {
     // parseInt takes a string and a radix
@@ -122,17 +83,7 @@ export function myParseDecimal(value: string, _dummyPrevious: any) {
     return parsedValue;
 }
 
-export function loadCSVFromFile(filePath: string) {
-    try {
-        logger.debug(`Loading CSV file: ${filePath}`);
-        const data = fs.readFileSync(filePath, 'utf8');
-        logger.info(`Successfully loaded CSV file: ${filePath}`, { size: data.length });
-        return data;
-    } catch (err) {
-        logger.error(`Failed to read CSV file: ${filePath}`, { filePath }, err as Error);
-        throw new Error(`Failed to read CSV file: ${filePath}`);
-    }
-}
+// loadCSVFromFile moved to src/utils/file/operations.ts
 
 export function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -152,22 +103,9 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
     try {
         logger.debug(`Starting image segmentation for: ${filename}`, { options });
         
-        // Input validation
-        if (!filename || typeof filename !== 'string') {
-            throw new Error('Invalid filename: filename must be a non-empty string');
-        }
-
-        // Security: Prevent directory traversal attacks
-        if (filename.includes('..') || filename.includes('~')) {
-            throw new Error('Invalid filename: filename cannot contain ".." or "~"');
-        }
-
-        // Security: Restrict to safe characters
-        const safePathRegex = /^[a-zA-Z0-9._/-]+$/;
-        if (!safePathRegex.test(filename)) {
-            throw new Error('Invalid filename: filename contains unsafe characters');
-        }
-
+        // Validate file path and security using the new file operations module
+        validateFilePath(filename);
+        
         // Check if file exists
         if (!fs.existsSync(filename)) {
             throw new Error(`File does not exist: ${filename}`);

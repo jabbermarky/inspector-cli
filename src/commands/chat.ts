@@ -1,6 +1,7 @@
 import { program } from 'commander';
 import { callChat } from '../genai.js';
 import { createModuleLogger } from '../utils/logger.js';
+import { validateImageFile } from '../utils/file/index.js';
 
 const logger = createModuleLogger('chat');
 
@@ -10,6 +11,19 @@ program
     .option('-m, --model <model>', 'Model to use', 'chatgpt-4o-latest')
     .argument('<screenshot...>', 'Screenshot file(s) to use')
     .action(async (screenshots: string[], _options) => {
+        try {
+            // Validate all screenshot files before processing
+            logger.debug('Validating screenshot files', { count: screenshots.length });
+            for (const screenshot of screenshots) {
+                validateImageFile(screenshot);
+            }
+            logger.info('File validation passed for all screenshots');
+        } catch (error) {
+            logger.error('File validation failed', { error: (error as Error).message });
+            console.error('Error:', (error as Error).message);
+            process.exit(1);
+        }
+        
         const params = {
             model: _options.model,
             screenshot: screenshots,

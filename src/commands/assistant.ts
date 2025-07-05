@@ -4,6 +4,7 @@ import { validateBrandiJsonSchema } from '../brandi_json_schema.js';
 import { callAssistant } from '../genai.js';
 import { myParseDecimal, validJSON } from '../utils/utils.js';
 import { createModuleLogger } from '../utils/logger.js';
+import { validateImageFile } from '../utils/file/index.js';
 
 const logger = createModuleLogger('assistant');
 
@@ -17,6 +18,19 @@ program
     .option('-o, --outfile <outfile>', 'Save the output to a file')
     .argument('<screenshot...>', 'Screenshot file(s) to use')
     .action(async (screenshots: string[], _options) => {
+        try {
+            // Validate all screenshot files before processing
+            logger.debug('Validating screenshot files', { count: screenshots.length });
+            for (const screenshot of screenshots) {
+                validateImageFile(screenshot);
+            }
+            logger.info('File validation passed for all screenshots');
+        } catch (error) {
+            logger.error('File validation failed', { error: (error as Error).message });
+            console.error('Error:', (error as Error).message);
+            process.exit(1);
+        }
+        
         logger.info('Starting assistant API call', { screenshots: screenshots.length, options: _options });
         // if (_options.model) console.log('model', _options.model);
         // if (_options.assistant) console.log('assistant', _options.assistant);
