@@ -1,4 +1,8 @@
 import { createWriteStream, WriteStream } from 'fs';
+import dotenv from 'dotenv';
+
+// Load environment variables early for logger configuration
+dotenv.config();
 
 export enum LogLevel {
     DEBUG = 0,
@@ -205,13 +209,32 @@ class Logger {
 
 // Create default logger instance with basic config
 const defaultConfig: LoggerConfig = {
-    level: process.env.NODE_ENV === 'development' ? LogLevel.DEBUG : LogLevel.INFO,
+    level: getLogLevelFromEnv(),
     console: true,
     format: 'text',
     includeTimestamp: true,
     includeModule: true,
     file: process.env.INSPECTOR_LOG_FILE
 };
+
+// Helper function to get log level from environment
+function getLogLevelFromEnv(): LogLevel {
+    const envLogLevel = process.env.LOG_LEVEL?.toUpperCase();
+    
+    // Debug: Check what LOG_LEVEL is being read
+    // console.log('DEBUG: LOG_LEVEL env var:', process.env.LOG_LEVEL, 'parsed as:', envLogLevel);
+    
+    switch (envLogLevel) {
+        case 'DEBUG': return LogLevel.DEBUG;
+        case 'INFO': return LogLevel.INFO;
+        case 'WARN': return LogLevel.WARN;
+        case 'ERROR': return LogLevel.ERROR;
+        case 'SILENT': return LogLevel.SILENT;
+        default:
+            // Fallback to NODE_ENV based default
+            return process.env.NODE_ENV === 'development' ? LogLevel.DEBUG : LogLevel.INFO;
+    }
+}
 
 export const logger = new Logger(defaultConfig);
 

@@ -6,9 +6,6 @@ dotenv.config();
 
 import process from 'process';
 import figlet from 'figlet';
-import { createModuleLogger } from './utils/logger.js';
-
-const _logger = createModuleLogger('cli');
 
 process.removeAllListeners('warning');
 // Banner output is appropriate for CLI applications
