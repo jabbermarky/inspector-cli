@@ -71,7 +71,7 @@ class DrupalFileStrategy implements DetectionStrategy {
                             };
                         }
                     }
-                } catch (error) {
+                } catch {
                     // Continue checking other files
                     continue;
                 }
@@ -124,18 +124,18 @@ class DrupalFileStrategy implements DetectionStrategy {
  */
 export class DrupalDetector extends BaseCMSDetector {
     protected strategies: DetectionStrategy[] = [
-        new MetaTagStrategy('Drupal', 3000),
-        new HtmlContentStrategy([
-            '/sites/all/',
-            '/misc/drupal.js',
-            'drupal-settings-json',
-            'Drupal.settings',
-            'drupal',
-            '/core/',
-            '/modules/',
-            '/themes/'
-        ], 'Drupal', 4000),
-        new DrupalFileStrategy()
+        new MetaTagStrategy('Drupal', 6000),
+        // new HtmlContentStrategy([
+        //     '/sites/all/',
+        //     '/misc/drupal.js',
+        //     'drupal-settings-json',
+        //     'Drupal.settings',
+        //     'drupal',
+        //     '/core/',
+        //     '/modules/',
+        //     '/themes/'
+        // ], 'Drupal', 4000),
+        // new DrupalFileStrategy()
     ];
 
     getCMSName(): CMSType {

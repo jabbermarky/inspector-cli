@@ -25,11 +25,11 @@ export class MetaTagStrategy implements DetectionStrategy {
             logger.debug(`Executing meta tag strategy for ${this.targetCMS}`, { url });
 
             // Look for generator meta tag
-            const metaContent = await page.$eval(
-                'meta[name="generator"]',
-                (el) => (el as HTMLMetaElement).content.toLowerCase()
+            const metaContent = await page.$$eval(
+                'meta[name="generator" i]', // Case-insensitive search for "generator" meta tag
+                (el) => (el as HTMLMetaElement[]).length ? el[0].content.toLowerCase() : 'not found'
             );
-
+            
             if (metaContent.includes(this.targetCMS.toLowerCase())) {
                 const version = this.extractVersion(metaContent);
                 
