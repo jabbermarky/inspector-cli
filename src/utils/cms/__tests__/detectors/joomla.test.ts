@@ -27,7 +27,6 @@ describe('Joomla Detector', () => {
         detector = new JoomlaDetector();
         
         mockPage = {
-            $eval: jest.fn(),
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()
@@ -40,7 +39,7 @@ describe('Joomla Detector', () => {
 
     describe('Meta Tag Detection', () => {
         it('should detect Joomla from meta generator tag', async () => {
-            mockPage.$eval.mockResolvedValue('joomla! 4.2');
+            mockPage.evaluate.mockResolvedValue('Joomla! 4.2 - Open Source Content Management');
             mockPage.content.mockResolvedValue('<html></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');
@@ -52,7 +51,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should handle missing meta tag gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag not found'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -75,7 +74,7 @@ describe('Joomla Detector', () => {
 
     describe('HTML Content Detection', () => {
         it('should detect Joomla from joomla-specific paths', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -99,7 +98,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should detect Joomla from content="Joomla!" meta tag', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No generator meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -122,7 +121,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should detect Joomla from "joomla" text in HTML', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head><title>Test Site</title></head>
@@ -145,7 +144,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should not detect Joomla from unrelated content', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head><title>My Site</title></head>
@@ -162,7 +161,7 @@ describe('Joomla Detector', () => {
 
     describe('Confidence Scoring', () => {
         it('should have high confidence with meta tag detection', async () => {
-            mockPage.$eval.mockResolvedValue('joomla! 4.2');
+            mockPage.evaluate.mockResolvedValue('Joomla! 4.2 - Open Source Content Management');
             mockPage.content.mockResolvedValue('<html></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');
@@ -171,7 +170,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should have medium confidence with HTML content only', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/administrator/templates/atum/js/script.js"></script>
@@ -187,7 +186,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should aggregate confidence from multiple successful strategies', async () => {
-            mockPage.$eval.mockResolvedValue('joomla! 4.2');
+            mockPage.evaluate.mockResolvedValue('Joomla! 4.2 - Open Source Content Management');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/administrator/js/script.js"></script>
@@ -207,7 +206,7 @@ describe('Joomla Detector', () => {
 
     describe('Error Handling', () => {
         it('should handle strategy failures gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockRejectedValue(new Error('Content failed'));
 
             const result = await detector.detect(mockPage, 'https://example.com');
@@ -218,7 +217,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should continue with other strategies if one fails', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/administrator/templates/atum/js/script.js"></script>
@@ -238,7 +237,7 @@ describe('Joomla Detector', () => {
 
     describe('Version Extraction', () => {
         it('should extract version from meta generator tag', async () => {
-            mockPage.$eval.mockResolvedValue('joomla! 4.2.3');
+            mockPage.evaluate.mockResolvedValue('Joomla! 4.2.3 - Open Source Content Management');
             mockPage.content.mockResolvedValue('<html></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');
@@ -247,7 +246,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should handle version extraction with different formats', async () => {
-            mockPage.$eval.mockResolvedValue('joomla 3.10.12');
+            mockPage.evaluate.mockResolvedValue('Joomla 3.10.12');
             mockPage.content.mockResolvedValue('<html></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');
@@ -256,7 +255,7 @@ describe('Joomla Detector', () => {
         });
 
         it('should work without version when not available', async () => {
-            mockPage.$eval.mockResolvedValue('joomla');
+            mockPage.evaluate.mockResolvedValue('Joomla');
             mockPage.content.mockResolvedValue('<html></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');

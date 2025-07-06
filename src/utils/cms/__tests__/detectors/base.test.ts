@@ -61,7 +61,6 @@ describe('BaseCMSDetector', () => {
 
     beforeEach(() => {
         mockPage = {
-            $eval: jest.fn(),
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()

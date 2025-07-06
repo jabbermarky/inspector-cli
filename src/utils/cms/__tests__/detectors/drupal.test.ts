@@ -27,7 +27,6 @@ describe('Drupal Detector', () => {
         detector = new DrupalDetector();
         
         mockPage = {
-            $eval: jest.fn(),
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()
@@ -40,7 +39,7 @@ describe('Drupal Detector', () => {
 
     describe('Meta Tag Detection', () => {
         it('should detect Drupal from meta generator tag', async () => {
-            mockPage.$eval.mockResolvedValue('drupal 10.1.5');
+            mockPage.evaluate.mockResolvedValue('Drupal 10.1.5 (https://www.drupal.org)');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -53,7 +52,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should handle missing meta tag gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag not found'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -78,7 +77,7 @@ describe('Drupal Detector', () => {
 
     describe('HTML Content Detection', () => {
         it('should detect Drupal from drupal-specific paths', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -102,7 +101,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should detect Drupal from drupal.js reference', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -127,7 +126,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should detect Drupal from Drupal.settings reference', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head><title>Test Site</title></head>
@@ -151,7 +150,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should not detect Drupal from unrelated content', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head><title>My Site</title></head>
@@ -169,7 +168,7 @@ describe('Drupal Detector', () => {
 
     describe('File Detection Strategy', () => {
         it('should detect Drupal from CHANGELOG.txt file', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             
             // Mock CHANGELOG.txt request
@@ -199,7 +198,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should detect Drupal from core/CHANGELOG.txt file', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             
             // Mock core/CHANGELOG.txt request
@@ -232,7 +231,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should detect Drupal from INSTALL.txt file', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             
             // Mock INSTALL.txt request
@@ -269,7 +268,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should handle file detection failures gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockRejectedValue(new Error('Network error'));
 
@@ -282,7 +281,7 @@ describe('Drupal Detector', () => {
 
     describe('Confidence Scoring', () => {
         it('should have high confidence with meta tag detection', async () => {
-            mockPage.$eval.mockResolvedValue('drupal 10.1.5');
+            mockPage.evaluate.mockResolvedValue('Drupal 10.1.5');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -292,7 +291,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should have high confidence with file detection', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockImplementation((url: string) => {
                 if (url.includes('/CHANGELOG.txt')) {
@@ -308,7 +307,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should have medium confidence with HTML content only', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/sites/all/themes/theme/script.js"></script>
@@ -326,7 +325,7 @@ describe('Drupal Detector', () => {
 
     describe('Error Handling', () => {
         it('should handle strategy failures gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockRejectedValue(new Error('Content failed'));
             mockPage.goto.mockRejectedValue(new Error('Navigation failed'));
 
@@ -338,7 +337,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should continue with other strategies if one fails', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/sites/all/themes/theme/script.js"></script>
@@ -356,7 +355,7 @@ describe('Drupal Detector', () => {
 
     describe('Version Extraction', () => {
         it('should extract version from meta generator tag', async () => {
-            mockPage.$eval.mockResolvedValue('drupal 10.1.5');
+            mockPage.evaluate.mockResolvedValue('Drupal 10.1.5');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -366,7 +365,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should extract version from changelog file', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockImplementation((url: string) => {
                 if (url.includes('/CHANGELOG.txt')) {
@@ -386,7 +385,7 @@ describe('Drupal Detector', () => {
         });
 
         it('should work without version when not available', async () => {
-            mockPage.$eval.mockResolvedValue('drupal');
+            mockPage.evaluate.mockResolvedValue('Drupal');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 

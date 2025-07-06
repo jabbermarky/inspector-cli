@@ -25,7 +25,6 @@ describe('WordPress Detector', () => {
         detector = new WordPressDetector();
         
         mockPage = {
-            $eval: jest.fn(),
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()
@@ -38,7 +37,7 @@ describe('WordPress Detector', () => {
 
     describe('Meta Tag Detection', () => {
         it('should detect WordPress from meta generator tag', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -51,7 +50,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should handle missing meta tag gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag not found'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/themes/theme/script.js"></script>
@@ -72,7 +71,7 @@ describe('WordPress Detector', () => {
 
     describe('HTML Content Detection', () => {
         it('should detect WordPress from wp-content paths', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -94,7 +93,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should not detect WordPress from unrelated content', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head><title>My Site</title></head>
@@ -112,7 +111,7 @@ describe('WordPress Detector', () => {
 
     describe('API Endpoint Detection', () => {
         it('should detect WordPress from wp-json API', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ 
                 status: () => 200, 
@@ -130,7 +129,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should handle API endpoint not found', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -143,7 +142,7 @@ describe('WordPress Detector', () => {
 
     describe('Plugin Detection', () => {
         it('should detect WordPress plugins from HTML', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <head>
@@ -168,7 +167,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should extract plugin versions when available', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/plugins/yoast-seo/js/script.js?ver=19.8"></script>
@@ -184,7 +183,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should handle plugin API endpoint when available', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue('<html></html>');
             
             // Mock API responses
@@ -220,7 +219,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should deduplicate plugins from different sources', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/plugins/yoast-seo/js/script.js"></script>
@@ -257,7 +256,7 @@ describe('WordPress Detector', () => {
 
     describe('Confidence Scoring', () => {
         it('should have high confidence with meta tag detection', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue('<html></html>');
             mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
 
@@ -267,7 +266,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should have medium confidence with HTML content only', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('No meta tag'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/themes/theme/script.js"></script>
@@ -285,18 +284,21 @@ describe('WordPress Detector', () => {
         });
 
         it('should aggregate confidence from multiple successful strategies', async () => {
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            // Mock meta tag strategy
+            mockPage.evaluate.mockResolvedValueOnce('WordPress 5.9');
+            // Mock HTML content strategy  
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/plugins/yoast/script.js"></script>
                 </html>
             `);
+            // Mock API endpoint strategy
             mockPage.goto.mockResolvedValue({ 
                 status: () => 200, 
                 ok: () => true,
                 headers: () => ({ 'content-type': 'application/json' })
             } as any);
-            mockPage.evaluate.mockResolvedValue('{"wordpress":{"version":"5.9"}}');
+            mockPage.evaluate.mockResolvedValueOnce('{"wordpress":{"version":"5.9"}}');
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
@@ -307,7 +309,7 @@ describe('WordPress Detector', () => {
 
     describe('Error Handling', () => {
         it('should handle strategy failures gracefully', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockRejectedValue(new Error('Content failed'));
             mockPage.goto.mockRejectedValue(new Error('Navigation failed'));
 
@@ -319,7 +321,7 @@ describe('WordPress Detector', () => {
         });
 
         it('should continue with other strategies if one fails', async () => {
-            mockPage.$eval.mockRejectedValue(new Error('Meta tag failed'));
+            mockPage.evaluate.mockResolvedValue('');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/themes/theme/script.js"></script>

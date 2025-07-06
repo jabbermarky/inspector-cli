@@ -24,15 +24,28 @@ export class MetaTagStrategy implements DetectionStrategy {
         try {
             logger.debug(`Executing meta tag strategy for ${this.targetCMS}`, { url });
 
-            // Look for generator meta tag
-            const metaContent = await page.$$eval(
-                'meta[name="generator" i]', // Case-insensitive search for "generator" meta tag
-                (el) => (el as HTMLMetaElement[]).length ? el[0].content.toLowerCase() : 'not found'
-            );
-            
-            if (metaContent.includes(this.targetCMS.toLowerCase())) {
+            // Robust, case-insensitive search for meta[name="generator"]
+            const metaContent: string = await page.evaluate(() => {
+                const metas = Array.from(document.getElementsByTagName('meta'));
+                const generatorMeta = metas.find(
+                    m => m.getAttribute('name')?.toLowerCase() === 'generator'
+                );
+                return generatorMeta?.getAttribute('content') || '';
+            });
+
+            logger.debug(`Meta tag content found`, {
+                url,
+                cms: this.targetCMS,
+                metaContent
+            });
+
+            // Case-insensitive CMS match
+            if (
+                metaContent &&
+                metaContent.toLowerCase().includes(this.targetCMS.toLowerCase())
+            ) {
                 const version = this.extractVersion(metaContent);
-                
+
                 logger.debug(`Meta tag detection successful`, {
                     url,
                     cms: this.targetCMS,
@@ -79,9 +92,10 @@ export class MetaTagStrategy implements DetectionStrategy {
     private extractVersion(metaContent: string): string | undefined {
         // Common patterns for version extraction
         const patterns = [
-            new RegExp(`${this.targetCMS}\\s*[:\\/]?\\s*v?([0-9]+(?:\\.[0-9]+)*(?:\\.[0-9]+)?)`, 'i'),
-            /version[:\\/\s]*v?([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?)/i,
-            /v?([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?)/i
+            // e.g. "WordPress 5.9", "Drupal 10.1.5", "Joomla! 4.2.3"
+            new RegExp(`${this.targetCMS.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[!\\s:-]*v?([0-9]+(?:\\.[0-9]+)*)`, 'i'),
+            /version[:\-/\s]*v?([0-9]+(?:\.[0-9]+)*)/i,
+            /v?([0-9]+(?:\.[0-9]+)*)/i
         ];
 
         for (const pattern of patterns) {

@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
 import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
-import { DetectionPage } from '../../types.js';
 
 // Mock logger
 jest.mock('../../../logger.js', () => ({
@@ -27,7 +26,6 @@ describe('ApiEndpointStrategy', () => {
         } as any;
 
         mockPage = {
-            $eval: jest.fn(),
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()

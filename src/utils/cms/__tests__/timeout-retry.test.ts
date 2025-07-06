@@ -33,7 +33,6 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
         mockPage = {
             goto: jest.fn(),
             content: jest.fn(),
-            $eval: jest.fn(),
             evaluate: jest.fn(),
             close: jest.fn()
         };
@@ -44,7 +43,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
             const strategy = new MetaTagStrategy('WordPress', 1000);
             
             // Mock page that rejects with timeout error
-            mockPage.$eval.mockRejectedValue(new Error('Navigation timeout'));
+            mockPage.evaluate.mockRejectedValue(new Error('Navigation timeout'));
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
@@ -81,7 +80,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
         it('should handle network errors gracefully', async () => {
             const strategy = new MetaTagStrategy('WordPress', 5000);
             
-            mockPage.$eval.mockRejectedValue(new Error('ECONNRESET'));
+            mockPage.evaluate.mockRejectedValue(new Error('ECONNRESET'));
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
@@ -92,7 +91,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
         it('should handle non-retryable errors', async () => {
             const strategy = new MetaTagStrategy('WordPress', 5000);
             
-            mockPage.$eval.mockRejectedValue(new Error('Invalid selector'));
+            mockPage.evaluate.mockRejectedValue(new Error('Invalid selector'));
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
@@ -128,7 +127,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
             const detector = new WordPressDetector();
             
             // Mock successful responses for multiple strategies
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/themes/theme/script.js"></script>
@@ -155,7 +154,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
             const detector = new WordPressDetector();
             
             // Meta tag strategy times out
-            mockPage.$eval.mockImplementation(() => {
+            mockPage.evaluate.mockImplementation(() => {
                 return new Promise((_, reject) => {
                     setTimeout(() => reject(new Error('TIMEOUT')), 100);
                 });
@@ -217,7 +216,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
             const apiStrategy = new ApiEndpointStrategy('/wp-json/', 'WordPress', 6000);
 
             // Mock successful responses for each strategy
-            mockPage.$eval.mockResolvedValue('wordpress 5.9');
+            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
             mockPage.content.mockResolvedValue('<html><script src="/wp-content/themes/theme/script.js"></script></html>');
             mockPage.goto.mockResolvedValue({ 
                 status: () => 200, 
@@ -243,7 +242,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
             const detector = new WordPressDetector();
             
             // Mock responses with some delay
-            mockPage.$eval.mockImplementation(() => {
+            mockPage.evaluate.mockImplementation(() => {
                 return new Promise(resolve => {
                     setTimeout(() => resolve('wordpress 5.9'), 100);
                 });

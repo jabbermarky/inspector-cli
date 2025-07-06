@@ -1,4 +1,3 @@
-import { Page } from 'puppeteer';
 import { ManagedPage } from '../browser/index.js';
 
 /**
