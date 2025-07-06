@@ -109,7 +109,6 @@ interface ScreenshotResult {
   width: number;            // Viewport width used
   sizes: [number, number];  // Page dimensions [width, height]
   duration?: number;        // Total capture time (ms)
-  navigationTime?: number;  // Navigation time (ms)
   screenshotTime?: number;  // Screenshot capture time (ms)
 }
 ```
@@ -197,7 +196,6 @@ The module tracks detailed performance metrics:
 const result = await takeScreenshot(options);
 
 console.log(`Total time: ${result.duration}ms`);
-console.log(`Navigation: ${result.navigationTime}ms`);
 console.log(`Screenshot: ${result.screenshotTime}ms`);
 ```
 

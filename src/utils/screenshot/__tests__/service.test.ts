@@ -250,7 +250,6 @@ describe('ScreenshotService - Successful Screenshot', () => {
         expect(typeof result.sizes[1]).toBe('number');
         expect(result).toHaveProperty('duration');
         expect(typeof result.duration).toBe('number');
-        // navigationTime removed - navigation is now part of page creation
         expect(result).toHaveProperty('screenshotTime');
         expect(typeof result.screenshotTime).toBe('number');
     });
