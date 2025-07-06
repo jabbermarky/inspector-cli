@@ -145,7 +145,7 @@ export class CMSBrowserManager implements BrowserManager {
                 } else {
                     request.continue();
                 }
-            } catch (error) {
+            } catch {
                 // Silently handle request interception errors
                 try {
                     request.continue();
