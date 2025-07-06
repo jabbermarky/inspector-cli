@@ -294,6 +294,7 @@ All commands include:
 - Maintain high test coverage (target: 85%+ for core modules)
 - Use proper mocking for complex dependencies (browser, external APIs)
 - Write comprehensive test suites that cover error conditions and edge cases
+- The job is not done when all of the tests in the test suite are failing
 
 ## Development Guidelines
 
