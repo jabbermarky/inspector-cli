@@ -22,10 +22,16 @@ class DrupalFileStrategy implements DetectionStrategy {
 
     async detect(page: DetectionPage, url: string): Promise<PartialDetectionResult> {
         try {
-            logger.debug('Executing Drupal file detection', { url });
+            // Get final URL after redirects from page context, fallback to original URL
+            const finalUrl = page._browserManagerContext?.lastNavigation?.finalUrl || url;
+            
+            logger.debug('Executing Drupal file detection', { 
+                originalUrl: url,
+                finalUrl 
+            });
 
-            // Check for CHANGELOG.txt file (common in Drupal installations)
-            const baseUrl = url.replace(/\/$/, '');
+            // Check for CHANGELOG.txt file using final URL after redirects
+            const baseUrl = finalUrl.replace(/\/$/, '');
             const changelogUrl = `${baseUrl}/CHANGELOG.txt`;
 
             const response = await page.goto(changelogUrl, {

@@ -12,6 +12,9 @@ import {
     BrowserNetworkError,
     BrowserResourceError,
     BrowserTimeoutError,
+    BrowserRedirectError,
+    NavigationResult,
+    RedirectInfo,
     NAVIGATION_STRATEGIES,
     RESOURCE_BLOCKING_STRATEGIES,
     DEFAULT_ESSENTIAL_SCRIPT_PATTERNS,
@@ -28,13 +31,14 @@ function ensurePuppeteerConfigured() {
         const config = getConfig();
         puppeteerExtra.use(puppeteerStealth());
         
+        // Disable adblocker for CMS detection to prevent ERR_BLOCKED_BY_CLIENT
+        // CMS detection needs access to all resources including potential ads/trackers
         if (config.puppeteer.blockAds) {
-            puppeteerExtra.use(puppeteerAdblocker({ blockTrackers: true }));
-            logger.debug('Puppeteer adblocker plugin enabled');
+            logger.debug('Adblocker disabled for CMS detection to prevent blocking legitimate requests');
         }
         
         puppeteerConfigured = true;
-        logger.debug('Puppeteer plugins configured');
+        logger.debug('Puppeteer plugins configured for CMS detection');
     }
 }
 
@@ -81,7 +85,7 @@ export class BrowserManager {
             const page = await this.setupPage();
             
             // Navigate to target URL
-            await this.navigateToUrl(page, url);
+            const navigationResult = await this.navigateToUrl(page, url);
 
             // Track page
             this.pages.add(page);
@@ -116,20 +120,74 @@ export class BrowserManager {
     }
 
     /**
-     * Navigate to URL with purpose-specific strategy
+     * Navigate to URL with purpose-specific strategy and redirect tracking
      */
-    async navigateToUrl(page: ManagedPage, url: string): Promise<void> {
+    async navigateToUrl(page: ManagedPage, url: string): Promise<NavigationResult> {
         const navigationStrategy = NAVIGATION_STRATEGIES[this.config.purpose];
-        const { timeout, additionalWaitTime } = this.config.navigation;
+        const { timeout, additionalWaitTime, trackRedirectChain, maxRedirects } = this.config.navigation;
+        
+        const navigationStart = Date.now();
+        const redirectChain: RedirectInfo[] = [];
+        let finalUrl = url;
+        let currentUrl = url;
         
         try {
-            logger.debug('Navigating to URL', { 
+            logger.debug('Navigating to URL with redirect tracking', { 
                 url, 
                 purpose: this.config.purpose,
-                strategy: navigationStrategy.waitUntil 
+                strategy: navigationStrategy.waitUntil,
+                trackRedirects: trackRedirectChain
             });
             
-            const navigationStart = Date.now();
+            // Setup redirect tracking if enabled
+            if (trackRedirectChain) {
+                page.on('response', (response) => {
+                    const status = response.status();
+                    const responseUrl = response.url();
+                    
+                    // Track redirects (3xx status codes)
+                    if (status >= 300 && status < 400) {
+                        const location = response.headers()['location'];
+                        if (location) {
+                            const redirectTo = new URL(location, responseUrl).href;
+                            redirectChain.push({
+                                from: responseUrl,
+                                to: redirectTo,
+                                status,
+                                timestamp: Date.now()
+                            });
+                            
+                            logger.debug('Redirect detected', {
+                                from: responseUrl,
+                                to: redirectTo,
+                                status,
+                                redirectCount: redirectChain.length
+                            });
+                            
+                            // Check for redirect loops
+                            if (this.detectRedirectLoop(redirectChain)) {
+                                logger.warn('Redirect loop detected, stopping redirect tracking', {
+                                    url,
+                                    redirectChain: redirectChain.map(r => `${r.from} -> ${r.to} (${r.status})`)
+                                });
+                                // Don't throw error, just stop tracking further redirects
+                                return;
+                            }
+                            
+                            // Check max redirects
+                            if (maxRedirects && redirectChain.length >= maxRedirects) {
+                                logger.warn('Maximum redirects reached, stopping redirect tracking', {
+                                    url,
+                                    redirectCount: redirectChain.length,
+                                    maxRedirects
+                                });
+                                // Don't throw error, just stop tracking further redirects
+                                return;
+                            }
+                        }
+                    }
+                });
+            }
             
             const response = await page.goto(url, {
                 waitUntil: navigationStrategy.waitUntil,
@@ -143,9 +201,13 @@ export class BrowserManager {
                 );
             }
 
+            // Get final URL after all redirects
+            finalUrl = page.url();
+            
             if (!response.ok() && this.config.purpose === 'capture') {
                 logger.warn('Non-200 response during navigation', {
                     url,
+                    finalUrl,
                     status: response.status(),
                     statusText: response.statusText(),
                     purpose: this.config.purpose
@@ -158,29 +220,72 @@ export class BrowserManager {
                 await page.waitForTimeout(additionalWaitTime);
             }
 
+            const navigationTime = Date.now() - navigationStart;
+            const protocolUpgraded = this.detectProtocolUpgrade(url, finalUrl);
+            
+            const navigationResult: NavigationResult = {
+                originalUrl: url,
+                finalUrl,
+                redirectChain,
+                totalRedirects: redirectChain.length,
+                navigationTime,
+                protocolUpgraded,
+                success: true
+            };
+
             // Update page context
             if (page._browserManagerContext) {
                 page._browserManagerContext.navigationCount++;
+                page._browserManagerContext.lastNavigation = navigationResult;
             }
 
-            const navigationTime = Date.now() - navigationStart;
             logger.debug('Navigation completed', { 
-                url, 
+                originalUrl: url,
+                finalUrl,
                 navigationTime,
+                redirectCount: redirectChain.length,
+                protocolUpgraded,
                 status: response.status(),
                 purpose: this.config.purpose 
             });
+            
+            return navigationResult;
 
         } catch (error) {
             const err = error as Error;
             const errorMessage = err.message;
+            const navigationTime = Date.now() - navigationStart;
             
             logger.error('Navigation failed', { 
-                url, 
+                originalUrl: url,
+                finalUrl,
                 timeout, 
                 purpose: this.config.purpose,
+                redirectCount: redirectChain.length,
+                navigationTime,
                 error: errorMessage 
             });
+            
+            // Create failed navigation result
+            const failedResult: NavigationResult = {
+                originalUrl: url,
+                finalUrl,
+                redirectChain,
+                totalRedirects: redirectChain.length,
+                navigationTime,
+                protocolUpgraded: this.detectProtocolUpgrade(url, finalUrl),
+                success: false
+            };
+            
+            // Update page context with failed navigation
+            if (page._browserManagerContext) {
+                page._browserManagerContext.lastNavigation = failedResult;
+            }
+            
+            // Re-throw redirect errors as-is
+            if (err instanceof BrowserRedirectError) {
+                throw err;
+            }
             
             // Categorize navigation errors
             if (errorMessage.includes('timeout')) {
@@ -188,7 +293,7 @@ export class BrowserManager {
                     `Navigation timeout after ${timeout}ms`,
                     timeout,
                     'navigation',
-                    { url, purpose: this.config.purpose },
+                    { url, purpose: this.config.purpose, redirectCount: redirectChain.length },
                     err
                 );
             } else if (errorMessage.includes('ERR_NAME_NOT_RESOLVED')) {
@@ -345,7 +450,10 @@ export class BrowserManager {
                     '--disable-features=VizDisplayCompositor',
                     '--disable-background-timer-throttling',
                     '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding'
+                    '--disable-renderer-backgrounding',
+                    // Fix for ERR_BLOCKED_BY_CLIENT with HTTP URLs
+                    // Chrome's HttpsFirstBalancedModeAutoEnable blocks HTTP navigation
+                    '--disable-features=HttpsFirstBalancedModeAutoEnable'
                 ],
                 defaultViewport: this.config.viewport
             });
@@ -441,8 +549,19 @@ export class BrowserManager {
                     const resourceType = request.resourceType();
                     const url = request.url();
 
+                    // Always allow document requests (main page content)
+                    if (resourceType === 'document') {
+                        request.continue();
+                        return;
+                    }
+
                     // Block resources based on strategy
                     if (this.isResourceBlocked(resourceType, blockedTypes)) {
+                        logger.debug('Blocking resource', { 
+                            resourceType, 
+                            url: url.substring(0, 100),
+                            purpose: this.config.purpose 
+                        });
                         request.abort();
                         return;
                     }
@@ -450,8 +569,16 @@ export class BrowserManager {
                     // Handle scripts specially for CMS detection
                     if (resourceType === 'script' && this.config.resourceBlocking.allowEssentialScripts) {
                         if (this.isEssentialScript(url, allowPatterns)) {
+                            logger.debug('Allowing essential script', { 
+                                url: url.substring(0, 100),
+                                purpose: this.config.purpose 
+                            });
                             request.continue();
                         } else {
+                            logger.debug('Blocking non-essential script', { 
+                                url: url.substring(0, 100),
+                                purpose: this.config.purpose 
+                            });
                             request.abort();
                         }
                         return;
@@ -459,8 +586,12 @@ export class BrowserManager {
 
                     request.continue();
                     
-                } catch {
+                } catch (error) {
                     // Silently handle request interception errors
+                    logger.debug('Request interception error', { 
+                        error: (error as Error).message,
+                        purpose: this.config.purpose 
+                    });
                     try {
                         request.continue();
                     } catch {
@@ -559,5 +690,56 @@ export class BrowserManager {
      */
     public static resetSemaphore(): void {
         BrowserManager.semaphore = null;
+    }
+
+    /**
+     * Get navigation information from a managed page
+     */
+    getNavigationInfo(page: ManagedPage): NavigationResult | null {
+        return page._browserManagerContext?.lastNavigation || null;
+    }
+
+    /**
+     * Detect redirect loops in redirect chain
+     */
+    private detectRedirectLoop(redirectChain: RedirectInfo[]): boolean {
+        if (redirectChain.length < 3) return false; // Need at least 3 redirects to detect a loop
+        
+        // Normalize URLs for comparison (remove trailing slashes, etc.)
+        const normalizedUrls = redirectChain.map(r => this.normalizeUrlForComparison(r.to));
+        
+        // Check if the last URL appears earlier in the chain
+        const lastUrl = normalizedUrls[normalizedUrls.length - 1];
+        const previousUrls = normalizedUrls.slice(0, -1);
+        
+        return previousUrls.includes(lastUrl);
+    }
+
+    /**
+     * Normalize URL for redirect loop comparison
+     */
+    private normalizeUrlForComparison(url: string): string {
+        try {
+            const parsed = new URL(url);
+            // Remove trailing slash and fragments for comparison
+            const normalized = `${parsed.protocol}//${parsed.host}${parsed.pathname.replace(/\/$/, '')}${parsed.search}`;
+            return normalized.toLowerCase();
+        } catch {
+            return url.toLowerCase();
+        }
+    }
+
+    /**
+     * Detect HTTP to HTTPS protocol upgrade
+     */
+    private detectProtocolUpgrade(originalUrl: string, finalUrl: string): boolean {
+        try {
+            const original = new URL(originalUrl);
+            const final = new URL(finalUrl);
+            
+            return original.protocol === 'http:' && final.protocol === 'https:';
+        } catch {
+            return false;
+        }
     }
 }

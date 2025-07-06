@@ -23,7 +23,9 @@ export type {
     ConcurrencyConfig,
     DebugConfig,
     NavigationStrategy,
-    ManagedPage
+    ManagedPage,
+    NavigationResult,
+    RedirectInfo
 } from './types.js';
 
 // Import type for function signatures
@@ -34,7 +36,8 @@ export {
     BrowserManagerError,
     BrowserNetworkError,
     BrowserResourceError,
-    BrowserTimeoutError
+    BrowserTimeoutError,
+    BrowserRedirectError
 } from './types.js';
 
 // Strategy and configuration exports
@@ -59,7 +62,11 @@ export function createDetectionConfig(overrides?: Partial<BrowserManagerConfig>)
         },
         navigation: {
             timeout: 5000,
-            retryAttempts: 3
+            retryAttempts: 3,
+            followRedirects: true,
+            maxRedirects: 20,
+            redirectTimeout: 5000,
+            trackRedirectChain: true
         },
         concurrency: {
             maxConcurrent: 2
@@ -80,7 +87,11 @@ export function createCaptureConfig(overrides?: Partial<BrowserManagerConfig>): 
         },
         navigation: {
             timeout: 15000,
-            additionalWaitTime: 2000
+            additionalWaitTime: 2000,
+            followRedirects: true,
+            maxRedirects: 20,
+            redirectTimeout: 5000,
+            trackRedirectChain: true
         },
         concurrency: {
             maxConcurrent: 2
@@ -101,7 +112,11 @@ export function createAnalysisConfig(overrides?: Partial<BrowserManagerConfig>):
         },
         navigation: {
             timeout: 10000,
-            retryAttempts: 2
+            retryAttempts: 2,
+            followRedirects: true,
+            maxRedirects: 20,
+            redirectTimeout: 5000,
+            trackRedirectChain: true
         },
         concurrency: {
             maxConcurrent: 2

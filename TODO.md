@@ -95,9 +95,9 @@ This document tracks all pending tasks, improvements, and architectural changes 
 - [ ] **Split utils.ts into focused modules** (CRITICAL - 634 lines → max 150 per module)
   - [x] Extract file operations (`src/utils/file/`)
   - [ ] Extract image processing (`src/utils/image/`)
-  - [ ] Extract browser automation (`src/utils/browser/`)
+  - [x] Extract browser automation (`src/utils/browser/`)
   - [x] **Extract CMS detection (`src/utils/cms/`)** ✅ COMPLETED
-  - [ ] Extract concurrency control (`src/utils/concurrency/`)
+  - [x] Extract concurrency control (`src/utils/concurrency/`)
 
 - [ ] **Implement Result pattern for consistent error handling**
   - [ ] Create `Result<T, E>` type in `src/utils/result/`
@@ -107,7 +107,7 @@ This document tracks all pending tasks, improvements, and architectural changes 
 
 - [ ] **Reduce function complexity** (Target: max 30 lines per function)
   - [x] **Refactor `detectCMS()` function** ✅ COMPLETED (reduced from 207 lines to 30 lines)
-  - [ ] Refactor `takeAScreenshotPuppeteer()` function
+  - [x] Refactor `takeAScreenshotPuppeteer()` function
   - [ ] Break down complex conditional logic into smaller functions
   - [ ] Extract validation logic into dedicated validators
 
@@ -122,8 +122,8 @@ This document tracks all pending tasks, improvements, and architectural changes 
 
 ### Architecture Improvements
 - [ ] **Extract business logic from command functions into services**
-  - [ ] Create `ScreenshotService` class for screenshot business logic
-  - [ ] Create `CMSDetectionService` class for CMS analysis
+  - [x] Create `ScreenshotService` class for screenshot business logic
+  - [x] Create `CMSDetectionService` class for CMS analysis
   - [ ] Create `ImageProcessingService` for image operations
   - [ ] Update commands to use services (thin CLI wrappers)
 
@@ -290,25 +290,3 @@ Each task should include:
 **Last Updated**: July 5, 2025  
 **Total Tasks**: 68 (48 completed, 20 pending)  
 **Focus Areas**: Critical security issues, architecture cleanup, comprehensive error handling, production readiness
-
-### 🎉 Major Achievement - CMS Detection Refactoring & Test Coverage
-**Recently completed major architectural improvement:**
-- ✅ Extracted entire CMS detection system into modular architecture
-- ✅ Reduced `detectCMS()` function complexity from 207 lines to 30 lines  
-- ✅ Implemented strategy pattern with pluggable detection methods
-- ✅ Added comprehensive test coverage (107 total tests)
-- ✅ **NEW: Improved test coverage for low-coverage CMS files**
-  - ✅ API endpoint strategy: 96.87% coverage (24 tests)
-  - ✅ Base detector: 85.07% coverage (14 tests)
-  - ✅ Browser manager: 21.42% coverage (7 tests with proper mocking)
-  - ✅ Overall project coverage: 30.39% → 50.63%
-- ✅ Maintained backward compatibility through re-exports
-- ✅ Added robust timeout and retry handling
-- ✅ Fixed configuration validation to not require OpenAI API key for non-AI commands
-
-### Recent Updates from REVIEW_FINDINGS.md Analysis
-- Added 21 critical security, reliability, and production readiness items
-- Prioritized file validation, rate limiting, and dependency security
-- Expanded testing coverage requirements
-- Added comprehensive logging and monitoring tasks
-- Included documentation and deployment automation requirements

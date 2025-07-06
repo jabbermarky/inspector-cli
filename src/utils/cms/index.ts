@@ -87,6 +87,8 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
         return {
             cms: 'Unknown',
             confidence: 0,
+            originalUrl: url,
+            finalUrl: normalizedUrl,
             executionTime
         };
 
@@ -107,6 +109,8 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
         return {
             cms: 'Unknown',
             confidence: 0,
+            originalUrl: url,
+            finalUrl: url,  // Use original URL as fallback when error occurs
             error: errorMessage,
             executionTime
         };

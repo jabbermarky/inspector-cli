@@ -41,6 +41,11 @@ export interface NavigationConfig {
     timeout: number;
     retryAttempts?: number;
     additionalWaitTime?: number;
+    // Redirect handling
+    followRedirects?: boolean;           // Default: true
+    maxRedirects?: number;               // Default: 20 (Chrome's limit)
+    redirectTimeout?: number;            // Per-redirect timeout (default: 5000ms)
+    trackRedirectChain?: boolean;        // Default: true for debugging
 }
 
 /**
@@ -95,6 +100,29 @@ export interface NavigationStrategy {
 }
 
 /**
+ * Redirect information for a single redirect step
+ */
+export interface RedirectInfo {
+    from: string;
+    to: string;
+    status: number;
+    timestamp: number;
+}
+
+/**
+ * Navigation result with redirect tracking
+ */
+export interface NavigationResult {
+    originalUrl: string;
+    finalUrl: string;
+    redirectChain: RedirectInfo[];
+    totalRedirects: number;
+    navigationTime: number;
+    protocolUpgraded: boolean;          // HTTP→HTTPS detection
+    success: boolean;
+}
+
+/**
  * Browser page with additional context
  */
 export interface ManagedPage extends Page {
@@ -102,6 +130,7 @@ export interface ManagedPage extends Page {
         purpose: BrowserPurpose;
         createdAt: number;
         navigationCount: number;
+        lastNavigation?: NavigationResult;
     };
     waitForTimeout(timeout: number): Promise<void>;
     setDefaultNavigationTimeout(timeout: number): void;
@@ -168,6 +197,23 @@ export class BrowserTimeoutError extends BrowserManagerError {
 }
 
 /**
+ * Redirect-related browser errors
+ */
+export class BrowserRedirectError extends BrowserManagerError {
+    public readonly redirectChain: RedirectInfo[];
+    public readonly redirectCount: number;
+    public readonly loopDetected?: boolean;
+
+    constructor(message: string, redirectChain: RedirectInfo[], context?: Record<string, any>, cause?: Error) {
+        super(message, 'browser_redirect_error', context, cause);
+        this.name = 'BrowserRedirectError';
+        this.redirectChain = redirectChain;
+        this.redirectCount = redirectChain.length;
+        this.loopDetected = context?.loopDetected;
+    }
+}
+
+/**
  * Strategy mappings for purpose-based configuration
  */
 export const NAVIGATION_STRATEGIES: Record<BrowserPurpose, NavigationStrategy> = {
@@ -223,7 +269,11 @@ export const DEFAULT_BROWSER_CONFIG: Partial<BrowserManagerConfig> = {
     navigation: {
         timeout: 10000,
         retryAttempts: 3,
-        additionalWaitTime: 0
+        additionalWaitTime: 0,
+        followRedirects: true,
+        maxRedirects: 20,
+        redirectTimeout: 5000,
+        trackRedirectChain: true
     },
     concurrency: {
         maxConcurrent: 2,

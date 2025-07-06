@@ -8,6 +8,7 @@ import {
     CMSPluginResult,
     CMSTimeoutError
 } from '../types.js';
+import { NavigationResult } from '../../browser/types.js';
 import { createModuleLogger } from '../../logger.js';
 import { withRetry } from '../../retry.js';
 
@@ -39,13 +40,19 @@ export abstract class BaseCMSDetector implements CMSDetector {
             // Wait for all strategies to complete or timeout
             const settledResults = await Promise.allSettled(strategyPromises);
             
+            // Extract navigation information from page context
+            const navigationInfo = this.extractNavigationInfo(page);
+            
             // Aggregate results into final detection result
-            const result = this.aggregateResults(settledResults, startTime);
+            const result = this.aggregateResults(settledResults, startTime, url, navigationInfo);
             
             logger.info(`${this.getCMSName()} detection completed`, {
-                url,
+                originalUrl: result.originalUrl,
+                finalUrl: result.finalUrl,
                 cms: result.cms,
                 confidence: result.confidence,
+                redirectCount: result.redirectCount,
+                protocolUpgraded: result.protocolUpgraded,
                 executionTime: result.executionTime,
                 methods: result.detectionMethods
             });
@@ -59,9 +66,16 @@ export abstract class BaseCMSDetector implements CMSDetector {
                 executionTime
             });
 
+            // Extract navigation info even for failed detection
+            const navigationInfo = this.extractNavigationInfo(page);
+            
             return {
                 cms: 'Unknown',
                 confidence: 0,
+                originalUrl: url,
+                finalUrl: navigationInfo?.finalUrl || url,
+                redirectCount: navigationInfo?.totalRedirects,
+                protocolUpgraded: navigationInfo?.protocolUpgraded,
                 error: (error as Error).message,
                 executionTime
             };
@@ -130,7 +144,9 @@ export abstract class BaseCMSDetector implements CMSDetector {
      */
     protected aggregateResults(
         settledResults: PromiseSettledResult<PartialDetectionResult>[],
-        startTime: number
+        startTime: number,
+        originalUrl: string,
+        navigationInfo: NavigationResult | null
     ): CMSDetectionResult {
         const successfulResults: PartialDetectionResult[] = [];
         const failedMethods: string[] = [];
@@ -181,6 +197,10 @@ export abstract class BaseCMSDetector implements CMSDetector {
             cms: detectedCMS,
             confidence: finalConfidence,
             version: bestVersion,
+            originalUrl,
+            finalUrl: navigationInfo?.finalUrl || originalUrl,
+            redirectCount: navigationInfo?.totalRedirects,
+            protocolUpgraded: navigationInfo?.protocolUpgraded,
             plugins: this.deduplicatePlugins(allPlugins),
             detectionMethods,
             executionTime
@@ -214,6 +234,13 @@ export abstract class BaseCMSDetector implements CMSDetector {
         }
         
         return Array.from(unique.values());
+    }
+
+    /**
+     * Extract navigation information from managed page context
+     */
+    private extractNavigationInfo(page: DetectionPage): NavigationResult | null {
+        return page._browserManagerContext?.lastNavigation || null;
     }
 
     /**

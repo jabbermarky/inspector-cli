@@ -24,6 +24,12 @@ export interface CMSDetectionResult {
     version?: string;
     plugins?: CMSPluginResult[];
     confidence: number;
+    // URL tracking for redirect chains
+    originalUrl: string;                 // Input URL (e.g., http://drupal.org)
+    finalUrl: string;                    // Resolved URL (e.g., https://new.drupal.org/home)
+    redirectCount?: number;              // Number of redirects followed
+    protocolUpgraded?: boolean;          // HTTP→HTTPS upgrade occurred
+    
     detectionMethods?: string[];
     executionTime?: number;
     error?: string;

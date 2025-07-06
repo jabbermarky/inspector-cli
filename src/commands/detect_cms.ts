@@ -89,6 +89,18 @@ function displaySingleResult(url: string, detected: any) {
     if (detected && detected.cms) {
         console.log(`CMS: ${detected.cms}`);
         console.log(`Version: ${detected.version ?? 'Unknown'}`);
+        
+        // Show redirect information if available
+        if (detected.originalUrl && detected.finalUrl && detected.originalUrl !== detected.finalUrl) {
+            console.log(`Original URL: ${detected.originalUrl}`);
+            console.log(`Final URL: ${detected.finalUrl}`);
+            if (detected.redirectCount) {
+                console.log(`Redirects: ${detected.redirectCount}`);
+            }
+            if (detected.protocolUpgraded) {
+                console.log(`Protocol upgraded: HTTP → HTTPS`);
+            }
+        }
     } else {
         console.log(`No CMS detected for ${url}`);
     }

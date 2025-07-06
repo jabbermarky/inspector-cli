@@ -23,13 +23,17 @@ export class ApiEndpointStrategy implements DetectionStrategy {
 
     async detect(page: DetectionPage, url: string): Promise<PartialDetectionResult> {
         try {
+            // Get final URL after redirects from page context, fallback to original URL
+            const finalUrl = page._browserManagerContext?.lastNavigation?.finalUrl || url;
+            
             logger.debug(`Executing API endpoint strategy for ${this.cmsName}`, { 
-                url, 
+                originalUrl: url,
+                finalUrl, 
                 endpoint: this.endpoint 
             });
 
-            // Construct API endpoint URL
-            const baseUrl = url.replace(/\/$/, '');
+            // Construct API endpoint URL using final URL after redirects
+            const baseUrl = finalUrl.replace(/\/$/, '');
             const apiUrl = `${baseUrl}${this.endpoint}`;
 
             // Navigate to API endpoint
