@@ -1,5 +1,15 @@
 import { withRetry, withRetryOpenAI } from '../retry';
 
+// Mock logger
+jest.mock('../logger.js', () => ({
+    createModuleLogger: jest.fn(() => ({
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+    }))
+}));
+
 describe('Retry Utility', () => {
   describe('withRetry', () => {
     it('should succeed on first try', async () => {
