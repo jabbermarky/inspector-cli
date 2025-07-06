@@ -35,31 +35,11 @@ export interface ScreenshotResult {
     sizes: [number, number];
     /** Capture duration in milliseconds */
     duration?: number;
-    /** Navigation time in milliseconds */
-    navigationTime?: number;
     /** Screenshot time in milliseconds */
     screenshotTime?: number;
 }
 
-export interface BrowserConfig {
-    /** Whether to run browser in headless mode */
-    headless: boolean;
-    /** Default viewport configuration */
-    viewport: {
-        width: number;
-        height: number;
-    };
-    /** Browser timeout in milliseconds */
-    timeout: number;
-    /** User agent string */
-    userAgent: string;
-    /** Whether to block ads */
-    blockAds: boolean;
-    /** Whether to block images */
-    blockImages: boolean;
-    /** Maximum concurrent browser instances */
-    maxConcurrency: number;
-}
+// Browser configuration now handled by shared browser manager
 
 export class ScreenshotError extends Error {
     /** Error code for categorization */
@@ -142,32 +122,4 @@ export interface IScreenshotService {
     cleanup?(): Promise<void>;
 }
 
-/**
- * Browser manager interface for browser lifecycle management
- */
-export interface IBrowserManager {
-    /**
-     * Launch a browser instance
-     */
-    launchBrowser(config: BrowserConfig): Promise<any>;
-    
-    /**
-     * Setup page with configuration
-     */
-    setupPage(browser: any, options: ScreenshotOptions): Promise<any>;
-    
-    /**
-     * Navigate to URL with retries
-     */
-    navigateToUrl(page: any, url: string, timeout: number): Promise<void>;
-    
-    /**
-     * Capture screenshot
-     */
-    captureImage(page: any, path: string, fullPage: boolean): Promise<[number, number]>;
-    
-    /**
-     * Close browser safely
-     */
-    closeBrowser(browser: any): Promise<void>;
-}
+// Browser manager interface now handled by shared browser manager

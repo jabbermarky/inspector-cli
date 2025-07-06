@@ -1,13 +1,11 @@
-import { getConfig } from '../config.js';
 import { createModuleLogger } from '../logger.js';
-import { getSemaphore } from '../utils.js';
 import { 
     ScreenshotOptions, 
     ScreenshotResult, 
     ScreenshotError,
     IScreenshotService 
 } from './types.js';
-import { ScreenshotBrowserManager } from './browser-manager.js';
+import { BrowserManager, createCaptureConfig, BrowserNetworkError, BrowserTimeoutError } from '../browser/index.js';
 import { ScreenshotValidator } from './validation.js';
 
 const logger = createModuleLogger('screenshot-service');
@@ -16,10 +14,10 @@ const logger = createModuleLogger('screenshot-service');
  * Screenshot capture service with browser management and validation
  */
 export class ScreenshotService implements IScreenshotService {
-    private browserManager: ScreenshotBrowserManager;
+    private browserManager: BrowserManager | null = null;
     
     constructor() {
-        this.browserManager = new ScreenshotBrowserManager();
+        // Browser manager is created per screenshot operation for better resource management
     }
     
     /**
@@ -29,9 +27,6 @@ export class ScreenshotService implements IScreenshotService {
      */
     async captureScreenshot(options: ScreenshotOptions): Promise<ScreenshotResult> {
         const startTime = Date.now();
-        let browser: any = null;
-        let page: any = null; // Track page for cleanup
-        let semaphoreAcquired = false;
         
         try {
             // Validate options
@@ -47,39 +42,31 @@ export class ScreenshotService implements IScreenshotService {
                 width: options.width 
             });
             
-            // Acquire semaphore for concurrency control
-            await getSemaphore().acquire();
-            semaphoreAcquired = true;
-            logger.debug('Semaphore acquired for screenshot');
+            // Create browser manager with capture configuration
+            const config = createCaptureConfig({
+                viewport: { 
+                    width: options.width, 
+                    height: 768 // Default height, will be adjusted by viewport
+                },
+                navigation: {
+                    timeout: options.timeout || 15000,
+                    additionalWaitTime: 2000 // Wait for animations/dynamic content
+                },
+                resourceBlocking: {
+                    enabled: true,
+                    strategy: 'moderate' // Preserve visual elements
+                }
+            });
             
-            // Get browser configuration
-            const config = getConfig();
-            const browserConfig = {
-                headless: config.puppeteer.headless,
-                viewport: config.puppeteer.viewport,
-                timeout: config.puppeteer.timeout,
-                userAgent: config.puppeteer.userAgent,
-                blockAds: config.puppeteer.blockAds,
-                blockImages: config.puppeteer.blockImages,
-                maxConcurrency: config.puppeteer.maxConcurrency
-            };
+            this.browserManager = new BrowserManager(config);
             
-            // Launch browser
-            browser = await this.browserManager.launchBrowser(browserConfig);
-            
-            // Setup page
-            page = await this.browserManager.setupPage(browser, normalizedOptions);
-            
-            // Navigate to URL
-            const navigationStart = Date.now();
-            const timeout = normalizedOptions.timeout || config.puppeteer.timeout;
-            await this.browserManager.navigateToUrl(page, normalizedUrl, timeout);
-            const navigationTime = Date.now() - navigationStart;
+            // Create page and navigate
+            const page = await this.browserManager.createPage(normalizedUrl);
             
             // Capture screenshot
             const screenshotStart = Date.now();
             const fullPage = normalizedOptions.fullPage ?? true;
-            const sizes = await this.browserManager.captureImage(page, options.path, fullPage);
+            const sizes = await this.browserManager.captureScreenshot(page, options.path, fullPage);
             const screenshotTime = Date.now() - screenshotStart;
             
             const totalDuration = Date.now() - startTime;
@@ -88,7 +75,6 @@ export class ScreenshotService implements IScreenshotService {
             logger.screenshot(normalizedUrl, options.path, options.width);
             logger.performance('Screenshot capture', totalDuration);
             logger.debug('Screenshot timings', { 
-                navigation: navigationTime, 
                 screenshot: screenshotTime, 
                 total: totalDuration 
             });
@@ -99,7 +85,6 @@ export class ScreenshotService implements IScreenshotService {
                 width: options.width,
                 sizes,
                 duration: totalDuration,
-                navigationTime,
                 screenshotTime
             };
             
@@ -120,6 +105,21 @@ export class ScreenshotService implements IScreenshotService {
                 duration
             }, error as Error);
             
+            // Handle browser manager specific errors
+            if (error instanceof BrowserNetworkError) {
+                throw new ScreenshotError(
+                    `Network error during screenshot: ${error.message}`,
+                    { cause: error }
+                );
+            }
+            
+            if (error instanceof BrowserTimeoutError) {
+                throw new ScreenshotError(
+                    `Timeout during screenshot: ${error.message}`,
+                    { cause: error }
+                );
+            }
+            
             // Re-throw with context if it's not already a ScreenshotError
             if (error instanceof ScreenshotError) {
                 throw error;
@@ -131,22 +131,16 @@ export class ScreenshotService implements IScreenshotService {
             );
             
         } finally {
-            // Cleanup page and browser
-            if (page) {
+            // Cleanup browser manager
+            if (this.browserManager) {
                 try {
-                    await page.close();
-                } catch { /* empty */ }
-            }
-            if (browser) {
-                try {
-                    await this.browserManager.closeBrowser(browser);
-                } catch { /* empty */ }
-            }
-            
-            // Release semaphore
-            if (semaphoreAcquired) {
-                getSemaphore().release();
-                logger.debug('Semaphore released');
+                    await this.browserManager.cleanup();
+                } catch (cleanupError) {
+                    logger.warn('Error during screenshot cleanup', { 
+                        error: (cleanupError as Error).message 
+                    });
+                }
+                this.browserManager = null;
             }
         }
     }

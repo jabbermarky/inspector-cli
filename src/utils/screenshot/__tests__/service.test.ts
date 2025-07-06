@@ -16,6 +16,38 @@ jest.mock('../../logger.js', () => ({
     }))
 }));
 
+// Mock browser manager
+const mockPage = {
+    goto: jest.fn(),
+    setUserAgent: jest.fn(),
+    setDefaultTimeout: jest.fn(),
+    setDefaultNavigationTimeout: jest.fn(),
+    setRequestInterception: jest.fn(),
+    on: jest.fn(),
+    screenshot: jest.fn(),
+    evaluate: jest.fn(),
+    close: jest.fn(),
+    waitForTimeout: jest.fn(),
+    _browserManagerContext: undefined
+};
+
+const mockBrowserManager = {
+    createPage: jest.fn(() => Promise.resolve(mockPage)),
+    captureScreenshot: jest.fn(() => Promise.resolve([1024, 768])),
+    cleanup: jest.fn()
+};
+
+jest.mock('../../browser/index.js', () => ({
+    BrowserManager: jest.fn(() => mockBrowserManager),
+    createCaptureConfig: jest.fn(() => ({})),
+    BrowserNetworkError: class BrowserNetworkError extends Error {
+        constructor(message: string) { super(message); }
+    },
+    BrowserTimeoutError: class BrowserTimeoutError extends Error {
+        constructor(message: string) { super(message); }
+    }
+}));
+
 // Set a valid log level for tests to prevent logger/config errors
 beforeAll(() => {
     process.env.LOG_LEVEL = 'ERROR';
@@ -27,6 +59,9 @@ describe('ScreenshotService', () => {
     beforeEach(() => {
         service = new ScreenshotService();
         jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+        
+        // Reset mocks
+        jest.clearAllMocks();
     });
 
     describe('constructor', () => {
@@ -215,8 +250,7 @@ describe('ScreenshotService - Successful Screenshot', () => {
         expect(typeof result.sizes[1]).toBe('number');
         expect(result).toHaveProperty('duration');
         expect(typeof result.duration).toBe('number');
-        expect(result).toHaveProperty('navigationTime');
-        expect(typeof result.navigationTime).toBe('number');
+        // navigationTime removed - navigation is now part of page creation
         expect(result).toHaveProperty('screenshotTime');
         expect(typeof result.screenshotTime).toBe('number');
     });
@@ -262,9 +296,22 @@ describe('ScreenshotService - Error Handling', () => {
 
     it('throws ScreenshotNetworkError for browser launch failure', async () => {
         jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockRejectedValue(new Error('Browser failed to launch'))
+        
+        // Mock browser manager to fail during page creation
+        jest.doMock('../../browser/index.js', () => ({
+            BrowserManager: jest.fn(() => ({
+                createPage: jest.fn().mockRejectedValue(new Error('Browser failed to launch')),
+                cleanup: jest.fn()
+            })),
+            createCaptureConfig: jest.fn(() => ({})),
+            BrowserNetworkError: class BrowserNetworkError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            BrowserTimeoutError: class BrowserTimeoutError extends Error {
+                constructor(message: string) { super(message); }
+            }
         }));
+        
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
@@ -277,22 +324,27 @@ describe('ScreenshotService - Error Handling', () => {
 
     it('throws ScreenshotNetworkError for navigation timeout', async () => {
         jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockResolvedValue({
-                on: jest.fn(),
-                newPage: jest.fn().mockResolvedValue({
-                    setViewport: jest.fn(),
-                    setUserAgent: jest.fn(),
-                    goto: jest.fn().mockRejectedValue(new Error('Navigation timeout of 30000 ms exceeded')),
-                    screenshot: jest.fn(),
-                    evaluate: jest.fn(),
-                    close: jest.fn(),
-                    setDefaultTimeout: jest.fn(),
-                    setExtraHTTPHeaders: jest.fn()
-                }),
-                close: jest.fn()
-            })
+        
+        // Create the error classes first  
+        class BrowserTimeoutError extends Error {
+            constructor(message: string) { super(message); }
+        }
+        
+        const timeoutError = new BrowserTimeoutError('Navigation timeout of 30000 ms exceeded');
+        
+        // Mock browser manager to throw BrowserTimeoutError during page creation
+        jest.doMock('../../browser/index.js', () => ({
+            BrowserManager: jest.fn(() => ({
+                createPage: jest.fn().mockRejectedValue(timeoutError),
+                cleanup: jest.fn()
+            })),
+            createCaptureConfig: jest.fn(() => ({})),
+            BrowserNetworkError: class BrowserNetworkError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            BrowserTimeoutError: BrowserTimeoutError
         }));
+        
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
@@ -300,36 +352,41 @@ describe('ScreenshotService - Error Handling', () => {
             url: 'https://example.com',
             path: './out.png',
             width: 1024
-        })).rejects.toThrow(/Navigation timeout/);
+        })).rejects.toThrow(/Timeout during screenshot/);
     });
 
     it('throws ScreenshotNetworkError for network error during navigation', async () => {
         jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockResolvedValue({
-                on: jest.fn(),
-                newPage: jest.fn().mockResolvedValue({
-                    setViewport: jest.fn(),
-                    setUserAgent: jest.fn(),
-                    goto: jest.fn().mockRejectedValue(new Error('net::ERR_CONNECTION_REFUSED')),
-                    screenshot: jest.fn(),
-                    evaluate: jest.fn(),
-                    close: jest.fn(),
-                    setDefaultTimeout: jest.fn(),
-                    setExtraHTTPHeaders: jest.fn()
-                }),
-                close: jest.fn()
-            })
+        
+        // Create the error classes first
+        class BrowserNetworkError extends Error {
+            constructor(message: string) { super(message); }
+        }
+        
+        const networkError = new BrowserNetworkError('Connection refused: https://example.com');
+        
+        // Mock browser manager to throw BrowserNetworkError during page creation
+        jest.doMock('../../browser/index.js', () => ({
+            BrowserManager: jest.fn(() => ({
+                createPage: jest.fn().mockRejectedValue(networkError),
+                cleanup: jest.fn()
+            })),
+            createCaptureConfig: jest.fn(() => ({})),
+            BrowserNetworkError: BrowserNetworkError,
+            BrowserTimeoutError: class BrowserTimeoutError extends Error {
+                constructor(message: string) { super(message); }
+            }
         }));
+        
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
-        // The error message is "Connection refused: https://example.com"
+        // The error message is "Network error during screenshot: Connection refused: https://example.com"
         await expect(service.captureScreenshot({
             url: 'https://example.com',
             path: './out.png',
             width: 1024
-        })).rejects.toThrow(/Connection refused/);
+        })).rejects.toThrow(/Network error during screenshot/);
     });
 });
 
@@ -369,25 +426,24 @@ describe('ScreenshotService - Resource Cleanup', () => {
     });
 
     it('closes browser and page on success', async () => {
-        const closePage = jest.fn();
-        const closeBrowser = jest.fn();
+        const cleanupMock = jest.fn();
 
         jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockResolvedValue({
-                on: jest.fn(),
-                newPage: jest.fn().mockResolvedValue({
-                    setViewport: jest.fn(),
-                    setUserAgent: jest.fn(),
-                    goto: jest.fn().mockResolvedValue({}),
-                    screenshot: jest.fn().mockResolvedValue(Buffer.from('mock-image')),
-                    evaluate: jest.fn().mockResolvedValue([1024, 768]),
-                    close: closePage,
-                    setDefaultTimeout: jest.fn(),
-                    setExtraHTTPHeaders: jest.fn()
-                }),
-                close: closeBrowser
-            })
+        
+        // Mock browser manager to succeed and track cleanup calls
+        jest.doMock('../../browser/index.js', () => ({
+            BrowserManager: jest.fn(() => ({
+                createPage: jest.fn().mockResolvedValue({}),
+                captureScreenshot: jest.fn().mockResolvedValue([1024, 768]),
+                cleanup: cleanupMock
+            })),
+            createCaptureConfig: jest.fn(() => ({})),
+            BrowserNetworkError: class BrowserNetworkError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            BrowserTimeoutError: class BrowserTimeoutError extends Error {
+                constructor(message: string) { super(message); }
+            }
         }));
 
         const mod = await import('../service.js');
@@ -399,30 +455,27 @@ describe('ScreenshotService - Resource Cleanup', () => {
             width: 1024
         });
 
-        expect(closePage).toHaveBeenCalled();
-        expect(closeBrowser).toHaveBeenCalled();
+        expect(cleanupMock).toHaveBeenCalled();
     });
 
     it('closes browser and page on failure', async () => {
-        const closePage = jest.fn();
-        const closeBrowser = jest.fn();
+        const cleanupMock = jest.fn();
 
         jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockResolvedValue({
-                on: jest.fn(),
-                newPage: jest.fn().mockResolvedValue({
-                    setViewport: jest.fn(),
-                    setUserAgent: jest.fn(),
-                    goto: jest.fn().mockRejectedValue(new Error('Navigation failed')),
-                    screenshot: jest.fn(),
-                    evaluate: jest.fn(),
-                    close: closePage,
-                    setDefaultTimeout: jest.fn(),
-                    setExtraHTTPHeaders: jest.fn()
-                }),
-                close: closeBrowser
-            })
+        
+        // Mock browser manager to fail during page creation but still track cleanup
+        jest.doMock('../../browser/index.js', () => ({
+            BrowserManager: jest.fn(() => ({
+                createPage: jest.fn().mockRejectedValue(new Error('Navigation failed')),
+                cleanup: cleanupMock
+            })),
+            createCaptureConfig: jest.fn(() => ({})),
+            BrowserNetworkError: class BrowserNetworkError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            BrowserTimeoutError: class BrowserTimeoutError extends Error {
+                constructor(message: string) { super(message); }
+            }
         }));
 
         const mod = await import('../service.js');
@@ -434,7 +487,6 @@ describe('ScreenshotService - Resource Cleanup', () => {
             width: 1024
         })).rejects.toThrow();
 
-        expect(closePage).toHaveBeenCalled();
-        expect(closeBrowser).toHaveBeenCalled();
+        expect(cleanupMock).toHaveBeenCalled();
     });
 });

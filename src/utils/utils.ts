@@ -1,4 +1,3 @@
-import { getConfig } from './config.js';
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { Jimp } from 'jimp';
@@ -14,34 +13,6 @@ interface SegmentImageHeaderFooterOptions {
     footer?: number;
 }
 
-export class Semaphore {
-    tasks: ((value?: unknown) => void)[];
-    max: number;
-    counter: number;
-    constructor(max: number) {
-        this.tasks = [];
-        this.max = max;
-        this.counter = 0;
-    }
-
-    async acquire() {
-        if (this.counter < this.max) {
-            this.counter++;
-            return;
-        }
-
-        return new Promise(resolve => this.tasks.push(resolve));
-    }
-
-    release() {
-        if (this.tasks.length > 0) {
-            const next = this.tasks.shift();
-            if (next) next();
-        } else {
-            this.counter--;
-        }
-    }
-}
 
 // Re-export file operations for backward compatibility
 export { analyzeFilePath, loadCSVFromFile, validateFilePath } from './file/index.js';
@@ -137,14 +108,6 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
     }
 }
 
-// Lazy semaphore initialization
-let semaphore: Semaphore | null = null;
-export function getSemaphore(): Semaphore {
-    if (!semaphore) {
-        semaphore = new Semaphore(getConfig().puppeteer.maxConcurrency);
-    }
-    return semaphore;
-}
 
 export function validJSON(str: string): boolean {
     try {

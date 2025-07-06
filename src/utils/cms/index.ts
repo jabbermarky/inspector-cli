@@ -1,5 +1,5 @@
 import { CMSDetectionResult, CMSDetector } from './types.js';
-import { CMSBrowserManager } from './browser-manager.js';
+import { BrowserManager, createDetectionConfig, BrowserNetworkError } from '../browser/index.js';
 import { WordPressDetector } from './detectors/wordpress.js';
 import { JoomlaDetector } from './detectors/joomla.js';
 import { DrupalDetector } from './detectors/drupal.js';
@@ -14,7 +14,7 @@ const logger = createModuleLogger('cms-detection');
  */
 export async function detectCMS(url: string): Promise<CMSDetectionResult> {
     const startTime = Date.now();
-    let browserManager: CMSBrowserManager | null = null;
+    let browserManager: BrowserManager | null = null;
 
     try {
         logger.info('Starting CMS detection', { url });
@@ -31,8 +31,20 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
         const normalizedUrl = validateAndNormalizeUrl(url, { context });
         logger.debug('Normalized URL for CMS detection', { normalizedUrl });
         
-        // Initialize browser manager
-        browserManager = new CMSBrowserManager();
+        // Initialize browser manager with detection configuration
+        const config = createDetectionConfig({
+            resourceBlocking: {
+                enabled: true,
+                strategy: 'aggressive',
+                allowEssentialScripts: true
+            },
+            navigation: {
+                timeout: 5000,
+                retryAttempts: 3
+            }
+        });
+        
+        browserManager = new BrowserManager(config);
         const page = await browserManager.createPage(normalizedUrl);
 
         // Initialize CMS detectors in priority order (most common first)
@@ -86,10 +98,16 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
             executionTime
         });
 
+        // Handle browser manager specific errors
+        let errorMessage = (error as Error).message;
+        if (error instanceof BrowserNetworkError) {
+            errorMessage = `Network error: ${error.message}`;
+        }
+
         return {
             cms: 'Unknown',
             confidence: 0,
-            error: (error as Error).message,
+            error: errorMessage,
             executionTime
         };
     } finally {
@@ -104,7 +122,6 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
 
 // Re-export types and classes for external use
 export * from './types.js';
-export { CMSBrowserManager } from './browser-manager.js';
 export { WordPressDetector } from './detectors/wordpress.js';
 export { JoomlaDetector } from './detectors/joomla.js';
 export { DrupalDetector } from './detectors/drupal.js';

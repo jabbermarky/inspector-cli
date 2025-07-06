@@ -1,4 +1,5 @@
 import { Page } from 'puppeteer';
+import { ManagedPage } from '../browser/index.js';
 
 /**
  * Supported CMS types
@@ -73,10 +74,9 @@ export interface CMSDetectionConfig {
 
 /**
  * Browser page interface for detection strategies
+ * Uses shared browser manager's ManagedPage
  */
-export interface DetectionPage extends Page {
-    // Additional methods specific to CMS detection can be added here
-}
+export type DetectionPage = ManagedPage;
 
 /**
  * Detection strategy interface
@@ -96,30 +96,7 @@ export interface CMSDetector {
     detect(page: DetectionPage, url: string): Promise<CMSDetectionResult>;
 }
 
-/**
- * Browser configuration for CMS detection
- */
-export interface BrowserConfig {
-    timeout?: number;
-    userAgent?: string;
-    viewport?: {
-        width: number;
-        height: number;
-    };
-    blockResources?: boolean;
-    blockedResourceTypes?: string[];
-}
-
-/**
- * Browser manager interface
- */
-export interface BrowserManager {
-    createPage(url: string): Promise<DetectionPage>;
-    closePage(page: DetectionPage): Promise<void>;
-    close(): Promise<void>;
-    cleanup(): Promise<void>;
-    isResourceBlocked(resourceType: string): boolean;
-}
+// Browser configuration and management now handled by shared browser manager
 
 /**
  * Error types for CMS detection

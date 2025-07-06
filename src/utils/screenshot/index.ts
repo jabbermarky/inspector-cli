@@ -31,14 +31,11 @@ export {
     ScreenshotError,
     ScreenshotValidationError,
     ScreenshotNetworkError,
-    BrowserConfig,
-    IScreenshotService,
-    IBrowserManager
+    IScreenshotService
 } from './types.js';
 
 // Export main service classes
 export { ScreenshotService, screenshotService } from './service.js';
-export { ScreenshotBrowserManager } from './browser-manager.js';
 export { ScreenshotValidator } from './validation.js';
 
 // Main screenshot function for backward compatibility
