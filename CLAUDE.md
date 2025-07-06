@@ -294,3 +294,8 @@ All commands include:
 - Maintain high test coverage (target: 85%+ for core modules)
 - Use proper mocking for complex dependencies (browser, external APIs)
 - Write comprehensive test suites that cover error conditions and edge cases
+
+## Development Guidelines
+
+### Import Order Best Practices
+- Ensure that `getConfig()` is imported first when imported in any file
