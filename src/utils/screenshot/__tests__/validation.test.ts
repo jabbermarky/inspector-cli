@@ -59,13 +59,18 @@ describe('ScreenshotValidator', () => {
     });
 
     describe('normalizeUrl', () => {
-        it('should add HTTPS to URLs without protocol', () => {
+        it('should add HTTP to URLs without protocol', () => {
             const url = 'example.com';
-            expect(ScreenshotValidator.normalizeUrl(url)).toBe('https://example.com');
+            expect(ScreenshotValidator.normalizeUrl(url)).toBe('http://example.com');
         });
 
         it('should not modify HTTPS URLs', () => {
             const url = 'https://example.com';
+            expect(ScreenshotValidator.normalizeUrl(url)).toBe(url);
+        });
+
+        it('should not modify HTTP URLs', () => {
+            const url = 'http://example.com';
             expect(ScreenshotValidator.normalizeUrl(url)).toBe(url);
         });
     });

@@ -4,6 +4,7 @@ import { WordPressDetector } from './detectors/wordpress.js';
 import { JoomlaDetector } from './detectors/joomla.js';
 import { DrupalDetector } from './detectors/drupal.js';
 import { createModuleLogger } from '../logger.js';
+import { validateAndNormalizeUrl } from '../url/index.js';
 
 const logger = createModuleLogger('cms-detection');
 
@@ -18,8 +19,17 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
     try {
         logger.info('Starting CMS detection', { url });
 
-        // Validate and normalize URL
-        const normalizedUrl = validateAndNormalizeUrl(url);
+        // Validate and normalize URL using shared validation
+        const context = {
+            environment: 'production' as const,
+            allowLocalhost: false,
+            allowPrivateIPs: false,
+            allowCustomPorts: false,
+            defaultProtocol: 'http' as const // Use HTTP default as per revised plan
+        };
+        
+        const normalizedUrl = validateAndNormalizeUrl(url, { context });
+        logger.debug('Normalized URL for CMS detection', { normalizedUrl });
         
         // Initialize browser manager
         browserManager = new CMSBrowserManager();
@@ -90,33 +100,7 @@ export async function detectCMS(url: string): Promise<CMSDetectionResult> {
     }
 }
 
-/**
- * Validate and normalize URL for CMS detection
- */
-function validateAndNormalizeUrl(url: string): string {
-    // Input validation
-    if (!url || typeof url !== 'string' || url.trim().length === 0) {
-        throw new Error('Invalid URL: URL must be a non-empty string');
-    }
-
-    let normalizedUrl = url.trim();
-
-    // Add protocol if missing
-    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-        normalizedUrl = 'https://' + normalizedUrl;
-    }
-
-    // Validate URL format
-    try {
-        const urlObj = new URL(normalizedUrl);
-        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-            throw new Error(`Invalid URL protocol: ${urlObj.protocol}. Only HTTP and HTTPS are supported.`);
-        }
-        return urlObj.href;
-    } catch (error) {
-        throw new Error(`Invalid URL format: ${(error as Error).message}`);
-    }
-}
+// URL validation is now handled by shared URL validation module
 
 // Re-export types and classes for external use
 export * from './types.js';

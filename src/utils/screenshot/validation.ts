@@ -1,5 +1,10 @@
 import { createModuleLogger } from '../logger.js';
 import { ScreenshotOptions, ScreenshotValidationError } from './types.js';
+import { 
+    validateUrl as validateUrlShared, 
+    normalizeUrl as normalizeUrlShared,
+    UrlValidationError 
+} from '../url/index.js';
 
 const logger = createModuleLogger('screenshot-validation');
 
@@ -31,56 +36,32 @@ export class ScreenshotValidator {
     }
     
     /**
-     * Validate URL format and protocol
+     * Validate URL format and protocol using shared URL validation
      */
     private static validateUrl(url: string): void {
-        if (!url || typeof url !== 'string') {
-            throw new ScreenshotValidationError(
-                'URL is required and must be a string',
-                { field: 'url', value: url }
-            );
-        }
-
-        if (url.trim().length === 0) {
-            throw new ScreenshotValidationError(
-                'URL cannot be empty',
-                { field: 'url', value: url }
-            );
-        }
-
-        let urlToParse = url;
-        // If protocol is missing, add https:// for parsing
-        if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(url)) {
-            urlToParse = `https://${url}`;
-        }
-
         try {
-            const urlObj = new URL(urlToParse);
-
-            // Only allow http and https protocols, and require explicit protocol if present
-            if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-                throw new ScreenshotValidationError(
-                    `Invalid URL protocol: ${urlObj.protocol}. Only http and https are supported`,
-                    { field: 'url', value: url }
-                );
-            }
-
-            // If the original URL had a protocol, it must be http or https
-            if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//.test(url) &&
-                urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-                throw new ScreenshotValidationError(
-                    `Invalid URL protocol: ${urlObj.protocol}. Only http and https are supported`,
-                    { field: 'url', value: url }
-                );
-            }
-
+            // Use shared URL validation with development-friendly context
+            const context = {
+                environment: 'development' as const,
+                allowLocalhost: true,
+                allowPrivateIPs: true,
+                allowCustomPorts: true,
+                defaultProtocol: 'http' as const // Use HTTP default as per revised plan
+            };
+            
+            validateUrlShared(url, { context });
         } catch (error) {
-            if (error instanceof ScreenshotValidationError) {
-                throw error;
+            // Convert shared URL validation errors to screenshot validation errors
+            if (error instanceof UrlValidationError) {
+                throw new ScreenshotValidationError(
+                    error.message,
+                    { field: 'url', value: url, cause: error }
+                );
             }
-
+            
+            // Handle any other errors
             throw new ScreenshotValidationError(
-                `Invalid URL format: ${url}`,
+                `URL validation failed: ${(error as Error).message}`,
                 { field: 'url', value: url, cause: error as Error }
             );
         }
@@ -207,12 +188,13 @@ export class ScreenshotValidator {
     }
     
     /**
-     * Normalize URL by adding protocol if missing
+     * Normalize URL by adding protocol if missing (uses shared URL normalization)
      */
     static normalizeUrl(url: string): string {
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            return `https://${url}`;
-        }
-        return url;
+        const context = {
+            defaultProtocol: 'http' as const // Use HTTP default as per revised plan
+        };
+        
+        return normalizeUrlShared(url, context);
     }
 }
