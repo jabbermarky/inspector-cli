@@ -10,23 +10,6 @@ import { analyzeFilePath, loadCSVFromFile, validateFilePath } from './file/index
 
 const logger = createModuleLogger('utils');
 
-import puppeteer from "puppeteer-extra";
-import puppeteerStealth from "puppeteer-extra-plugin-stealth";
-import puppeteerAdblocker from "puppeteer-extra-plugin-adblocker";
-
-// Configure puppeteer plugins lazily when first accessed
-let puppeteerConfigured = false;
-function ensurePuppeteerConfigured() {
-  if (!puppeteerConfigured) {
-    const config = getConfig();
-    puppeteer.use(puppeteerStealth());
-    // Only use adblocker if enabled in config
-    if (config.puppeteer.blockAds) {
-      puppeteer.use(puppeteerAdblocker({ blockTrackers: true }));
-    }
-    puppeteerConfigured = true;
-  }
-}
 
 interface SegmentImageHeaderFooterOptions {
     header?: number;
@@ -155,116 +138,6 @@ export async function segmentImageHeaderFooter(filename: string, options: Segmen
         throw err;
     }
 }
-// define your custom headers
-const requestHeaders = {
-    Referer: 'https://www.google.com/',
-};
-
-export async function takeAScreenshotPuppeteer(url: string, path: string, width: number) {
-    ensurePuppeteerConfigured();
-    const config = getConfig();
-    let browser: any = null;
-    let semaphoreAcquired = false;
-    const startTime = Date.now();
-    
-    try {
-        logger.debug(`Starting screenshot capture`, { url, path, width });
-        
-        // Validate the input
-        if (url === undefined || url === '') {
-            throw new Error(`Invalid URL: ${url}`);
-        }
-        if (!URL.canParse(url)) {
-            //confirm that url has a protocol
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
-                logger.debug(`Added https:// protocol to URL: ${url}`);
-            }
-        }
-        const urlObj = new URL(url);
-        if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
-            throw new Error(`Invalid URL protocol: ${urlObj.protocol}, protocol must be http or https`);
-        }
-        if (path === undefined || path === '') {
-            throw new Error(`Invalid path`);
-        }
-        if (width === undefined) {
-            throw new Error(`Invalid width`);
-        }
-        if (width < 0) {
-            throw new Error(`Invalid width: ${width}, width must be greater than 0`);
-        }
-
-        await getSemaphore().acquire();
-        semaphoreAcquired = true;
-        logger.info(`Taking screenshot: ${url} -> ${path}`, { url, path, width });
-        
-        browser = await puppeteer.launch({ 
-            headless: config.puppeteer.headless, 
-            defaultViewport: { width: width, height: config.puppeteer.viewport.height } 
-        });
-        logger.debug(`Browser launched successfully`);
-        
-        const page = await browser.newPage();
-        
-        // Set timeout for navigation
-        page.setDefaultTimeout(config.puppeteer.timeout);
-        
-        await page.setExtraHTTPHeaders({ ...requestHeaders });
-        await page.setUserAgent(config.puppeteer.userAgent);
-        
-        // Block images if configured
-        if (config.puppeteer.blockImages) {
-            await page.setRequestInterception(true);
-            page.on('request', (req: any) => {
-                if (req.resourceType() === 'image') {
-                    req.abort();
-                } else {
-                    req.continue();
-                }
-            });
-        }
-        
-        const navigationStart = Date.now();
-        await page.goto(url);
-        const navigationTime = Date.now() - navigationStart;
-        logger.debug(`Page navigation completed`, { navigationTime });
-
-        const sizes: Array<any> = await page.evaluate(() => [document.body.scrollWidth, document.body.scrollHeight]) as any[];
-        logger.debug(`Page dimensions detected`, { scrollWidth: sizes[0], scrollHeight: sizes[1] });
-        
-        const screenshotStart = Date.now();
-        await page.screenshot({ path: path, fullPage: true });
-        const screenshotTime = Date.now() - screenshotStart;
-        
-        const totalDuration = Date.now() - startTime;
-        logger.screenshot(url, path, width);
-        logger.performance('Screenshot capture', totalDuration);
-        logger.debug(`Screenshot timings`, { 
-            navigation: navigationTime, 
-            screenshot: screenshotTime, 
-            total: totalDuration 
-        });
-        
-        return { url, path, width, sizes };
-    } catch (e) {
-        logger.error(`Screenshot failed for ${url}`, { url, path, width }, e as Error);
-        throw e;
-    } finally {
-        if (browser) {
-            try {
-                await browser.close();
-                logger.debug(`Browser closed successfully`);
-            } catch (e) {
-                logger.warn('Error closing browser', {}, e as Error);
-            }
-        }
-        if (semaphoreAcquired) {
-            getSemaphore().release();
-            logger.debug(`Semaphore released`);
-        }
-    }
-}
 
 // Lazy semaphore initialization
 let semaphore: Semaphore | null = null;
@@ -355,5 +228,18 @@ export {
     CMSType
 } from './cms/index.js';
 
+// Screenshot functionality moved to src/utils/screenshot/
+// Re-export for backward compatibility
+export {
+    takeScreenshot,
+    takeAScreenshotPuppeteer,
+    ScreenshotOptions,
+    ScreenshotResult,
+    ScreenshotError,
+    ScreenshotService
+} from './screenshot/index.js';
+
 // detectCMS function moved to src/utils/cms/index.ts
 // The original 207-line monolithic function has been refactored into a modular system
+// takeAScreenshotPuppeteer function moved to src/utils/screenshot/index.ts
+// The original 100+ line function has been refactored into a modular service-based system
