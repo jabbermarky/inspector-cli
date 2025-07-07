@@ -295,6 +295,7 @@ All commands include:
 - Use proper mocking for complex dependencies (browser, external APIs)
 - Write comprehensive test suites that cover error conditions and edge cases
 - The job is not done when all of the tests in the test suite are failing
+- To test the build, you can run the main entry point using the command "npm dist/index.js"
 
 ## Development Guidelines
 
