@@ -1,6 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DetectionDataPoint, AnalysisQuery, CollectionConfig } from './types.js';
+
+// Re-export for external use
+export type { AnalysisQuery };
 import { createModuleLogger } from '../../logger.js';
 
 const logger = createModuleLogger('data-storage');

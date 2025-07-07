@@ -402,4 +402,6 @@ export { ApiEndpointStrategy } from './strategies/api-endpoint.js';
 // Re-export analysis modules
 export { DataCollector } from './analysis/collector.js';
 export { DataStorage } from './analysis/storage.js';
+export { PatternDiscovery } from './analysis/patterns.js';
+export { AnalysisReporter } from './analysis/reports.js';
 export * from './analysis/types.js';

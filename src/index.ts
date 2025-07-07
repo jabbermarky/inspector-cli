@@ -26,6 +26,7 @@ import './commands/assistants.js';
 import './commands/assistant.js';
 import './commands/eval.js';
 import './commands/detect_cms.js';
+import './commands/analyze.js';
 
 program.parse(process.argv);
 program.showHelpAfterError();
