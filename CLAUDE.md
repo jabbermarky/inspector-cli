@@ -301,3 +301,6 @@ All commands include:
 
 ### Import Order Best Practices
 - Ensure that `getConfig()` is imported first when imported in any file
+
+## Analysis Guidelines
+- When asked to analyze something, where a markdown or JSON file is created, put those files into the reports folder
