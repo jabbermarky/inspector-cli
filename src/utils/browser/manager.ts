@@ -1,8 +1,8 @@
 import { getConfig } from '../config.js';
 import puppeteerExtra from 'puppeteer-extra';
-import { Browser, HTTPRequest } from 'puppeteer';
+import { Browser, HTTPRequest, BrowserContext } from 'puppeteer';
 import puppeteerStealth from 'puppeteer-extra-plugin-stealth';
-import puppeteerAdblocker from 'puppeteer-extra-plugin-adblocker';
+// import puppeteerAdblocker from 'puppeteer-extra-plugin-adblocker'; // Disabled for CMS detection
 import { createModuleLogger } from '../logger.js';
 import { Semaphore, createSemaphore } from './semaphore.js';
 import {
@@ -48,6 +48,7 @@ function ensurePuppeteerConfigured() {
 export class BrowserManager {
     private browser: Browser | null = null;
     private pages: Set<ManagedPage> = new Set();
+    private contexts: Set<BrowserContext> = new Set();
     private semaphoreAcquired = false;
     private readonly config: BrowserManagerConfig;
     private static semaphore: Semaphore | null = null;
@@ -58,6 +59,106 @@ export class BrowserManager {
             purpose: this.config.purpose,
             strategy: this.config.resourceBlocking.strategy 
         });
+    }
+
+    /**
+     * Create isolated incognito context for URL
+     * This provides a fresh browser state for each URL while keeping the main browser instance running
+     */
+    async createIsolatedContext(): Promise<BrowserContext> {
+        try {
+            ensurePuppeteerConfigured();
+            
+            // Launch browser if not already launched
+            if (!this.browser) {
+                await this.launchBrowser();
+            }
+
+            logger.debug('Creating isolated browser context', { 
+                purpose: this.config.purpose
+            });
+
+            // Create incognito context for state isolation
+            const context = await this.browser!.createBrowserContext();
+            this.contexts.add(context);
+
+            logger.debug('Isolated browser context created', { 
+                purpose: this.config.purpose,
+                totalContexts: this.contexts.size
+            });
+
+            return context;
+
+        } catch (error) {
+            logger.error('Failed to create isolated browser context', { 
+                purpose: this.config.purpose,
+                error: (error as Error).message 
+            });
+            
+            throw new BrowserManagerError(
+                `Failed to create isolated context: ${(error as Error).message}`,
+                'context_creation_failed',
+                { purpose: this.config.purpose },
+                error as Error
+            );
+        }
+    }
+
+    /**
+     * Create page in isolated context
+     * Use this for batch processing to ensure fresh browser state for each URL
+     */
+    async createPageInIsolatedContext(url: string): Promise<{ page: ManagedPage; context: BrowserContext }> {
+        try {
+            // Acquire semaphore for concurrency control
+            await BrowserManager.getSemaphore().acquire();
+            this.semaphoreAcquired = true;
+            
+            logger.debug('Creating page in isolated context', { 
+                url, 
+                purpose: this.config.purpose 
+            });
+            
+            // Create isolated context
+            const context = await this.createIsolatedContext();
+            
+            // Create page in the isolated context
+            const page = await this.setupPageInContext(context);
+            
+            // Navigate to target URL
+            await this.navigateToUrl(page, url);
+
+            // Track page
+            this.pages.add(page);
+            
+            logger.debug('Page created in isolated context successfully', { 
+                url, 
+                purpose: this.config.purpose,
+                totalPages: this.pages.size,
+                totalContexts: this.contexts.size
+            });
+            
+            return { page, context };
+
+        } catch (error) {
+            logger.error('Failed to create page in isolated context', { 
+                url, 
+                purpose: this.config.purpose,
+                error: (error as Error).message 
+            });
+            await this.cleanup();
+            
+            if (error instanceof BrowserManagerError) {
+                throw error;
+            }
+            
+            throw new BrowserManagerError(
+                `Failed to create page in isolated context: ${(error as Error).message}`,
+                'isolated_page_creation_failed',
+                { url, purpose: this.config.purpose },
+                error as Error
+            );
+        }
     }
 
     /**
@@ -85,7 +186,7 @@ export class BrowserManager {
             const page = await this.setupPage();
             
             // Navigate to target URL
-            const navigationResult = await this.navigateToUrl(page, url);
+            await this.navigateToUrl(page, url);
 
             // Track page
             this.pages.add(page);
@@ -129,7 +230,6 @@ export class BrowserManager {
         const navigationStart = Date.now();
         const redirectChain: RedirectInfo[] = [];
         let finalUrl = url;
-        let currentUrl = url;
         
         try {
             logger.debug('Navigating to URL with redirect tracking', { 
@@ -398,11 +498,54 @@ export class BrowserManager {
     }
 
     /**
+     * Close isolated context and all its pages
+     * Use this after processing a URL in batch mode to free resources
+     */
+    async closeContext(context: BrowserContext): Promise<void> {
+        try {
+            if (this.contexts.has(context)) {
+                // Close context (this also closes all pages in the context)
+                await context.close();
+                this.contexts.delete(context);
+                
+                logger.debug('Browser context closed', { 
+                    purpose: this.config.purpose,
+                    remainingContexts: this.contexts.size 
+                });
+
+                // Release semaphore since this URL is complete
+                if (this.semaphoreAcquired) {
+                    BrowserManager.getSemaphore().release();
+                    this.semaphoreAcquired = false;
+                    logger.debug('Semaphore released after context closure');
+                }
+            }
+        } catch (error) {
+            logger.warn('Error closing browser context', { 
+                purpose: this.config.purpose,
+                error: (error as Error).message 
+            });
+        }
+    }
+
+    /**
      * Clean up browser resources
      */
     async cleanup(): Promise<void> {
         try {
-            // Close all pages
+            // Close all contexts (this will also close their pages)
+            for (const context of this.contexts) {
+                try {
+                    await context.close();
+                } catch (error) {
+                    logger.warn('Error closing context during cleanup', { 
+                        error: (error as Error).message 
+                    });
+                }
+            }
+            this.contexts.clear();
+
+            // Close all remaining pages
             for (const page of this.pages) {
                 try {
                     await page.close();
@@ -469,6 +612,61 @@ export class BrowserManager {
             
             throw new BrowserResourceError(
                 `Failed to launch browser: ${err.message}`,
+                { purpose: this.config.purpose },
+                err
+            );
+        }
+    }
+
+    /**
+     * Setup page in specific browser context
+     */
+    private async setupPageInContext(context: BrowserContext): Promise<ManagedPage> {
+        try {
+            const page = await context.newPage() as ManagedPage;
+            
+            // Add browser manager context
+            page._browserManagerContext = {
+                purpose: this.config.purpose,
+                createdAt: Date.now(),
+                navigationCount: 0
+            };
+            
+            // Set user agent
+            await page.setUserAgent(this.config.userAgent);
+            
+            // Set timeouts
+            page.setDefaultTimeout(this.config.navigation.timeout);
+            page.setDefaultNavigationTimeout(this.config.navigation.timeout);
+            
+            // Setup resource blocking if enabled
+            if (this.config.resourceBlocking.enabled) {
+                await this.setupRequestInterception(page);
+            }
+            
+            // Setup console capture for debugging
+            if (this.config.debug?.captureConsole) {
+                page.on('console', (msg) => {
+                    logger.debug('Browser console', { 
+                        type: msg.type(),
+                        text: msg.text(),
+                        purpose: this.config.purpose 
+                    });
+                });
+            }
+            
+            logger.debug('Page setup in context completed', { purpose: this.config.purpose });
+            return page;
+            
+        } catch (error) {
+            const err = error as Error;
+            logger.error('Failed to setup page in context', { 
+                purpose: this.config.purpose,
+                error: err.message 
+            });
+            
+            throw new BrowserResourceError(
+                `Failed to setup page in context: ${err.message}`,
                 { purpose: this.config.purpose },
                 err
             );

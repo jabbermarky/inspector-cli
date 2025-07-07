@@ -43,6 +43,7 @@ jest.mock('../semaphore.js', () => ({
 // Mock puppeteer-extra
 const mockPage: any = {
     goto: jest.fn(),
+    url: jest.fn(() => 'https://example.com'), // Add missing url() method
     setUserAgent: jest.fn(),
     setDefaultTimeout: jest.fn(),
     setDefaultNavigationTimeout: jest.fn(),
@@ -55,8 +56,14 @@ const mockPage: any = {
     _browserManagerContext: undefined
 };
 
+const mockContext: any = {
+    newPage: jest.fn(() => Promise.resolve(mockPage)),
+    close: jest.fn()
+};
+
 const mockBrowser: any = {
     newPage: jest.fn(() => Promise.resolve(mockPage)),
+    createBrowserContext: jest.fn(() => Promise.resolve(mockContext)),
     close: jest.fn()
 };
 
@@ -482,6 +489,53 @@ describe('BrowserManager', () => {
             const consoleCalls = (mockPage.on as jest.Mock).mock.calls
                 .filter(call => call[0] === 'console');
             expect(consoleCalls).toHaveLength(0);
+        });
+    });
+
+    describe('Isolated Context Management', () => {
+        it('should create isolated browser context', async () => {
+            browserManager = new BrowserManager(detectionConfig);
+            
+            const context = await browserManager.createIsolatedContext();
+            
+            expect(mockBrowser.createBrowserContext).toHaveBeenCalledTimes(1);
+            expect(context).toBeDefined();
+        });
+
+        it('should create page in isolated context', async () => {
+            browserManager = new BrowserManager(detectionConfig);
+            
+            // Mock navigation response
+            mockPage.goto.mockResolvedValueOnce({ ok: () => true, status: () => 200, statusText: () => 'OK' });
+            
+            const result = await browserManager.createPageInIsolatedContext('https://example.com');
+            
+            expect(result.page).toBeDefined();
+            expect(result.context).toBeDefined();
+            expect(mockBrowser.createBrowserContext).toHaveBeenCalledTimes(1);
+            expect(mockContext.newPage).toHaveBeenCalledTimes(1);
+        });
+
+        it('should close isolated context and release semaphore', async () => {
+            browserManager = new BrowserManager(detectionConfig);
+            
+            // Mock navigation response
+            mockPage.goto.mockResolvedValueOnce({ ok: () => true, status: () => 200, statusText: () => 'OK' });
+            
+            const { context } = await browserManager.createPageInIsolatedContext('https://example.com');
+            
+            await browserManager.closeContext(context);
+            
+            expect(mockContext.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should handle context creation errors gracefully', async () => {
+            browserManager = new BrowserManager(detectionConfig);
+            
+            // Mock browser context creation failure
+            mockBrowser.createBrowserContext.mockRejectedValueOnce(new Error('Context creation failed'));
+            
+            await expect(browserManager.createIsolatedContext()).rejects.toThrow('Failed to create isolated context: Context creation failed');
         });
     });
 

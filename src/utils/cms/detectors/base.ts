@@ -95,24 +95,33 @@ export abstract class BaseCMSDetector implements CMSDetector {
         try {
             return await withRetry(
                 async () => {
-                    // Create timeout promise
+                    // Create timeout promise with cleanup capability
+                    let timeoutId: NodeJS.Timeout | undefined;
                     const timeoutPromise = new Promise<never>((_, reject) => {
-                        setTimeout(() => {
+                        timeoutId = setTimeout(() => {
                             reject(new CMSTimeoutError(url, strategy.getName(), strategy.getTimeout()));
                         }, strategy.getTimeout());
                     });
 
                     // Race strategy execution against timeout
-                    const result = await Promise.race([
-                        strategy.detect(page, url),
-                        timeoutPromise
-                    ]);
-
-                    // Add execution time to result
-                    return {
-                        ...result,
-                        executionTime: Date.now() - strategyStartTime
-                    };
+                    try {
+                        const result = await Promise.race([
+                            strategy.detect(page, url),
+                            timeoutPromise
+                        ]);
+                        
+                        // Clear timeout if strategy completes first
+                        if (timeoutId) {
+                            clearTimeout(timeoutId);
+                        }
+                        return result;
+                    } catch (error) {
+                        // Clear timeout on any error (including timeout error)
+                        if (timeoutId) {
+                            clearTimeout(timeoutId);
+                        }
+                        throw error;
+                    }
                 },
                 {
                     maxRetries: 2,

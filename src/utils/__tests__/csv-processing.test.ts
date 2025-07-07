@@ -37,7 +37,7 @@ describe('CSV Processing Functions', () => {
             if (fs.existsSync(testDir)) {
                 fs.rmSync(testDir, { recursive: true, force: true });
             }
-        } catch (error) {
+        } catch {
             // Ignore cleanup errors
         }
     });

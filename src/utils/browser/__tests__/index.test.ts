@@ -261,7 +261,7 @@ describe('Browser Module Index', () => {
 
         it('should have appropriate retry configurations', () => {
             const detection = createDetectionConfig();
-            const capture = createCaptureConfig();
+            const _capture = createCaptureConfig();
             const analysis = createAnalysisConfig();
             
             // Detection should have most retries (fastest operations)

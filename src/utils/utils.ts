@@ -183,7 +183,8 @@ export function cleanUrlForDisplay(url: string): string {
 // CMS detection types and functions moved to src/utils/cms/
 // Re-export for backward compatibility
 export { 
-    detectCMS, 
+    detectCMS,
+    detectCMSWithIsolation,
     CMSDetectionResult, 
     CMSPluginResult,
     CMSType

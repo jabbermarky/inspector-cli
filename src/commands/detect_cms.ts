@@ -1,5 +1,6 @@
 import { program } from 'commander';
-import { detectCMS, detectInputType, extractUrlsFromCSV, cleanUrlForDisplay } from '../utils/utils.js';
+import { detectInputType, extractUrlsFromCSV } from '../utils/utils.js';
+import { detectCMS, CMSDetectionIterator, CMSDetectionResult } from '../utils/cms/index.js';
 import { createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('detect-cms');
@@ -12,79 +13,99 @@ interface CMSResult {
     error?: string;
 }
 
-async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
+export async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
     const results: CMSResult[] = [];
     const total = urls.length;
     let completed = 0;
+    let cmsIterator: CMSDetectionIterator | null = null;
     
+    // Initialize CMS detection enumerator
+    try {
+        cmsIterator = new CMSDetectionIterator();
+    } catch (error) {
+        logger.error('Failed to initialize CMS detection iterator', { error: (error as Error).message });
+        throw new Error(`CMS detection initialization failed: ${(error as Error).message}`);
+    }
+    if (!cmsIterator) {
+        throw new Error('CMS detection iterator is not initialized');
+    }   
+
     console.log(`Processing CMS detection for ${total} URLs...`);
     
-    // Process URLs sequentially to avoid browser resource conflicts
-    // The individual detectCMS calls handle their own browser management
-    for (const url of urls) {
-        try {
-            const detected = await detectCMS(url);
-            completed++;
-            
-            // Check if detectCMS returned an error (vs throwing an exception)
-            if (detected.error) {
+    try {
+        // Process URLs sequentially using isolated browser contexts
+        // Each URL gets a fresh browser state to prevent cross-URL contamination
+        for (const url of urls) {
+            try {
+                const detected = await cmsIterator.detect(url);
+                completed++;
+                
+                // Check if detectCMS returned an error (vs throwing an exception)
+                if (detected.error) {
+                    const result: CMSResult = {
+                        url,
+                        success: false,
+                        error: detected.error
+                    };
+                    
+                    // Real-time error update
+                    console.log(`[${completed}/${total}] ✗ ${url} → Error: ${result.error}`);
+                    
+                    results.push(result);
+                } else {
+                    // Success means we detected a known CMS (WordPress, Joomla, Drupal)
+                    // "Unknown" CMS counts as a failed detection
+                    const isKnownCMS = detected.cms && detected.cms !== 'Unknown';
+                    
+                    const result: CMSResult = {
+                        url,
+                        success: isKnownCMS,
+                        cms: detected.cms,
+                        version: detected.version
+                    };
+                    
+                    // Real-time progress update
+                    const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
+                                   `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
+                    
+                    if (isKnownCMS) {
+                        console.log(`[${completed}/${total}] ✓ ${url} → ${cmsInfo}`);
+                    } else {
+                        console.log(`[${completed}/${total}] ✗ ${url} → ${cmsInfo} (no known CMS detected)`);
+                    }
+                    
+                    results.push(result);
+                }
+                
+            } catch (error) {
+                completed++;
                 const result: CMSResult = {
                     url,
                     success: false,
-                    error: detected.error
+                    error: (error as Error).message
                 };
                 
                 // Real-time error update
-                const cleanUrl = cleanUrlForDisplay(url);
-                console.log(`[${completed}/${total}] ✗ ${cleanUrl} → Error: ${result.error}`);
-                
-                results.push(result);
-            } else {
-                // Success means we detected a known CMS (WordPress, Joomla, Drupal)
-                // "Unknown" CMS counts as a failed detection
-                const isKnownCMS = detected.cms && detected.cms !== 'Unknown';
-                
-                const result: CMSResult = {
-                    url,
-                    success: isKnownCMS,
-                    cms: detected.cms,
-                    version: detected.version
-                };
-                
-                // Real-time progress update
-                const cleanUrl = cleanUrlForDisplay(url);
-                const cmsInfo = detected.cms === 'Unknown' ? 'Unknown' : 
-                               `${detected.cms}${detected.version ? ` ${detected.version}` : ''}`;
-                
-                if (isKnownCMS) {
-                    console.log(`[${completed}/${total}] ✓ ${cleanUrl} → ${cmsInfo}`);
-                } else {
-                    console.log(`[${completed}/${total}] ✗ ${cleanUrl} → ${cmsInfo} (no known CMS detected)`);
-                }
+                console.log(`[${completed}/${total}] ✗ ${url} → Error: ${result.error}`);
                 
                 results.push(result);
             }
-            
-        } catch (error) {
-            completed++;
-            const result: CMSResult = {
-                url,
-                success: false,
-                error: (error as Error).message
-            };
-            
-            // Real-time error update
-            const cleanUrl = cleanUrlForDisplay(url);
-            console.log(`[${completed}/${total}] ✗ ${cleanUrl} → Error: ${result.error}`);
-            
-            results.push(result);
+        }
+    } finally {
+        // Finalize the iterator and cleanup browser resources after all URLs are processed
+        if (cmsIterator) {
+            try {
+                await cmsIterator.finalize();
+            } catch (cleanupError) {
+                logger.error('Failed to finalize CMS detection iterator', { error: (cleanupError as Error).message });
+            }
         }
     }
     
     return results;
 }
 
-function displaySingleResult(url: string, detected: any) {
+function displaySingleResult(url: string, detected: CMSDetectionResult | null) {
     console.log(`Detected CMS for ${url}:`);
     if (detected && detected.cms) {
         console.log(`CMS: ${detected.cms}`);
@@ -116,20 +137,18 @@ function displayBatchResults(results: CMSResult[]) {
     if (successful.length > 0) {
         console.log('Successful detections (known CMS found):');
         successful.forEach(result => {
-            const cleanUrl = cleanUrlForDisplay(result.url);
             const cmsInfo = `${result.cms}${result.version ? ` ${result.version}` : ''}`;
-            console.log(`- ${cleanUrl}: ${cmsInfo}`);
+            console.log(`- ${result.url}: ${cmsInfo}`);
         });
     }
     
     if (failed.length > 0) {
         console.log(`\nFailed detections:`);
         failed.forEach(result => {
-            const cleanUrl = cleanUrlForDisplay(result.url);
             if (result.error) {
-                console.log(`- ${cleanUrl}: Error - ${result.error}`);
+                console.log(`- ${result.url}: Error - ${result.error}`);
             } else {
-                console.log(`- ${cleanUrl}: Unknown (no known CMS detected)`);
+                console.log(`- ${result.url}: Unknown (no known CMS detected)`);
             }
         });
     }
@@ -146,7 +165,7 @@ program
             if (inputType === 'url') {
                 // Single URL processing
                 logger.info('Starting CMS detection for single URL', { url: input });
-                const detected = await detectCMS(input);
+                const detected:CMSDetectionResult = await detectCMS(input);
                 displaySingleResult(input, detected);
                 logger.info('CMS detection completed', { url: input, cms: detected.cms, version: detected.version });
                 

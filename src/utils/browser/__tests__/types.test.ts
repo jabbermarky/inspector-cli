@@ -218,7 +218,11 @@ describe('Browser Manager Types', () => {
                 expect(DEFAULT_BROWSER_CONFIG.navigation).toEqual({
                     timeout: 10000,
                     retryAttempts: 3,
-                    additionalWaitTime: 0
+                    additionalWaitTime: 0,
+                    trackRedirectChain: true,
+                    maxRedirects: 20,
+                    redirectTimeout: 5000,
+                    followRedirects: true
                 });
             });
 
