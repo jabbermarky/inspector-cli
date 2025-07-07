@@ -1,6 +1,6 @@
 import { program } from 'commander';
 import { detectInputType, extractUrlsFromCSV } from '../utils/utils.js';
-import { detectCMS, CMSDetectionIterator, CMSDetectionResult } from '../utils/cms/index.js';
+import { CMSDetectionIterator, CMSDetectionResult } from '../utils/cms/index.js';
 import { createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('detect-cms');
@@ -163,11 +163,30 @@ program
             const inputType = detectInputType(input);
             
             if (inputType === 'url') {
-                // Single URL processing
-                logger.info('Starting CMS detection for single URL', { url: input });
-                const detected:CMSDetectionResult = await detectCMS(input);
-                displaySingleResult(input, detected);
-                logger.info('CMS detection completed', { url: input, cms: detected.cms, version: detected.version });
+                // Single URL processing - now uses unified pipeline (batch of 1)
+                logger.info('Starting unified CMS detection for single URL', { url: input });
+                const results = await processCMSDetectionBatch([input]);
+                
+                // Display single result using batch result format for consistency
+                if (results.length > 0) {
+                    const result = results[0];
+                    if (result.success) {
+                        console.log(`Detected CMS for ${result.url}:`);
+                        console.log(`CMS: ${result.cms}`);
+                        console.log(`Version: ${result.version ?? 'Unknown'}`);
+                    } else {
+                        console.log(`No CMS detected for ${result.url}`);
+                        if (result.error) {
+                            console.log(`Error: ${result.error}`);
+                        }
+                    }
+                }
+                
+                logger.info('Unified CMS detection completed', { 
+                    url: input, 
+                    cms: results[0]?.cms, 
+                    version: results[0]?.version 
+                });
                 
             } else {
                 // CSV batch processing

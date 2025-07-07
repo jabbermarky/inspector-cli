@@ -5,12 +5,10 @@ import { CMSDetectionIterator, CMSDetectionResult } from '../../utils/cms/index.
 // Mock dependencies
 jest.mock('../../utils/utils.js', () => ({
     detectInputType: jest.fn(),
-    extractUrlsFromCSV: jest.fn(),
-    detectCMS: jest.fn()
+    extractUrlsFromCSV: jest.fn()
 }));
 
 jest.mock('../../utils/cms/index.js', () => ({
-    detectCMS: jest.fn(),
     CMSDetectionIterator: jest.fn()
 }));
 
@@ -26,7 +24,6 @@ jest.mock('../../utils/logger.js', () => ({
 // Import the function we want to test (this must be after mocking)
 const mockDetectInputType = utils.detectInputType as jest.MockedFunction<typeof utils.detectInputType>;
 const mockExtractUrlsFromCSV = utils.extractUrlsFromCSV as jest.MockedFunction<typeof utils.extractUrlsFromCSV>;
-const mockDetectCMS = utils.detectCMS as jest.MockedFunction<typeof utils.detectCMS>;
 const MockCMSDetectionIterator = CMSDetectionIterator as jest.MockedClass<typeof CMSDetectionIterator>;
 
 describe('CMS Detection Command', () => {
@@ -179,9 +176,9 @@ describe('CMS Detection Command', () => {
         });
     });
 
-    describe('Single URL Processing', () => {
-        it('should not use iterator for single URL detection', async () => {
-            // Setup mocks for single URL
+    describe('Unified Pipeline Processing', () => {
+        it('should use iterator for both single URL and batch processing', async () => {
+            // Setup mocks for single URL (now uses batch pipeline)
             mockDetectInputType.mockReturnValue('url');
             
             const mockResult: CMSDetectionResult = {
@@ -192,15 +189,65 @@ describe('CMS Detection Command', () => {
                 executionTime: 1200
             };
             
-            mockDetectCMS.mockResolvedValue(mockResult);
+            mockIterator.detect.mockResolvedValue(mockResult);
 
-            // We can't easily test the command action directly due to commander.js,
-            // but we can verify that detectCMS is called for single URLs
-            await mockDetectCMS('http://example.com');
+            // Test single URL through batch pipeline
+            const testUrls = ['http://example.com'];
+            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            
+            const results = await processCMSDetectionBatch(testUrls);
 
-            // Verify regular detectCMS was called, not iterator
-            expect(mockDetectCMS).toHaveBeenCalledWith('http://example.com');
-            expect(MockCMSDetectionIterator).not.toHaveBeenCalled();
+            // Verify iterator was used (unified pipeline)
+            expect(MockCMSDetectionIterator).toHaveBeenCalledTimes(1);
+            expect(mockIterator.detect).toHaveBeenCalledWith('http://example.com');
+            expect(mockIterator.finalize).toHaveBeenCalledTimes(1);
+            
+            // Verify results structure
+            expect(results).toHaveLength(1);
+            expect(results[0]).toEqual({
+                url: 'http://example.com',
+                success: true,
+                cms: 'Drupal',
+                version: undefined
+            });
+        });
+
+        it('should produce identical results for same URL in single vs batch mode', async () => {
+            // Setup consistent mock result
+            const mockResult: CMSDetectionResult = {
+                cms: 'WordPress',
+                confidence: 0.9,
+                originalUrl: 'http://drupal.org',
+                finalUrl: 'https://www.drupal.org',
+                executionTime: 1000,
+                redirectCount: 2,
+                protocolUpgraded: true
+            };
+            
+            mockIterator.detect.mockResolvedValue(mockResult);
+            
+            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            
+            // Test single URL (processed as batch of 1)
+            const singleResults = await processCMSDetectionBatch(['http://drupal.org']);
+            
+            // Reset mocks for batch test
+            jest.clearAllMocks();
+            mockIterator.detect.mockResolvedValue(mockResult);
+            MockCMSDetectionIterator.mockImplementation(() => mockIterator);
+            
+            // Test same URL in batch with other URLs
+            const batchResults = await processCMSDetectionBatch(['http://other.com', 'http://drupal.org']);
+            
+            // Results for drupal.org should be identical
+            expect(singleResults[0]).toEqual({
+                url: 'http://drupal.org',
+                success: true,
+                cms: 'WordPress',
+                version: undefined
+            });
+            
+            expect(batchResults[1]).toEqual(singleResults[0]);
         });
     });
 

@@ -57,7 +57,25 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [x] Fixed configuration validation to not require OpenAI API key for non-AI commands
   - [x] Resolved test environment configuration validation issues
   - [x] **Total CMS test coverage: 107 tests across 7 test suites**
+  - [x] **Added 6 additional tests for command cleanup lifecycle (113+ total tests)**
   - [x] **Overall project coverage improved from 30.39% to 50.63%**
+- [x] **Implement browser context isolation for batch processing** (CRITICAL RESOURCE MANAGEMENT)
+  - [x] Added isolated browser contexts for CSV batch processing to prevent state leakage
+  - [x] Implemented `CMSDetectionIterator` with proper lifecycle management and cleanup
+  - [x] Each URL gets fresh browser state while maintaining browser instance efficiency
+  - [x] App now exits cleanly after batch processing completion
+  - [x] Added comprehensive unit tests for iterator lifecycle and cleanup behavior
+- [x] **Fix test resource leaks and hanging processes** (DEVELOPER EXPERIENCE IMPROVEMENT)
+  - [x] Fixed 47 hanging timeout handles in CMS detector tests
+  - [x] Added proper `clearTimeout()` calls in strategy execution timeout handling
+  - [x] Eliminated Jest worker process hanging issues and "failed to exit gracefully" warnings
+  - [x] Zero open handles detected in test runs with `--detectOpenHandles`
+  - [x] Clean test exits without resource leaks
+- [x] **Enhanced URL display for better debugging** (USABILITY IMPROVEMENT)
+  - [x] Changed CMS detection display to show full URLs with protocols
+  - [x] Improved debugging visibility for different URL formats (HTTP vs HTTPS)
+  - [x] Better test differentiation and CSV file creation for various protocol combinations
+  - [x] Real-time progress display shows complete URL information
 
 ## Decompose into Reusable Services ##
 - [ ] **Isolate business logic into one or more modules or services**
@@ -95,7 +113,7 @@ This document tracks all pending tasks, improvements, and architectural changes 
 - [ ] **Split utils.ts into focused modules** (CRITICAL - 634 lines → max 150 per module)
   - [x] Extract file operations (`src/utils/file/`)
   - [ ] Extract image processing (`src/utils/image/`)
-  - [x] Extract browser automation (`src/utils/browser/`)
+  - [x] Extract browser automation (`src/utils/browser/`) ✅ COMPLETED
   - [x] **Extract CMS detection (`src/utils/cms/`)** ✅ COMPLETED
   - [x] Extract concurrency control (`src/utils/concurrency/`)
 
@@ -159,6 +177,8 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [x] Test retry logic for network failures  
   - [x] Test concurrent detection limits
   - [x] Test malformed URL handling
+  - [x] **Added tests for resource cleanup and iterator lifecycle** ✅ COMPLETED
+  - [x] **Fixed hanging timeout handles in test environment** ✅ COMPLETED
 
 - [x] **Add comprehensive test coverage** ✅ MAJOR PROGRESS
   - [x] Unit tests for retry utility (comprehensive coverage)
@@ -193,6 +213,12 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Add metrics collection for operational visibility
   - [ ] Create alerting system for critical failures
   - [ ] Add memory usage monitoring for image processing
+
+- [x] **Add browser resource management and cleanup** ✅ COMPLETED
+  - [x] Implemented proper browser instance lifecycle management  
+  - [x] Added context isolation for batch processing
+  - [x] Fixed resource leaks preventing clean app exit
+  - [x] Added deterministic cleanup with finalize() pattern
 
 ### Developer Experience
 - [ ] **Improve error messages with actionable suggestions**
@@ -266,6 +292,48 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] CSV export for batch analysis results
 
 
+## 🎯 MAJOR MIGRATION: Unified Pipeline + Analysis Mode + CMS Extensibility
+
+### Migration Plan Summary (5 Phases)
+
+**Phase 1: Unified Detection Pipeline** 🔄 *IN PROGRESS*
+- Eliminate separate code paths: single URL detection becomes batch of 1
+- Fix drupal.org batch vs single URL inconsistency 
+- Foundation for all subsequent phases
+
+**Phase 2: Data Collection Infrastructure** 📊
+- Add comprehensive data capture for analysis-driven rule development
+- Collect HTTP headers, meta tags, HTML content, DOM elements
+- Build analysis storage and query interface
+
+**Phase 3: Analysis Command & Pattern Discovery** 🔍
+- Build tools to analyze collected data and discover detection patterns
+- Pattern discovery algorithms for meta tags, HTML patterns, headers
+- Generate analysis reports with suggested detection rules
+
+**Phase 4: Data-Driven Rule Generation** 🤖
+- Automatically generate detection rules from analysis data
+- Hybrid detection mode with A/B testing capabilities
+- Rule validation framework with performance benchmarking
+
+**Phase 5: Extensible CMS Platform Registry** 🚀
+- Create flywheel system for rapidly adding new CMS platforms
+- Target: E-commerce (Shopify, Magento), Static (Gatsby, Hugo), Enterprise (SharePoint, Sitecore)
+- Auto-generated detector factory with <48 hour time-to-deploy
+- Community-contributed training datasets
+
+### Success Metrics
+- **Time to add new platform**: <48 hours from identification to production
+- **Detection accuracy**: >90% for top 20 CMS platforms  
+- **Market coverage**: Detect 95% of websites automatically
+- **Drupal.org consistency**: Identical results for single vs batch detection
+
+### Flywheel Vision
+```
+New CMS Platform → Collect Data → Analyze Patterns → Generate Rules → 
+Validate & Test → Deploy → Monitor → Refine (feedback loop)
+```
+
 ## 📝 Notes
 
 ### Recently Added Based on Architecture Review
@@ -287,6 +355,8 @@ Each task should include:
 
 ---
 
-**Last Updated**: July 5, 2025  
-**Total Tasks**: 68 (48 completed, 20 pending)  
-**Focus Areas**: Critical security issues, architecture cleanup, comprehensive error handling, production readiness
+**Last Updated**: January 20, 2025  
+**Total Tasks**: 68 (52 completed, 16 pending)  
+**Focus Areas**: Unified pipeline migration, data-driven CMS detection, platform extensibility
+
+**Current Migration**: Phase 1 - Unified Detection Pipeline **🔄 IN PROGRESS**
