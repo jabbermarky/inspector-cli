@@ -200,7 +200,8 @@ class CMSDetectionIterator {
                     redirectChain: dataPoint.redirectChain,
                     totalRedirects: dataPoint.totalRedirects,
                     protocolUpgraded: dataPoint.protocolUpgraded,
-                    navigationTime: dataPoint.navigationTime
+                    navigationTime: dataPoint.navigationTime,
+                    headers: dataPoint.httpHeaders  // Add headers to navigation context
                 }
             }
         };
@@ -398,10 +399,16 @@ export { DrupalDetector } from './detectors/drupal.js';
 export { MetaTagStrategy } from './strategies/meta-tag.js';
 export { HtmlContentStrategy } from './strategies/html-content.js';
 export { ApiEndpointStrategy } from './strategies/api-endpoint.js';
+export { HttpHeaderStrategy } from './strategies/http-headers.js';
 
 // Re-export analysis modules
 export { DataCollector } from './analysis/collector.js';
 export { DataStorage } from './analysis/storage.js';
 export { PatternDiscovery } from './analysis/patterns.js';
 export { AnalysisReporter } from './analysis/reports.js';
+export { RuleGenerator } from './analysis/generator.js';
 export * from './analysis/types.js';
+
+// Re-export hybrid detection
+export { HybridCMSDetector } from './hybrid/detector.js';
+export type { StrategyConfiguration, HybridDetectionOptions } from './hybrid/detector.js';

@@ -2,6 +2,8 @@ import { BaseCMSDetector } from './base.js';
 import { DetectionStrategy, CMSType, PartialDetectionResult, DetectionPage } from '../types.js';
 import { MetaTagStrategy } from '../strategies/meta-tag.js';
 import { HtmlContentStrategy } from '../strategies/html-content.js';
+import { HttpHeaderStrategy } from '../strategies/http-headers.js';
+import { RobotsTxtStrategy, DRUPAL_ROBOTS_PATTERNS } from '../strategies/robots-txt.js';
 import { createModuleLogger } from '../../logger.js';
 
 const logger = createModuleLogger('cms-drupal-detector');
@@ -125,11 +127,39 @@ class DrupalFileStrategy implements DetectionStrategy {
     }
 }
 
+
 /**
  * Drupal CMS detector with Drupal-specific detection strategies
  */
 export class DrupalDetector extends BaseCMSDetector {
     protected strategies: DetectionStrategy[] = [
+        // HTTP headers - highest priority as they're most reliable
+        new HttpHeaderStrategy([
+            {
+                name: 'X-Generator',
+                pattern: /Drupal\s+(\d+(?:\.\d+)*)/i,
+                confidence: 0.95,
+                extractVersion: true
+            },
+            {
+                name: 'X-Drupal-Cache',
+                pattern: /.*/,  // Any value indicates Drupal
+                confidence: 0.8,
+                extractVersion: false
+            },
+            {
+                name: 'X-Drupal-Route-Normalizer',
+                pattern: /.*/,  // Any value indicates Drupal
+                confidence: 0.8,
+                extractVersion: false
+            },
+            {
+                name: 'X-Powered-By',
+                pattern: /Drupal/i,
+                confidence: 0.7,
+                extractVersion: false
+            }
+        ], 'Drupal', 5000),
         new MetaTagStrategy('Drupal', 6000),
         new HtmlContentStrategy([
             '/sites/all/',
@@ -141,6 +171,7 @@ export class DrupalDetector extends BaseCMSDetector {
             '/modules/',
             '/themes/'
         ], 'Drupal', 4000),
+        new RobotsTxtStrategy(DRUPAL_ROBOTS_PATTERNS, 'Drupal', 3000),
         new DrupalFileStrategy()
     ];
 
@@ -157,8 +188,10 @@ export class DrupalDetector extends BaseCMSDetector {
      */
     protected getStrategyWeight(method: string): number {
         const weights: Record<string, number> = {
-            'meta-tag': 1.0,          // Highest confidence
+            'http-headers': 1.0,      // Highest confidence - headers are most reliable
+            'meta-tag': 1.0,          // Highest confidence for meta tags
             'file-detection': 0.9,    // Very high confidence for file detection
+            'robots-txt': 0.85,       // High confidence for Drupal-specific paths
             'html-content': 0.8       // Good confidence for Drupal signatures
         };
         return weights[method] || 0.5;

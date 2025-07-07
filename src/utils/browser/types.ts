@@ -67,13 +67,23 @@ export interface DebugConfig {
 }
 
 /**
+ * User agent rotation configuration
+ */
+export interface UserAgentConfig {
+    rotation: boolean;                    // Enable user agent rotation
+    pool?: string[];                     // Custom user agent pool
+    strategy?: 'random' | 'sequential';  // Rotation strategy
+    updateFrequency?: number;            // How often to change (requests)
+}
+
+/**
  * Main browser manager configuration
  */
 export interface BrowserManagerConfig {
     // Core browser settings
     headless: boolean;
     viewport: BrowserViewport;
-    userAgent: string;
+    userAgent: string | UserAgentConfig;  // Single UA or rotation config
     
     // Purpose-driven behavior
     purpose: BrowserPurpose;
@@ -120,6 +130,7 @@ export interface NavigationResult {
     navigationTime: number;
     protocolUpgraded: boolean;          // HTTP→HTTPS detection
     success: boolean;
+    headers?: Record<string, string>;   // Response headers from final navigation
 }
 
 /**

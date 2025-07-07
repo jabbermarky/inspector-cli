@@ -100,12 +100,29 @@ export class DataCollector {
         // Collect navigation information
         const navigationInfo = this.browserManager.getNavigationInfo(page);
         
-        // Collect HTTP response data (simplified for now)
-        const httpHeaders: Record<string, string> = {};
-        const statusCode = 200; // Will be enhanced in future iterations
+        // Collect HTTP response data from navigation result
+        const httpHeaders: Record<string, string> = navigationInfo?.headers || {};
+        
+        // Get status code from page evaluation
+        let statusCode = 200; // Default
+        try {
+            statusCode = await page.evaluate(() => {
+                // Try to get status from performance navigation API
+                const perfEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+                if (perfEntries.length > 0) {
+                    return (perfEntries[0] as any).responseStatus || 200;
+                }
+                return 200;
+            });
+        } catch (error) {
+            logger.debug('Failed to extract status code', { error: (error as Error).message });
+        }
 
         // Collect HTML content
         const htmlContent = await this.collectHtmlContent(page);
+        
+        // Collect robots.txt
+        const robotsTxt = await this.collectRobotsTxt(finalUrl);
         
         // Collect meta tags
         const metaTags = await this.collectMetaTags(page);
@@ -162,6 +179,9 @@ export class DataCollector {
             // HTML content
             htmlContent: this.config.includeHtmlContent ? htmlContent : '',
             htmlSize: htmlContent.length,
+            
+            // Robots.txt
+            robotsTxt,
             
             // DOM structure
             domElements,
@@ -404,5 +424,115 @@ export class DataCollector {
             logger.warn('Failed to collect performance metrics', { error: (error as Error).message });
             return { loadTime: 0, resourceCount: 0 };
         }
+    }
+
+    private async collectRobotsTxt(siteUrl: string): Promise<DetectionDataPoint['robotsTxt']> {
+        try {
+            // Construct robots.txt URL
+            const url = new URL(siteUrl);
+            const robotsUrl = `${url.protocol}//${url.host}/robots.txt`;
+            
+            logger.debug('Fetching robots.txt', { url: robotsUrl });
+
+            // Fetch robots.txt using node's fetch (available in Node 18+)
+            const response = await fetch(robotsUrl, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)'
+                },
+                // Set timeout
+                signal: AbortSignal.timeout(5000)
+            });
+
+            const content = await response.text();
+            const patterns = this.parseRobotsTxt(content);
+
+            logger.debug('Robots.txt collected successfully', { 
+                url: robotsUrl, 
+                size: content.length,
+                statusCode: response.status,
+                disallowedPaths: patterns.disallowedPaths.length
+            });
+
+            return {
+                content,
+                accessible: response.ok,
+                size: content.length,
+                statusCode: response.status,
+                patterns
+            };
+
+        } catch (error) {
+            logger.warn('Failed to collect robots.txt', { 
+                siteUrl, 
+                error: (error as Error).message 
+            });
+
+            return {
+                content: '',
+                accessible: false,
+                size: 0,
+                error: (error as Error).message,
+                patterns: {
+                    disallowedPaths: [],
+                    sitemapUrls: [],
+                    userAgents: []
+                }
+            };
+        }
+    }
+
+    private parseRobotsTxt(content: string): {
+        disallowedPaths: string[];
+        sitemapUrls: string[];
+        crawlDelay?: number;
+        userAgents: string[];
+    } {
+        const lines = content.split('\n').map(line => line.trim());
+        const disallowedPaths: string[] = [];
+        const sitemapUrls: string[] = [];
+        const userAgents: string[] = [];
+        let crawlDelay: number | undefined;
+
+        for (const line of lines) {
+            if (line.startsWith('#') || !line) continue;
+
+            const colonIndex = line.indexOf(':');
+            if (colonIndex === -1) continue;
+
+            const directive = line.substring(0, colonIndex).trim().toLowerCase();
+            const value = line.substring(colonIndex + 1).trim();
+
+            switch (directive) {
+                case 'user-agent':
+                    if (!userAgents.includes(value)) {
+                        userAgents.push(value);
+                    }
+                    break;
+                case 'disallow':
+                    if (value && !disallowedPaths.includes(value)) {
+                        disallowedPaths.push(value);
+                    }
+                    break;
+                case 'sitemap':
+                    if (value && !sitemapUrls.includes(value)) {
+                        sitemapUrls.push(value);
+                    }
+                    break;
+                case 'crawl-delay':
+                    const delay = parseInt(value, 10);
+                    if (!isNaN(delay)) {
+                        crawlDelay = delay;
+                    }
+                    break;
+            }
+        }
+
+        return {
+            disallowedPaths,
+            sitemapUrls,
+            crawlDelay,
+            userAgents
+        };
     }
 }

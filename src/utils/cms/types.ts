@@ -43,6 +43,7 @@ export interface PartialDetectionResult {
     version?: string;
     plugins?: CMSPluginResult[];
     method: string;
+    evidence?: string[];
     error?: string;
     executionTime?: number;
 }

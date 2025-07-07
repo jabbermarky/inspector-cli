@@ -18,8 +18,10 @@ import {
     NAVIGATION_STRATEGIES,
     RESOURCE_BLOCKING_STRATEGIES,
     DEFAULT_ESSENTIAL_SCRIPT_PATTERNS,
-    DEFAULT_BROWSER_CONFIG
+    DEFAULT_BROWSER_CONFIG,
+    UserAgentConfig
 } from './types.js';
+import { UserAgentManager, DEFAULT_USER_AGENT_POOL } from './user-agents.js';
 
 const logger = createModuleLogger('browser-manager');
 
@@ -51,14 +53,43 @@ export class BrowserManager {
     private contexts: Set<BrowserContext> = new Set();
     private semaphoreAcquired = false;
     private readonly config: BrowserManagerConfig;
+    private userAgentManager: UserAgentManager | null = null;
     private static semaphore: Semaphore | null = null;
 
     constructor(config: Partial<BrowserManagerConfig>) {
         this.config = this.mergeWithDefaults(config);
+        
+        // Initialize user agent manager if rotation is enabled
+        this.initializeUserAgentManager();
+        
         logger.debug('BrowserManager created', { 
             purpose: this.config.purpose,
-            strategy: this.config.resourceBlocking.strategy 
+            strategy: this.config.resourceBlocking.strategy,
+            userAgentRotation: this.userAgentManager !== null
         });
+    }
+
+    /**
+     * Initialize user agent manager based on configuration
+     */
+    private initializeUserAgentManager(): void {
+        if (typeof this.config.userAgent === 'object' && 'rotation' in this.config.userAgent) {
+            const uaConfig = this.config.userAgent as UserAgentConfig;
+            
+            if (uaConfig.rotation) {
+                const pool = uaConfig.pool || DEFAULT_USER_AGENT_POOL;
+                const strategy = uaConfig.strategy || 'random';
+                const updateFrequency = uaConfig.updateFrequency || 1;
+                
+                this.userAgentManager = new UserAgentManager(pool, strategy, updateFrequency);
+                
+                logger.debug('User agent rotation enabled', {
+                    poolSize: pool.length,
+                    strategy,
+                    updateFrequency
+                });
+            }
+        }
     }
 
     /**
@@ -323,6 +354,16 @@ export class BrowserManager {
             const navigationTime = Date.now() - navigationStart;
             const protocolUpgraded = this.detectProtocolUpgrade(url, finalUrl);
             
+            // Extract response headers for detection strategies
+            const headers: Record<string, string> = {};
+            try {
+                const responseHeaders = response.headers();
+                // Copy headers to avoid any reference issues
+                Object.assign(headers, responseHeaders);
+            } catch (error) {
+                logger.debug('Failed to extract response headers', { url, error: (error as Error).message });
+            }
+            
             const navigationResult: NavigationResult = {
                 originalUrl: url,
                 finalUrl,
@@ -330,7 +371,8 @@ export class BrowserManager {
                 totalRedirects: redirectChain.length,
                 navigationTime,
                 protocolUpgraded,
-                success: true
+                success: true,
+                headers
             };
 
             // Update page context
@@ -632,8 +674,15 @@ export class BrowserManager {
                 navigationCount: 0
             };
             
-            // Set user agent
-            await page.setUserAgent(this.config.userAgent);
+            // Set user agent (with rotation support)
+            const userAgent = this.getUserAgent();
+            await page.setUserAgent(userAgent);
+            
+            logger.debug('User agent set for page in context', {
+                userAgent: userAgent.substring(0, 50) + '...',
+                rotationEnabled: this.userAgentManager !== null,
+                purpose: this.config.purpose
+            });
             
             // Set timeouts
             page.setDefaultTimeout(this.config.navigation.timeout);
@@ -691,8 +740,15 @@ export class BrowserManager {
                 navigationCount: 0
             };
             
-            // Set user agent
-            await page.setUserAgent(this.config.userAgent);
+            // Set user agent (with rotation support)
+            const userAgent = this.getUserAgent();
+            await page.setUserAgent(userAgent);
+            
+            logger.debug('User agent set for page', {
+                userAgent: userAgent.substring(0, 50) + '...',
+                rotationEnabled: this.userAgentManager !== null,
+                purpose: this.config.purpose
+            });
             
             // Set timeouts
             page.setDefaultTimeout(this.config.navigation.timeout);
@@ -924,6 +980,49 @@ export class BrowserManager {
             return normalized.toLowerCase();
         } catch {
             return url.toLowerCase();
+        }
+    }
+
+    /**
+     * Get user agent for page setup (handles rotation)
+     */
+    private getUserAgent(): string {
+        if (this.userAgentManager) {
+            // Use user agent rotation
+            return this.userAgentManager.getNext();
+        } else {
+            // Use static user agent from config
+            if (typeof this.config.userAgent === 'string') {
+                return this.config.userAgent;
+            } else {
+                // This shouldn't happen since initializeUserAgentManager handles rotation config
+                logger.warn('UserAgent config is object but no manager initialized, using default');
+                return 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)';
+            }
+        }
+    }
+
+    /**
+     * Get user agent manager statistics (for monitoring)
+     */
+    getUserAgentStats(): { enabled: boolean; stats?: any } {
+        if (this.userAgentManager) {
+            return {
+                enabled: true,
+                stats: this.userAgentManager.getStats()
+            };
+        } else {
+            return { enabled: false };
+        }
+    }
+
+    /**
+     * Reset user agent rotation state (useful for testing)
+     */
+    resetUserAgentRotation(): void {
+        if (this.userAgentManager) {
+            this.userAgentManager.reset();
+            logger.debug('User agent rotation state reset');
         }
     }
 

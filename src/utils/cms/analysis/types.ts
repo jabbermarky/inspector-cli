@@ -40,6 +40,21 @@ export interface DetectionDataPoint {
     htmlContent: string;
     htmlSize: number;
     
+    // Robots.txt analysis
+    robotsTxt?: {
+        content: string;
+        accessible: boolean;
+        size: number;
+        statusCode?: number;
+        error?: string;
+        patterns?: {
+            disallowedPaths: string[];
+            sitemapUrls: string[];
+            crawlDelay?: number;
+            userAgents: string[];
+        };
+    };
+    
     // DOM structure analysis
     domElements: Array<{
         selector: string;

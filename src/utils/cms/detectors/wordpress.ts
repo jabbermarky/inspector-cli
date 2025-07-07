@@ -3,6 +3,8 @@ import { DetectionStrategy, CMSType, PartialDetectionResult, DetectionPage, CMSP
 import { MetaTagStrategy } from '../strategies/meta-tag.js';
 import { HtmlContentStrategy } from '../strategies/html-content.js';
 import { ApiEndpointStrategy } from '../strategies/api-endpoint.js';
+import { HttpHeaderStrategy } from '../strategies/http-headers.js';
+import { RobotsTxtStrategy, WORDPRESS_ROBOTS_PATTERNS } from '../strategies/robots-txt.js';
 import { createModuleLogger } from '../../logger.js';
 
 const logger = createModuleLogger('cms-wordpress-detector');
@@ -176,6 +178,35 @@ export class WordPressDetector extends BaseCMSDetector {
             'wordpress'
         ], 'WordPress', 4000),
         new ApiEndpointStrategy('/wp-json/', 'WordPress', 6000),
+        new HttpHeaderStrategy([
+            {
+                name: 'link',
+                pattern: /wp-json/i,
+                confidence: 0.9,
+                extractVersion: false,
+                searchIn: 'value'
+            },
+            {
+                name: '*', // Search all headers
+                pattern: 'wordpress',
+                confidence: 0.8,
+                searchIn: 'both'
+            },
+            {
+                name: 'X-Generator',
+                pattern: /WordPress\s*(\d+(?:\.\d+)*)/i,
+                confidence: 0.95,
+                extractVersion: true,
+                searchIn: 'value'
+            },
+            {
+                name: '*', // Search all headers for wp- patterns
+                pattern: /wp-/i,
+                confidence: 0.7,
+                searchIn: 'both'
+            }
+        ], 'WordPress', 5000),
+        new RobotsTxtStrategy(WORDPRESS_ROBOTS_PATTERNS, 'WordPress', 3000),
         new WordPressPluginStrategy()
     ];
 
@@ -194,6 +225,8 @@ export class WordPressDetector extends BaseCMSDetector {
         const weights: Record<string, number> = {
             'meta-tag': 1.0,          // Highest confidence
             'api-endpoint': 0.95,     // Very high confidence for wp-json
+            'http-headers': 0.9,      // Very high confidence for wp-json in headers
+            'robots-txt': 0.85,       // High confidence for wp-admin/wp-content patterns
             'html-content': 0.8,      // Good confidence for WordPress signatures
             'plugin-detection': 0.7   // Additional confirmation
         };

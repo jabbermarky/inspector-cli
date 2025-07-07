@@ -19,7 +19,7 @@ const logger = createModuleLogger('cms-detector');
  */
 export abstract class BaseCMSDetector implements CMSDetector {
     protected strategies: DetectionStrategy[] = [];
-    protected readonly CONFIDENCE_THRESHOLD = 0.4;
+    protected readonly CONFIDENCE_THRESHOLD = 0.3;
     
     abstract getCMSName(): CMSType;
     abstract getStrategies(): DetectionStrategy[];

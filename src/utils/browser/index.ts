@@ -53,7 +53,11 @@ export function createDetectionConfig(overrides?: Partial<BrowserManagerConfig>)
     return {
         headless: true,
         viewport: { width: 1024, height: 768 },
-        userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
+        userAgent: {
+            rotation: true,
+            strategy: 'random',
+            updateFrequency: 1  // Change user agent every request for maximum bot evasion
+        },
         purpose: 'detection',
         resourceBlocking: {
             enabled: true,

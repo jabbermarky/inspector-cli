@@ -47,18 +47,25 @@ export class HtmlContentStrategy implements DetectionStrategy {
             // Ensure minimum confidence of 0.5 if any signature matches
             const minConfidence = matchCount > 0 ? 0.5 : 0;
             const adjustedConfidence = Math.max(minConfidence, baseConfidence * 0.8);
+            
+            // Special boost for strong Joomla indicators
+            let boostedConfidence = adjustedConfidence;
+            if (this.cmsName === 'Joomla' && matchCount >= 3) {
+                // Strong Joomla evidence - boost confidence
+                boostedConfidence = Math.min(0.8, adjustedConfidence + 0.2);
+            }
 
             logger.debug(`HTML content detection completed`, {
                 url,
                 cms: this.cmsName,
                 matchCount,
                 totalSignatures: this.signatures.length,
-                confidence: adjustedConfidence,
+                confidence: boostedConfidence,
                 foundSignatures
             });
 
             return {
-                confidence: adjustedConfidence,
+                confidence: boostedConfidence,
                 method: this.getName()
             };
 
