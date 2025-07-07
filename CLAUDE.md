@@ -85,6 +85,84 @@ node dist/index.js detect-cms good-joomla.csv --collect-data
 node dist/index.js detect-cms --help  # Show available options
 ```
 
+## Unit Testing Patterns (CRITICAL - Mocking Complex Classes)
+
+### Common Mocking Errors & Solutions
+
+**PROBLEM**: Repeatedly making the same TypeScript errors when mocking complex classes after context compaction.
+
+#### BrowserManager Mocking
+**❌ WRONG**: Mocking `navigate()` or `navigateWithRetry()` - these methods don't exist
+**✅ CORRECT**: BrowserManager actual methods:
+```typescript
+const mockBrowserManager = {
+    createPageInIsolatedContext: jest.fn(),  // Returns { page, context }
+    closeContext: jest.fn(),
+    getNavigationInfo: jest.fn(),           // Returns NavigationResult | null
+    cleanup: jest.fn()
+} as unknown as BrowserManager;
+```
+
+#### Puppeteer Page Mocking  
+**❌ WRONG**: Trying to fully type DetectionPage/ManagedPage - too complex
+**✅ CORRECT**: Use `any` type for page mocks:
+```typescript
+const createMockPage = (): any => ({
+    url: jest.fn().mockReturnValue('https://example.com'),
+    goto: jest.fn(),
+    evaluate: jest.fn(),
+    content: jest.fn(),
+    title: jest.fn(),
+    waitForSelector: jest.fn(),
+    waitForTimeout: jest.fn(),
+    setDefaultNavigationTimeout: jest.fn()
+});
+```
+
+#### Strategy Mock Extensions
+**❌ WRONG**: Trying to access properties like `_robotsTxtData` without extending interface
+**✅ CORRECT**: Create extended interfaces for test-specific data:
+```typescript
+// For robots.txt tests
+interface RobotsTxtTestPage extends DetectionPage {
+    _robotsTxtData?: {
+        accessible: boolean;
+        content: string;
+        patterns: { disallowedPaths: string[]; sitemapUrls: string[]; } | null;
+    } | null;
+}
+
+// Then cast: mockPage as DetectionPage when calling methods
+```
+
+#### Mock Function Return Values
+**❌ WRONG**: Returning complex objects from mocked URL validation
+**✅ CORRECT**: URL validation functions return strings, not objects:
+```typescript
+// validateAndNormalizeUrl returns string, not validation object
+validateAndNormalizeUrl.mockReturnValue('https://example.com');
+
+// For errors, make it throw:
+validateAndNormalizeUrl.mockImplementation(() => {
+    throw new Error('Invalid URL format');
+});
+```
+
+#### Test Execution Time Assertions
+**❌ WRONG**: `expect(time).toBeGreaterThan(0)` often fails with 0
+**✅ CORRECT**: Use `toBeGreaterThanOrEqual(0)` for timing assertions
+
+### DataCollector Specific Issues
+**PROBLEM**: DataCollector has complex private methods that need proper mocking setup
+**SOLUTION**: Focus on testing the public interface and error scenarios rather than internal implementation
+
+### Key Principles
+1. **Use `any` type for complex Puppeteer objects** - avoids TypeScript hell
+2. **Mock actual method names** - check the real class interface first  
+3. **Cast when needed** - `mockPage as DetectionPage` for method calls
+4. **Test error scenarios** - make mocks throw errors, don't return error objects
+5. **Be flexible with timing** - use `>=` not `>` for execution time assertions
+
 ## Analysis Guidelines
 
 ### Data Analysis
