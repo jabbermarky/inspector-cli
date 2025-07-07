@@ -13,15 +13,24 @@ interface CMSResult {
     error?: string;
 }
 
-export async function processCMSDetectionBatch(urls: string[]): Promise<CMSResult[]> {
+export async function processCMSDetectionBatch(urls: string[], options: { collectData?: boolean } = {}): Promise<CMSResult[]> {
     const results: CMSResult[] = [];
     const total = urls.length;
     let completed = 0;
     let cmsIterator: CMSDetectionIterator | null = null;
     
-    // Initialize CMS detection enumerator
+    // Initialize CMS detection enumerator with optional data collection
     try {
-        cmsIterator = new CMSDetectionIterator();
+        cmsIterator = new CMSDetectionIterator({ 
+            collectData: options.collectData || false,
+            collectionConfig: {
+                includeHtmlContent: true,
+                includeDomAnalysis: true,
+                includeScriptAnalysis: true,
+                maxHtmlSize: 500000,
+                outputFormat: 'json'
+            }
+        });
     } catch (error) {
         logger.error('Failed to initialize CMS detection iterator', { error: (error as Error).message });
         throw new Error(`CMS detection initialization failed: ${(error as Error).message}`);
@@ -158,14 +167,20 @@ program
     .command("detect-cms")
     .description("Detect CMS for a single URL or batch process URLs from a CSV file")
     .argument('<input>', 'URL to detect or CSV file containing URLs')
-    .action(async (input, _options) => {
+    .option('--collect-data', 'Enable comprehensive data collection for analysis (stores data in ./data/cms-analysis/)')
+    .action(async (input, options) => {
         try {
             const inputType = detectInputType(input);
             
             if (inputType === 'url') {
                 // Single URL processing - now uses unified pipeline (batch of 1)
-                logger.info('Starting unified CMS detection for single URL', { url: input });
-                const results = await processCMSDetectionBatch([input]);
+                logger.info('Starting unified CMS detection for single URL', { 
+                    url: input, 
+                    collectData: options.collectData 
+                });
+                const results = await processCMSDetectionBatch([input], { 
+                    collectData: options.collectData 
+                });
                 
                 // Display single result using batch result format for consistency
                 if (results.length > 0) {
@@ -190,11 +205,16 @@ program
                 
             } else {
                 // CSV batch processing
-                logger.info('Starting CSV batch CMS detection', { file: input });
+                logger.info('Starting CSV batch CMS detection', { 
+                    file: input, 
+                    collectData: options.collectData 
+                });
                 const urls = extractUrlsFromCSV(input);
                 logger.info('Extracted URLs from CSV', { count: urls.length });
                 
-                const results = await processCMSDetectionBatch(urls);
+                const results = await processCMSDetectionBatch(urls, { 
+                    collectData: options.collectData 
+                });
                 displayBatchResults(results);
                 
                 logger.info('CSV batch CMS detection completed', { 
