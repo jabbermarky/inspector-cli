@@ -317,7 +317,7 @@ export class DataStorage {
         return results;
     }
 
-    private async getAllDataPoints(): Promise<DetectionDataPoint[]> {
+    async getAllDataPoints(): Promise<DetectionDataPoint[]> {
         const dataPoints: DetectionDataPoint[] = [];
         for (const entry of this.index.values()) {
             const dataPoint = await this.retrieve(entry.fileId);
