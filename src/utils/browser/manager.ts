@@ -360,8 +360,13 @@ export class BrowserManager {
                 const responseHeaders = response.headers();
                 // Copy headers to avoid any reference issues
                 Object.assign(headers, responseHeaders);
+                logger.debug('Successfully extracted response headers', { 
+                    url, 
+                    headerCount: Object.keys(headers).length,
+                    headerNames: Object.keys(headers) 
+                });
             } catch (error) {
-                logger.debug('Failed to extract response headers', { url, error: (error as Error).message });
+                logger.warn('Failed to extract response headers', { url, error: (error as Error).message });
             }
             
             const navigationResult: NavigationResult = {

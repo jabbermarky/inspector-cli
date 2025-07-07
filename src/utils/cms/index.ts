@@ -133,23 +133,15 @@ class CMSDetectionIterator {
         // This allows us to reuse existing detector logic
         const mockPage = this.createMockPageFromDataPoint(dataPoint);
 
+        let bestResult: any = null;
+        
         for (const detector of detectors) {
             try {
                 const result = await detector.detect(mockPage as any, dataPoint.finalUrl);
                 
-                if (result.confidence >= 0.6 && result.cms !== 'Unknown') {
-                    return {
-                        cms: result.cms,
-                        confidence: result.confidence,
-                        version: result.version,
-                        originalUrl: dataPoint.originalUrl,
-                        finalUrl: dataPoint.finalUrl,
-                        redirectCount: dataPoint.totalRedirects,
-                        protocolUpgraded: dataPoint.protocolUpgraded,
-                        plugins: result.plugins,
-                        detectionMethods: result.detectionMethods,
-                        executionTime: 0 // Will be set by caller
-                    };
+                // Track the best result (highest confidence)
+                if (!bestResult || result.confidence > bestResult.confidence) {
+                    bestResult = result;
                 }
             } catch (error) {
                 logger.debug('Detector failed on data point', {
@@ -158,6 +150,22 @@ class CMSDetectionIterator {
                     error: (error as Error).message
                 });
             }
+        }
+        
+        // Return the best result if we found any positive detection
+        if (bestResult && bestResult.confidence > 0 && bestResult.cms !== 'Unknown') {
+            return {
+                cms: bestResult.cms,
+                confidence: bestResult.confidence,
+                version: bestResult.version,
+                originalUrl: dataPoint.originalUrl,
+                finalUrl: dataPoint.finalUrl,
+                redirectCount: dataPoint.totalRedirects,
+                protocolUpgraded: dataPoint.protocolUpgraded,
+                plugins: bestResult.plugins,
+                detectionMethods: bestResult.detectionMethods,
+                executionTime: 0 // Will be set by caller
+            };
         }
 
         // No confident detection found
@@ -181,9 +189,24 @@ class CMSDetectionIterator {
             evaluate: (fn: Function) => {
                 // Mock evaluate function that works with collected data
                 try {
-                    // This is a simplified implementation
-                    // Real implementation would need to simulate DOM queries
-                    return Promise.resolve(fn.toString().includes('meta') ? dataPoint.metaTags : []);
+                    const fnString = fn.toString();
+                    
+                    // Simulate MetaTagStrategy's DOM query for generator meta tag
+                    if (fnString.includes('generator') && fnString.includes('getAttribute')) {
+                        // Find the generator meta tag in collected data
+                        const generatorMeta = dataPoint.metaTags?.find(
+                            meta => meta.name?.toLowerCase() === 'generator'
+                        );
+                        return Promise.resolve(generatorMeta?.content || '');
+                    }
+                    
+                    // Fallback for other meta tag queries
+                    if (fnString.includes('meta')) {
+                        return Promise.resolve(dataPoint.metaTags || []);
+                    }
+                    
+                    // Default fallback
+                    return Promise.resolve([]);
                 } catch {
                     return Promise.resolve([]);
                 }
@@ -193,6 +216,7 @@ class CMSDetectionIterator {
                 status: () => dataPoint.statusCode,
                 headers: () => dataPoint.httpHeaders
             } : null,
+            _robotsTxtData: dataPoint.robotsTxt,
             _browserManagerContext: {
                 lastNavigation: {
                     originalUrl: dataPoint.originalUrl,
@@ -278,34 +302,43 @@ export async function detectCMSWithIsolation(url: string, _browserManager: Brows
             new DrupalDetector()      // Less common but still significant
         ];
 
-        // Run detection with early exit on confident result
+        // Run all detectors and choose the best result
+        let bestResult: any = null;
+        const allResults: any[] = [];
+        
         for (const detector of detectors) {
             const result = await detector.detect(page, normalizedUrl);
+            allResults.push({...result, detector: detector.getCMSName()});
             
-            // If we have confident detection, return immediately with redirect info
-            if (result.confidence >= 0.6 && result.cms !== 'Unknown') {
-                const finalResult = {
-                    ...result,
-                    // Add redirect information from navigation
-                    originalUrl: navigationInfo?.originalUrl || url,
-                    finalUrl: navigationInfo?.finalUrl || normalizedUrl,
-                    redirectCount: navigationInfo?.totalRedirects,
-                    protocolUpgraded: navigationInfo?.protocolUpgraded,
-                    executionTime: Date.now() - startTime
-                };
-                
-                logger.info('Isolated CMS detection completed with confident result', {
-                    url: normalizedUrl,
-                    cms: result.cms,
-                    confidence: result.confidence,
-                    executionTime: finalResult.executionTime,
-                    redirectCount: finalResult.redirectCount,
-                    protocolUpgraded: finalResult.protocolUpgraded,
-                    detector: detector.getCMSName()
-                });
-                
-                return finalResult;
+            // Track the best result (highest confidence)
+            if (!bestResult || result.confidence > bestResult.confidence) {
+                bestResult = result;
             }
+        }
+        
+        // If we found any positive result, return the best one
+        if (bestResult && bestResult.confidence > 0 && bestResult.cms !== 'Unknown') {
+            const finalResult = {
+                ...bestResult,
+                // Add redirect information from navigation
+                originalUrl: navigationInfo?.originalUrl || url,
+                finalUrl: navigationInfo?.finalUrl || normalizedUrl,
+                redirectCount: navigationInfo?.totalRedirects,
+                protocolUpgraded: navigationInfo?.protocolUpgraded,
+                executionTime: Date.now() - startTime
+            };
+            
+            logger.info('Isolated CMS detection completed with best result', {
+                url: normalizedUrl,
+                cms: bestResult.cms,
+                confidence: bestResult.confidence,
+                executionTime: finalResult.executionTime,
+                redirectCount: finalResult.redirectCount,
+                protocolUpgraded: finalResult.protocolUpgraded,
+                allResults: allResults.map(r => ({cms: r.cms, confidence: r.confidence, detector: r.detector}))
+            });
+            
+            return finalResult;
         }
 
         // No confident detection found

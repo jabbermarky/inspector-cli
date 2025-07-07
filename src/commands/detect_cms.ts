@@ -22,7 +22,7 @@ export async function processCMSDetectionBatch(urls: string[], options: { collec
     // Initialize CMS detection enumerator with optional data collection
     try {
         cmsIterator = new CMSDetectionIterator({ 
-            collectData: options.collectData || false,
+            collectData: options.collectData ?? true,
             collectionConfig: {
                 includeHtmlContent: true,
                 includeDomAnalysis: true,
