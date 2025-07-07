@@ -4,6 +4,8 @@
 /src/takeAScreenshotScrapFly.js
 /src/takeAScreenshotScrapFly.js.disabled
 /dist
+/data
+/reports
 /blah.json
 /do_chat.sh
 /.env
