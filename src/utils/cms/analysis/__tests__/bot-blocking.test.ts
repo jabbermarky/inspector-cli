@@ -13,6 +13,13 @@ function createTestDataPoint(partial: Partial<DetectionDataPoint>): DetectionDat
         url: 'https://example.com',
         timestamp: new Date(),
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        captureVersion: {
+            schema: '1',
+            engine: { version: '1.0.0', commit: 'test', buildDate: new Date().toISOString() },
+            algorithms: { detection: '1', confidence: '1' },
+            patterns: { lastUpdated: new Date().toISOString() },
+            features: { experimentalFlags: [] }
+        },
         originalUrl: 'https://example.com',
         finalUrl: 'https://example.com',
         redirectChain: [],

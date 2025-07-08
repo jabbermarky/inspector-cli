@@ -8,6 +8,7 @@ import { validateAndNormalizeUrl } from '../url/index.js';
 import { DataCollector } from './analysis/collector.js';
 import { DataStorage } from './analysis/storage.js';
 import { CollectionConfig, DetectionDataPoint } from './analysis/types.js';
+import { getVersionManager } from './version-manager.js';
 
 const logger = createModuleLogger('cms-detection');
 
@@ -16,6 +17,8 @@ class CMSDetectionIterator {
     private dataCollector: DataCollector | null = null;
     private dataStorage: DataStorage | null = null;
     private collectData: boolean = false;
+    private sessionStartTime: number = 0;
+    private sessionResults: { successful: number; failed: number; blocked: number } = { successful: 0, failed: 0, blocked: 0 };
 
     constructor(options: { collectData?: boolean; collectionConfig?: Partial<CollectionConfig> } = {}) {
         // Initialize browser manager with detection configuration
@@ -38,13 +41,76 @@ class CMSDetectionIterator {
             this.dataCollector = new DataCollector(this.browserManager, options.collectionConfig);
             this.dataStorage = new DataStorage();
         }
+        
+        this.sessionStartTime = Date.now();
+    }
+    
+    /**
+     * Start a new scan session for batch processing
+     */
+    startSession(command: string, urlCount: number): void {
+        if (this.collectData) {
+            // Log session start with version manager
+            const versionManager = getVersionManager();
+            versionManager.logScanSession(command, urlCount);
+            
+            logger.info('Started scan session with data collection', {
+                sessionId: versionManager.getSessionId(),
+                command,
+                urlCount
+            });
+        }
+    }
+    
+    /**
+     * End the current scan session
+     */
+    endSession(): void {
+        if (this.collectData && this.sessionStartTime > 0) {
+            const duration = Date.now() - this.sessionStartTime;
+            const versionManager = getVersionManager();
+            
+            // Update session with final results
+            versionManager.logScanSession('', 0, {
+                ...this.sessionResults,
+                duration
+            });
+            
+            logger.info('Ended scan session', {
+                sessionId: versionManager.getSessionId(),
+                results: this.sessionResults,
+                duration
+            });
+        }
     }
 
     async detect(url: string): Promise<CMSDetectionResult> {
-        if (this.collectData && this.dataCollector && this.dataStorage) {
-            return this.detectWithDataCollection(url);
-        } else {
-            return detectCMSWithIsolation(url, this.browserManager);
+        try {
+            let result: CMSDetectionResult;
+            
+            if (this.collectData && this.dataCollector && this.dataStorage) {
+                result = await this.detectWithDataCollection(url);
+            } else {
+                result = await detectCMSWithIsolation(url, this.browserManager);
+            }
+            
+            // Track result for session
+            if (this.collectData) {
+                if (result.error) {
+                    this.sessionResults.failed++;
+                } else if (result.cms === 'Unknown') {
+                    this.sessionResults.blocked++;
+                } else {
+                    this.sessionResults.successful++;
+                }
+            }
+            
+            return result;
+        } catch (error) {
+            if (this.collectData) {
+                this.sessionResults.failed++;
+            }
+            throw error;
         }
     }
 
@@ -236,6 +302,7 @@ class CMSDetectionIterator {
      * Call this once after processing all URLs in a batch
      */
     async finalize(): Promise<void> {
+        this.endSession();
         await this.cleanup();
     }
 

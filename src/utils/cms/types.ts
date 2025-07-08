@@ -142,3 +142,54 @@ export class CMSNetworkError extends CMSDetectionError {
         this.name = 'CMSNetworkError';
     }
 }
+
+/**
+ * Version information for captured data
+ */
+export interface CaptureVersion {
+    schema: string;           // "1", "2", "3" - simple incrementing
+    engine: {
+        version: string;      // from package.json
+        commit: string;       // git commit hash
+        buildDate: string;    // ISO timestamp
+    };
+    algorithms: {
+        detection: string;    // "1", "2", "3" - increments for new strategies/weights/bugs
+        confidence: string;   // "1", "2", "3" - increments for calculation changes
+    };
+    patterns: {
+        lastUpdated: string;  // latest mtime from all src/utils/cms/ files
+    };
+    features: {
+        [key: string]: any;   // All config values auto-scanned
+        experimentalFlags: string[];
+    };
+}
+
+/**
+ * Session tracking information for scan history
+ */
+export interface ScanSession {
+    sessionId: string;        // timestamp + random chars
+    timestamp: string;        // ISO timestamp
+    command: string;          // full command executed
+    urlCount: number;         // number of URLs processed
+    captureVersion: CaptureVersion;
+    results: {
+        successful: number;
+        failed: number;
+        blocked: number;
+        duration: number;     // milliseconds
+    };
+}
+
+/**
+ * Scan history file structure
+ */
+export interface ScanHistory {
+    sessions: ScanSession[];
+    metadata: {
+        totalSessions: number;
+        lastUpdated: string;
+    };
+}

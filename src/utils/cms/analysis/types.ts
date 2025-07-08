@@ -2,11 +2,16 @@
  * Data collection types for CMS analysis and rule generation
  */
 
+import { CaptureVersion } from '../types.js';
+
 export interface DetectionDataPoint {
     // Basic metadata
     url: string;
     timestamp: Date;
     userAgent: string;
+    
+    // Version information
+    captureVersion: CaptureVersion;
     
     // Navigation information
     originalUrl: string;

@@ -2,6 +2,7 @@ import { DetectionDataPoint, CollectionConfig, DataCollectionResult } from './ty
 import { BrowserManager, ManagedPage } from '../../browser/index.js';
 import { createModuleLogger } from '../../logger.js';
 import { validateAndNormalizeUrl } from '../../url/index.js';
+import { getCurrentVersion } from '../version-manager.js';
 
 const logger = createModuleLogger('data-collector');
 
@@ -153,6 +154,9 @@ export class DataCollector {
             url: originalUrl,
             timestamp,
             userAgent: await page.evaluate(() => navigator.userAgent),
+            
+            // Version information
+            captureVersion: getCurrentVersion(),
             
             // Navigation information
             originalUrl,
