@@ -67,7 +67,8 @@ export class DataStorage {
                 cms: this.extractCmsFromResults(dataPoint.detectionResults),
                 confidence: this.extractMaxConfidence(dataPoint.detectionResults),
                 dataSize: jsonData.length,
-                filePath: fileName
+                filePath: fileName,
+                captureVersion: dataPoint.captureVersion
             };
             
             this.index.set(fileId, indexEntry);
@@ -268,13 +269,25 @@ export class DataStorage {
     private async loadIndex(): Promise<void> {
         try {
             const indexData = await fs.readFile(this.indexFile, 'utf8');
-            const indexArray = JSON.parse(indexData) as DataPointIndex[];
+            const parsedData = JSON.parse(indexData);
+            
+            // Handle both formats: direct array or {files: array}
+            const indexArray = Array.isArray(parsedData) ? parsedData : parsedData.files;
+            
+            if (!indexArray || !Array.isArray(indexArray)) {
+                throw new Error('Invalid index format: expected array or {files: array}');
+            }
             
             this.index.clear();
             for (const entry of indexArray) {
                 entry.timestamp = new Date(entry.timestamp);
                 this.index.set(entry.fileId, entry);
             }
+            
+            logger.debug('Index loaded successfully', { 
+                format: Array.isArray(parsedData) ? 'direct-array' : 'wrapped-object',
+                entries: indexArray.length 
+            });
         } catch (error) {
             // Index file doesn't exist or is corrupted, start fresh
             logger.info('Starting with fresh index', { reason: (error as Error).message });
@@ -403,6 +416,7 @@ interface DataPointIndex {
     confidence: number;
     dataSize: number;
     filePath: string;
+    captureVersion: import('../types.js').CaptureVersion;
 }
 
 interface StorageStatistics {
