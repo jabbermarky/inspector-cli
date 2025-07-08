@@ -109,6 +109,19 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Add token bucket or sliding window rate limiting
   - [ ] Configure appropriate limits for different API endpoints
 
+- [ ] **Add DNS validation before crawling to prevent hijacked captures** (CRITICAL DATA QUALITY)
+  - [ ] Implement pre-flight DNS validation to catch non-existent domains
+  - [ ] Add detection for ISP DNS hijacking patterns (AT&T dnserrorassist, etc.)
+  - [ ] Configure alternative DNS servers (8.8.8.8) to avoid ISP interference
+  - [ ] Filter out known parking/error page patterns before crawling
+
+- [ ] **Fix missing Drupal "All headers" detection pattern** (CRITICAL CMS DETECTION GAP)
+  - [ ] Add missing wildcard header pattern to Drupal detector: `{ name: '*', pattern: 'drupal', confidence: 0.7, searchIn: 'both' }`
+  - [ ] This pattern exists in WordPress and Joomla detectors but is missing from Drupal
+  - [ ] Gap allows Drupal sites to be missed when "drupal" appears in unexpected headers
+  - [ ] Ensures consistent detection coverage across all supported CMS platforms
+  - [ ] Add unit tests to verify the pattern works correctly
+
 ### Architecture & Code Quality
 - [ ] **Split utils.ts into focused modules** (CRITICAL - 634 lines → max 150 per module)
   - [x] Extract file operations (`src/utils/file/`)
