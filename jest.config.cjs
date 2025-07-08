@@ -13,6 +13,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@test-utils$': '<rootDir>/src/test-utils',
   },
   testTimeout: 30000,
   maxWorkers: 2,

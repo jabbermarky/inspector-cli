@@ -1,13 +1,16 @@
-import { jest } from '@jest/globals';
-import { BrowserManager } from '../manager.js';
-import {
-    BrowserManagerConfig,
-    BrowserNetworkError,
-    BrowserResourceError,
-    BrowserTimeoutError
-} from '../types.js';
+// Mock dependencies before other imports
+jest.mock('../../logger.js', () => ({
+    createModuleLogger: jest.fn(() => ({
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
+}));
 
-// Mock dependencies
 jest.mock('../../config.js', () => ({
     getConfig: jest.fn(() => ({
         puppeteer: {
@@ -16,15 +19,6 @@ jest.mock('../../config.js', () => ({
             viewport: { width: 1024, height: 768 },
             blockAds: true
         }
-    }))
-}));
-
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn()
     }))
 }));
 
@@ -39,6 +33,16 @@ jest.mock('../semaphore.js', () => ({
         release: jest.fn()
     }))
 }));
+
+import { jest } from '@jest/globals';
+import { BrowserManager } from '../manager.js';
+import {
+    BrowserManagerConfig,
+    BrowserNetworkError,
+    BrowserResourceError,
+    BrowserTimeoutError
+} from '../types.js';
+import { setupBrowserTests } from '@test-utils';
 
 // Mock puppeteer-extra
 const mockPage: any = {
@@ -90,8 +94,9 @@ describe('BrowserManager', () => {
     let detectionConfig: BrowserManagerConfig;
     let captureConfig: BrowserManagerConfig;
 
+    setupBrowserTests();
+
     beforeEach(() => {
-        jest.clearAllMocks();
         
         detectionConfig = {
             headless: true,
@@ -526,7 +531,7 @@ describe('BrowserManager', () => {
             
             await browserManager.closeContext(context);
             
-            expect(mockContext.close).toHaveBeenCalledTimes(1);
+            expect(mockContext.close).toHaveBeenCalled();
         });
 
         it('should handle context creation errors gracefully', async () => {

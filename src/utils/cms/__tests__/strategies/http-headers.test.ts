@@ -1,19 +1,25 @@
-import { HttpHeaderStrategy, HeaderPattern } from '../../strategies/http-headers.js';
-import { DetectionPage } from '../../types.js';
-
-// Mock logger
+// Mock logger before other imports
 jest.mock('../../../logger.js', () => ({
-    createModuleLogger: () => ({
+    createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-    })
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
 }));
+
+import { HttpHeaderStrategy, HeaderPattern } from '../../strategies/http-headers.js';
+import { DetectionPage } from '../../types.js';
+import { setupStrategyTests } from '@test-utils';
 
 describe('HttpHeaderStrategy', () => {
     let strategy: HttpHeaderStrategy;
     let mockPage: DetectionPage;
+
+    setupStrategyTests();
 
     beforeEach(() => {
         mockPage = {

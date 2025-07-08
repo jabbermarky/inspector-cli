@@ -1,19 +1,25 @@
-import { RobotsTxtStrategy, RobotsPattern, WORDPRESS_ROBOTS_PATTERNS, DRUPAL_ROBOTS_PATTERNS, JOOMLA_ROBOTS_PATTERNS } from '../../strategies/robots-txt.js';
-import { DetectionPage } from '../../types.js';
-
-// Mock logger
+// Mock logger before other imports
 jest.mock('../../../logger.js', () => ({
-    createModuleLogger: () => ({
+    createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-    })
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
 }));
+
+import { RobotsTxtStrategy, RobotsPattern, WORDPRESS_ROBOTS_PATTERNS, DRUPAL_ROBOTS_PATTERNS, JOOMLA_ROBOTS_PATTERNS } from '../../strategies/robots-txt.js';
+import { DetectionPage } from '../../types.js';
+import { setupStrategyTests } from '@test-utils';
 
 describe('RobotsTxtStrategy', () => {
     let strategy: RobotsTxtStrategy;
     let mockPage: any;
+
+    setupStrategyTests();
 
     beforeEach(() => {
         mockPage = {

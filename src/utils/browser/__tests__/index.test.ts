@@ -10,6 +10,7 @@ import {
     Semaphore,
     createSemaphore
 } from '../index.js';
+import { setupBrowserTests } from '@test-utils';
 
 // Mock dependencies
 jest.mock('../../config.js', () => ({
@@ -28,7 +29,10 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
@@ -45,6 +49,7 @@ jest.mock('../semaphore.js', () => ({
 }));
 
 describe('Browser Module Index', () => {
+    setupBrowserTests();
     describe('Exports', () => {
         it('should export BrowserManager class', () => {
             expect(BrowserManager).toBeDefined();

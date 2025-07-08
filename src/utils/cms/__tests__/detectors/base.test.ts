@@ -1,16 +1,20 @@
-import { jest } from '@jest/globals';
-import { BaseCMSDetector } from '../../detectors/base.js';
-import { DetectionStrategy, CMSType, DetectionPage, PartialDetectionResult } from '../../types.js';
-
-// Mock logger
+// Mock logger before other imports
 jest.mock('../../../logger.js', () => ({
-    createModuleLogger: () => ({
+    createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-    })
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
 }));
+
+import { jest } from '@jest/globals';
+import { BaseCMSDetector } from '../../detectors/base.js';
+import { DetectionStrategy, CMSType, DetectionPage, PartialDetectionResult } from '../../types.js';
+import { setupCMSDetectionTests } from '@test-utils';
 
 // Test implementation of BaseCMSDetector
 class TestCMSDetector extends BaseCMSDetector {
@@ -59,16 +63,14 @@ describe('BaseCMSDetector', () => {
     let detector: TestCMSDetector;
     let mockPage: jest.Mocked<DetectionPage>;
 
+    setupCMSDetectionTests();
+
     beforeEach(() => {
         mockPage = {
             content: jest.fn(),
             goto: jest.fn(),
             evaluate: jest.fn()
         } as any;
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
     });
 
     describe('Strategy Execution', () => {

@@ -1,20 +1,26 @@
-import { jest } from '@jest/globals';
-import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
-
-// Mock logger
+// Mock logger before other imports
 jest.mock('../../../logger.js', () => ({
-    createModuleLogger: () => ({
+    createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-    })
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
 }));
+
+import { jest } from '@jest/globals';
+import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
+import { setupStrategyTests } from '@test-utils';
 
 describe('ApiEndpointStrategy', () => {
     let strategy: ApiEndpointStrategy;
     let mockPage: any;
     let mockResponse: any;
+
+    setupStrategyTests();
 
     beforeEach(() => {
         strategy = new ApiEndpointStrategy('/wp-json/wp/v2', 'WordPress', 5000);
@@ -33,10 +39,6 @@ describe('ApiEndpointStrategy', () => {
         
         // Setup default mock behavior
         mockPage.goto.mockResolvedValue(mockResponse);
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
     });
 
     describe('Basic Configuration', () => {

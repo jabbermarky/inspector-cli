@@ -1,6 +1,8 @@
 import { jest } from '@jest/globals';
 import * as utils from '../../utils/utils.js';
 import { CMSDetectionIterator, CMSDetectionResult } from '../../utils/cms/index.js';
+import { processCMSDetectionBatch } from '../detect_cms.js';
+import { setupCommandTests } from '@test-utils';
 
 // Mock dependencies
 jest.mock('../../utils/utils.js', () => ({
@@ -17,7 +19,10 @@ jest.mock('../../utils/logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
@@ -27,12 +32,11 @@ const mockExtractUrlsFromCSV = utils.extractUrlsFromCSV as jest.MockedFunction<t
 const MockCMSDetectionIterator = CMSDetectionIterator as jest.MockedClass<typeof CMSDetectionIterator>;
 
 describe('CMS Detection Command', () => {
+    setupCommandTests();
     let mockIterator: jest.Mocked<CMSDetectionIterator>;
     let consoleSpy: any;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        
         // Create mock iterator instance
         mockIterator = {
             detect: jest.fn(),
@@ -77,7 +81,7 @@ describe('CMS Detection Command', () => {
                 .mockResolvedValueOnce(mockResults[1]);
 
             // Import and test the function (must be after mocking)
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Execute the batch processing
             const results = await processCMSDetectionBatch(testUrls);
@@ -114,8 +118,7 @@ describe('CMS Detection Command', () => {
             
             mockIterator.detect.mockRejectedValue(new Error('Navigation timeout'));
 
-            // Import and test the function
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Execute the batch processing
             const results = await processCMSDetectionBatch(testUrls);
@@ -148,8 +151,7 @@ describe('CMS Detection Command', () => {
             mockIterator.detect.mockResolvedValue(mockResult);
             mockIterator.finalize.mockRejectedValue(new Error('Cleanup failed'));
 
-            // Import and test the function
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Should not throw error even if finalize fails
             await expect(processCMSDetectionBatch(testUrls)).resolves.toBeDefined();
@@ -162,8 +164,7 @@ describe('CMS Detection Command', () => {
             // Setup mocks for empty list
             mockExtractUrlsFromCSV.mockReturnValue([]);
 
-            // Import and test the function
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Execute with empty list
             const results = await processCMSDetectionBatch([]);
@@ -193,7 +194,7 @@ describe('CMS Detection Command', () => {
 
             // Test single URL through batch pipeline
             const testUrls = ['http://example.com'];
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             const results = await processCMSDetectionBatch(testUrls);
 
@@ -226,7 +227,7 @@ describe('CMS Detection Command', () => {
             
             mockIterator.detect.mockResolvedValue(mockResult);
             
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Test single URL (processed as batch of 1)
             const singleResults = await processCMSDetectionBatch(['http://drupal.org']);
@@ -277,8 +278,7 @@ describe('CMS Detection Command', () => {
                 .mockResolvedValueOnce(mockResults[0])
                 .mockResolvedValueOnce(mockResults[1]);
 
-            // Import and test the function
-            const { processCMSDetectionBatch } = await import('../detect_cms.js');
+            // Execute the function directly
             
             // Execute batch processing
             await processCMSDetectionBatch(testUrls);

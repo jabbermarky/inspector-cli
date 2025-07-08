@@ -25,6 +25,9 @@
       ],
       "@/*": [
         "*"
+      ],
+      "@test-utils": [
+        "src/test-utils"
       ]
     },
     "typeRoots": [

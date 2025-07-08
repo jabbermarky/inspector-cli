@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { ConfigManager, ConfigValidator, getConfig, reloadConfig } from '../config.js';
 import { LogLevel } from '../logger.js';
+import { setupFileTests } from '@test-utils';
 
 // Mock dependencies
 jest.mock('fs', () => ({
@@ -24,7 +25,10 @@ jest.mock('../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     })),
     updateLoggerConfig: jest.fn()
 }));
@@ -373,6 +377,7 @@ describe('ConfigValidator', () => {
 });
 
 describe('ConfigManager', () => {
+    setupFileTests();
     let originalEnv: NodeJS.ProcessEnv;
 
     beforeEach(() => {

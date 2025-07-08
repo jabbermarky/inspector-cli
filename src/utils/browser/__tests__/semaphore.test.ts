@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { Semaphore, createSemaphore } from '../semaphore.js';
+import { setupBrowserTests } from '@test-utils';
 
 // Mock dependencies
 jest.mock('../../config.js', () => ({
@@ -15,11 +16,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
 describe('Semaphore', () => {
+    setupBrowserTests();
     describe('Constructor', () => {
         it('should create semaphore with specified max concurrency', () => {
             const semaphore = new Semaphore(3);

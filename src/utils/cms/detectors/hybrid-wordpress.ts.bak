@@ -1,0 +1,201 @@
+import { HybridCMSDetector, StrategyConfiguration, HybridDetectionOptions } from '../hybrid/detector.js';
+import { DetectionStrategy, CMSType } from '../types.js';
+import { MetaTagStrategy } from '../strategies/meta-tag.js';
+import { HtmlContentStrategy } from '../strategies/html-content.js';
+import { ApiEndpointStrategy } from '../strategies/api-endpoint.js';
+import { HttpHeaderStrategy } from '../strategies/http-headers.js';
+import { RobotsTxtStrategy, WORDPRESS_ROBOTS_PATTERNS } from '../strategies/robots-txt.js';
+import { createModuleLogger } from '../../logger.js';
+
+const logger = createModuleLogger('hybrid-wordpress-detector');
+
+/**
+ * Hybrid WordPress detector that combines built-in and generated strategies
+ * Example implementation showing how to integrate HybridCMSDetector
+ */
+export class HybridWordPressDetector extends HybridCMSDetector {
+    constructor(options: HybridDetectionOptions = {}) {
+        // Initialize built-in strategies
+        const builtinStrategies: StrategyConfiguration[] = [
+            {
+                name: 'wordpress-meta-tag',
+                strategy: new MetaTagStrategy('WordPress', [
+                    { name: 'generator', pattern: /WordPress/i, weight: 0.8 }
+                ]),
+                weight: 1.0,
+                enabled: true,
+                source: 'builtin'
+            },
+            {
+                name: 'wordpress-html-content',
+                strategy: new HtmlContentStrategy('WordPress', [
+                    { pattern: /wp-content/i, weight: 0.7 },
+                    { pattern: /wp-includes/i, weight: 0.6 },
+                    { pattern: /wp-admin/i, weight: 0.5 }
+                ]),
+                weight: 1.0,
+                enabled: true,
+                source: 'builtin'
+            },
+            {
+                name: 'wordpress-api-endpoint',
+                strategy: new ApiEndpointStrategy('WordPress', [
+                    { endpoint: '/wp-json/', weight: 0.9 }
+                ]),
+                weight: 1.0,
+                enabled: true,
+                source: 'builtin'
+            },
+            {
+                name: 'wordpress-http-headers',
+                strategy: new HttpHeaderStrategy('WordPress', [
+                    { name: 'x-powered-by', pattern: 'WordPress', weight: 0.8 },
+                    { name: 'server', pattern: /WordPress/i, weight: 0.6 }
+                ]),
+                weight: 0.8,
+                enabled: true,
+                source: 'builtin'
+            },
+            {
+                name: 'wordpress-robots-txt',
+                strategy: new RobotsTxtStrategy('WordPress', WORDPRESS_ROBOTS_PATTERNS),
+                weight: 0.7,
+                enabled: true,
+                source: 'builtin'
+            }
+        ];
+
+        // Enhanced options for WordPress detection
+        const hybridOptions: HybridDetectionOptions = {
+            enableABTesting: true,
+            generatedStrategyWeight: 1.3, // Slightly favor generated strategies
+            builtinStrategyWeight: 1.0,
+            minStrategiesRequired: 2,
+            confidenceThreshold: 0.35, // Lower threshold for WordPress
+            ...options
+        };
+
+        super('WordPress', builtinStrategies, hybridOptions);
+
+        logger.info('Hybrid WordPress detector initialized', {
+            builtinStrategies: builtinStrategies.length,
+            enableABTesting: hybridOptions.enableABTesting
+        });
+    }
+
+    /**
+     * Add generated strategies from rule generation
+     * Call this after running 'inspector generate --cms WordPress'
+     */
+    addGeneratedStrategies(generatedStrategies: DetectionStrategy[]): void {
+        for (const [index, strategy] of generatedStrategies.entries()) {
+            const config: StrategyConfiguration = {
+                name: `wordpress-generated-${index + 1}`,
+                strategy,
+                weight: 1.2, // Higher weight for generated strategies
+                enabled: true,
+                source: 'generated',
+                confidence: 0.8 // Estimated confidence from generation
+            };
+
+            this.addStrategy(config);
+        }
+
+        logger.info('Generated strategies added to WordPress detector', {
+            count: generatedStrategies.length
+        });
+    }
+
+    /**
+     * Configure for production use with optimized settings
+     */
+    configureForProduction(): void {
+        // Disable A/B testing in production for performance
+        this.setStrategyEnabled('wordpress-api-endpoint', false); // Reduce API calls
+
+        // Optimize strategy weights based on production data
+        this.setStrategyWeight('wordpress-meta-tag', 1.2);
+        this.setStrategyWeight('wordpress-html-content', 1.1);
+        this.setStrategyWeight('wordpress-http-headers', 0.9);
+
+        logger.info('WordPress detector configured for production');
+    }
+
+    /**
+     * Get performance insights for monitoring
+     */
+    getPerformanceInsights(): {
+        strategies: any[];
+        recommendations: string[];
+    } {
+        const metrics = this.getStrategyMetrics();
+        const recommendations: string[] = [];
+
+        // Analyze strategy performance
+        const enabledStrategies = metrics.filter(m => m.enabled);
+        const generatedStrategies = enabledStrategies.filter(m => m.source === 'generated');
+
+        if (generatedStrategies.length === 0) {
+            recommendations.push('Consider generating custom strategies with: inspector generate --cms WordPress');
+        }
+
+        if (enabledStrategies.length > 7) {
+            recommendations.push('Consider disabling low-performing strategies to improve speed');
+        }
+
+        const lowSuccessStrategies = enabledStrategies.filter(m => m.successRate < 0.8);
+        if (lowSuccessStrategies.length > 0) {
+            recommendations.push(`Review strategies with low success rates: ${lowSuccessStrategies.map(s => s.name).join(', ')}`);
+        }
+
+        return {
+            strategies: metrics,
+            recommendations
+        };
+    }
+}
+
+/**
+ * Factory function to create hybrid WordPress detector with auto-loaded generated strategies
+ */
+export async function createHybridWordPressDetector(options: HybridDetectionOptions = {}): Promise<HybridWordPressDetector> {
+    const detector = new HybridWordPressDetector(options);
+
+    try {
+        // Auto-load generated strategies if they exist
+        // In practice, this would dynamically import from generated directory
+        // const generatedStrategies = await loadGeneratedWordPressStrategies();
+        // detector.addGeneratedStrategies(generatedStrategies);
+        
+        logger.debug('Hybrid WordPress detector created successfully');
+    } catch (error) {
+        logger.warn('Could not load generated strategies', { 
+            error: (error as Error).message 
+        });
+        // Continue with built-in strategies only
+    }
+
+    return detector;
+}
+
+/**
+ * Example usage function showing integration patterns
+ */
+export async function exampleHybridDetection(): Promise<void> {
+    logger.info('🚀 Hybrid WordPress Detection Example');
+
+    // 1. Create hybrid detector
+    const detector = await createHybridWordPressDetector({
+        enableABTesting: true,
+        confidenceThreshold: 0.3
+    });
+
+    // 2. Configure for your environment
+    detector.configureForProduction();
+
+    // 3. Monitor performance
+    const insights = detector.getPerformanceInsights();
+    logger.info('Performance insights generated', insights);
+
+    logger.info('✅ Hybrid detection setup complete');
+}

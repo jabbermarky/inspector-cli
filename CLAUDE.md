@@ -85,83 +85,236 @@ node dist/index.js detect-cms good-joomla.csv --collect-data
 node dist/index.js detect-cms --help  # Show available options
 ```
 
-## Unit Testing Patterns (CRITICAL - Mocking Complex Classes)
+## Unit Testing Patterns (CRITICAL - Use Centralized test-utils)
 
-### Common Mocking Errors & Solutions
+**IMPORTANT**: Always use the centralized test-utils system located in `src/test-utils/`. This eliminates duplicate mock code and ensures consistency across all tests.
 
-**PROBLEM**: Repeatedly making the same TypeScript errors when mocking complex classes after context compaction.
+### 🎯 Quick Start Pattern
 
-#### BrowserManager Mocking
-**❌ WRONG**: Mocking `navigate()` or `navigateWithRetry()` - these methods don't exist
-**✅ CORRECT**: BrowserManager actual methods:
+**✅ ALWAYS use this pattern for new tests:**
+
 ```typescript
-const mockBrowserManager = {
-    createPageInIsolatedContext: jest.fn(),  // Returns { page, context }
-    closeContext: jest.fn(),
-    getNavigationInfo: jest.fn(),           // Returns NavigationResult | null
-    cleanup: jest.fn()
-} as unknown as BrowserManager;
-```
+// Mock dependencies BEFORE other imports (at top level)
+jest.mock('../../../logger.js', () => ({
+    createModuleLogger: jest.fn(() => ({
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
+}));
 
-#### Puppeteer Page Mocking  
-**❌ WRONG**: Trying to fully type DetectionPage/ManagedPage - too complex
-**✅ CORRECT**: Use `any` type for page mocks:
-```typescript
-const createMockPage = (): any => ({
-    url: jest.fn().mockReturnValue('https://example.com'),
-    goto: jest.fn(),
-    evaluate: jest.fn(),
-    content: jest.fn(),
-    title: jest.fn(),
-    waitForSelector: jest.fn(),
-    waitForTimeout: jest.fn(),
-    setDefaultNavigationTimeout: jest.fn()
+// Add other mocks as needed (retry, config, etc.)
+jest.mock('../../../retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
+import { jest } from '@jest/globals';
+import { YourClassUnderTest } from '../../your-module.js';
+import { setupCMSDetectionTests } from '@test-utils';  // Choose appropriate setup
+
+describe('Your Test Suite', () => {
+    setupCMSDetectionTests();  // Provides beforeEach/afterEach patterns
+    
+    // Your test variables
+    let instance: YourClassUnderTest;
+    let mockPage: any;
+    
+    beforeEach(() => {
+        // Test-specific setup (setup function handles common cleanup)
+        instance = new YourClassUnderTest();
+        mockPage = {
+            content: jest.fn(),
+            goto: jest.fn(),
+            evaluate: jest.fn()
+        } as any;
+    });
+    
+    it('should do something', async () => {
+        // Your test logic
+        const result = await instance.someMethod(mockPage, 'test-url');
+        expect(result).toBeDefined();
+    });
 });
 ```
 
-#### Strategy Mock Extensions
-**❌ WRONG**: Trying to access properties like `_robotsTxtData` without extending interface
-**✅ CORRECT**: Create extended interfaces for test-specific data:
-```typescript
-// For robots.txt tests
-interface RobotsTxtTestPage extends DetectionPage {
-    _robotsTxtData?: {
-        accessible: boolean;
-        content: string;
-        patterns: { disallowedPaths: string[]; sitemapUrls: string[]; } | null;
-    } | null;
-}
+### 🛠️ Available Setup Functions
 
-// Then cast: mockPage as DetectionPage when calling methods
+Choose the appropriate setup function based on your test domain:
+
+| Setup Function | Use For | Includes |
+|---|---|---|
+| `setupCMSDetectionTests()` | CMS detector/strategy tests | Standard beforeEach/afterEach with jest.clearAllMocks() |
+| `setupBrowserTests()` | Browser management tests | Extended timeout (10s), mock cleanup |
+| `setupStrategyTests()` | Detection strategy tests | Standard mock patterns |
+| `setupAnalysisTests()` | Data analysis tests | Standard patterns |
+| `setupScreenshotTests()` | Screenshot/capture tests | Extended timeout (15s) |
+| `setupFileTests()` | File operation tests | Standard patterns |
+| `setupUrlTests()` | URL utility tests | Standard patterns |
+| `setupCommandTests()` | CLI command tests | Extended timeout (30s) |
+
+### 📦 Available Mock Utilities
+
+Import standardized mocks from `@test-utils`:
+
+```typescript
+import { 
+    createMockPage,           // Standardized page mock
+    createMockBrowserManager, // BrowserManager mock
+    createMockStrategy,       // Detection strategy mock
+    createMockLogger,         // Logger mock instance
+    createTestResultFactory   // CMS detection result factory
+} from '@test-utils';
 ```
 
-#### Mock Function Return Values
-**❌ WRONG**: Returning complex objects from mocked URL validation
-**✅ CORRECT**: URL validation functions return strings, not objects:
-```typescript
-// validateAndNormalizeUrl returns string, not validation object
-validateAndNormalizeUrl.mockReturnValue('https://example.com');
+### 🎨 Custom Jest Matchers
 
-// For errors, make it throw:
-validateAndNormalizeUrl.mockImplementation(() => {
-    throw new Error('Invalid URL format');
+The test-utils provides custom matchers for CMS detection:
+
+```typescript
+import '@test-utils';  // Automatically loads custom matchers
+
+// Use custom matchers in your tests
+expect(result).toBeValidCMSResult();
+expect(result).toHaveDetectedCMS('WordPress');
+expect(result).toHaveConfidenceAbove(0.8);
+expect(result).toHaveExecutedWithin(100, 500);
+expect(result).toHaveUsedMethods(['meta-tag', 'http-headers']);
+expect(result).toBeFailedDetection();
+expect('WordPress').toBeValidCMSType();
+```
+
+### 🔧 Required Mock Patterns
+
+**Logger Mock (ALWAYS include complete interface):**
+```typescript
+jest.mock('../../../logger.js', () => ({
+    createModuleLogger: jest.fn(() => ({
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        apiCall: jest.fn(),      // ⚠️ Don't forget these
+        apiResponse: jest.fn(),   // ⚠️ Don't forget these  
+        performance: jest.fn()    // ⚠️ Don't forget these
+    }))
+}));
+```
+
+**Retry Utility Mock:**
+```typescript
+jest.mock('../../../retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+```
+
+**Config Mock (for browser tests):**
+```typescript
+jest.mock('../../config.js', () => ({
+    getConfig: jest.fn(() => ({
+        puppeteer: {
+            timeout: 10000,
+            userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
+            viewport: { width: 1024, height: 768 },
+            blockAds: true
+        }
+    }))
+}));
+```
+
+### ❌ Common Mistakes to Avoid
+
+1. **DON'T use dynamic imports in tests:**
+   ```typescript
+   // ❌ WRONG - breaks mock hoisting
+   const { processCMSDetectionBatch } = await import('../detect_cms.js');
+   
+   // ✅ CORRECT - static import at top
+   import { processCMSDetectionBatch } from '../detect_cms.js';
+   ```
+
+2. **DON'T call jest.clearAllMocks() in beforeEach if using setup functions:**
+   ```typescript
+   // ❌ WRONG - setup functions handle this
+   beforeEach(() => {
+       jest.clearAllMocks();  // Conflicts with setup function
+   });
+   
+   // ✅ CORRECT - let setup function handle cleanup
+   beforeEach(() => {
+       // Only test-specific setup here
+   });
+   ```
+
+3. **DON'T forget complete logger interface:**
+   ```typescript
+   // ❌ WRONG - missing methods cause undefined errors
+   debug: jest.fn(),
+   info: jest.fn(),
+   warn: jest.fn(),
+   error: jest.fn()
+   // Missing: apiCall, apiResponse, performance
+   ```
+
+4. **DON'T try to type complex Puppeteer objects:**
+   ```typescript
+   // ❌ WRONG - TypeScript hell
+   let mockPage: jest.Mocked<DetectionPage>;
+   
+   // ✅ CORRECT - use any for complex mocks
+   let mockPage: any;
+   ```
+
+### 🏗️ Test File Structure Template
+
+```typescript
+// 1. MOCKS FIRST (before any imports)
+jest.mock('../logger.js', () => ({...}));
+jest.mock('../retry.js', () => ({...}));
+
+// 2. IMPORTS
+import { jest } from '@jest/globals';
+import { ClassUnderTest } from '../module.js';
+import { setupCMSDetectionTests } from '@test-utils';
+
+// 3. TEST SUITE
+describe('ClassUnderTest', () => {
+    setupCMSDetectionTests();  // Choose appropriate setup
+    
+    // 4. TEST VARIABLES
+    let instance: ClassUnderTest;
+    let mockDependency: any;
+    
+    // 5. SETUP
+    beforeEach(() => {
+        instance = new ClassUnderTest();
+        mockDependency = createMockDependency();
+    });
+    
+    // 6. TESTS GROUPED BY FUNCTIONALITY
+    describe('Core Functionality', () => {
+        it('should handle normal case', () => {
+            // Test logic
+        });
+        
+        it('should handle error case', () => {
+            // Error testing
+        });
+    });
 });
 ```
 
-#### Test Execution Time Assertions
-**❌ WRONG**: `expect(time).toBeGreaterThan(0)` often fails with 0
-**✅ CORRECT**: Use `toBeGreaterThanOrEqual(0)` for timing assertions
+### 🚀 Benefits of Centralized test-utils
 
-### DataCollector Specific Issues
-**PROBLEM**: DataCollector has complex private methods that need proper mocking setup
-**SOLUTION**: Focus on testing the public interface and error scenarios rather than internal implementation
-
-### Key Principles
-1. **Use `any` type for complex Puppeteer objects** - avoids TypeScript hell
-2. **Mock actual method names** - check the real class interface first  
-3. **Cast when needed** - `mockPage as DetectionPage` for method calls
-4. **Test error scenarios** - make mocks throw errors, don't return error objects
-5. **Be flexible with timing** - use `>=` not `>` for execution time assertions
+- **No code duplication**: Eliminates ~200+ lines of duplicate mock code
+- **Consistency**: All tests follow the same patterns
+- **Type safety**: Proper TypeScript support with `@test-utils` alias
+- **Maintenance**: Changes to mock patterns only need to be made in one place
+- **Custom matchers**: Domain-specific assertions for CMS detection
+- **Setup functions**: Standardized beforeEach/afterEach patterns
 
 ## Analysis Guidelines
 

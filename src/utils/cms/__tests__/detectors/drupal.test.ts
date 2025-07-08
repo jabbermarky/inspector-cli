@@ -1,27 +1,32 @@
-import { jest } from '@jest/globals';
-import { DrupalDetector } from '../../detectors/drupal.js';
-import { DetectionPage } from '../../types.js';
-
-// Mock logger
+// Mock logger and retry before other imports
 jest.mock('../../../logger.js', () => ({
-    createModuleLogger: () => ({
+    createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
-    })
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
 }));
 
-// Mock retry utility
 jest.mock('../../../retry.js', () => ({
     withRetry: jest.fn().mockImplementation(async (fn: any) => {
         return await fn();
     })
 }));
 
+import { jest } from '@jest/globals';
+import { DrupalDetector } from '../../detectors/drupal.js';
+import { DetectionPage } from '../../types.js';
+import { setupCMSDetectionTests } from '@test-utils';
+
 describe('Drupal Detector', () => {
     let detector: DrupalDetector;
     let mockPage: jest.Mocked<DetectionPage>;
+
+    setupCMSDetectionTests();
 
     beforeEach(() => {
         detector = new DrupalDetector();
@@ -31,10 +36,6 @@ describe('Drupal Detector', () => {
             goto: jest.fn(),
             evaluate: jest.fn()
         } as any;
-    });
-
-    afterEach(() => {
-        jest.clearAllMocks();
     });
 
     describe('Meta Tag Detection', () => {
