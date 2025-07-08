@@ -76,39 +76,35 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [x] Improved debugging visibility for different URL formats (HTTP vs HTTPS)
   - [x] Better test differentiation and CSV file creation for various protocol combinations
   - [x] Real-time progress display shows complete URL information
-
-## Decompose into Reusable Services ##
-- [ ] **Isolate business logic into one or more modules or services**
-  - [ ] Services are pure, stateless, serializable, and side-effect-free
-  - [ ] All errors should be returned in the output object (not thrown) or use a Result pattern
-  - [ ] Define input and output schemas
-  - [ ] Avoid CLI/process dependencies in service code
-- [ ] **Separate CLI + Commands from services**
-- [ ] **Create a new Browser Extension that leverages Capture/Analyze and CMS Detection services**
-- [ ] **Replace Node-only APIs**
-- [ ] **Create MCP tool versions of the primary services: CMS Detection and Capture/Analyze** 
-
-## Reduce Dependencies by Incorporating Logic from Included NPM Modules ##
-## 🔥 High Priority Tasks
-
-### Critical Security Issues
 - [x] **Apply existing file path validation to chat/assistant commands** (CRITICAL SECURITY GAP)
   - [x] Use existing `analyzeFilePath()` function from utils.ts in chat/assistant commands
   - [x] Directory traversal protection already exists but not applied (blocks "..", "~")
   - [x] Safe character validation already implemented (/^[a-zA-Z0-9._/-]+$/) but not used
   - [x] Add file extension validation for image formats (.png, .jpg, .jpeg, .gif, .webp)
   - [x] Create reusable validation function to standardize across all commands
-  
-- [ ] **Implement file size validation for uploads**
-  - [ ] Add size limits for screenshot uploads to prevent resource exhaustion
-  - [ ] Implement pre-upload validation checks
-  - [ ] Add warning/error messages for oversized files
+- [x] **Add browser resource management and cleanup** ✅ COMPLETED
+  - [x] Implemented proper browser instance lifecycle management  
+  - [x] Added context isolation for batch processing
+  - [x] Fixed resource leaks preventing clean app exit
+  - [x] Added deterministic cleanup with finalize() pattern
 
-- [ ] **Add rate limiting for OpenAI API calls**
-  - [ ] Implement request rate limiting to prevent API abuse
-  - [ ] Add token bucket or sliding window rate limiting
-  - [ ] Configure appropriate limits for different API endpoints
+- [x] **Add enhanced CSV processing error handling**
+  - [x] Handle malformed CSV data gracefully
+  - [x] Add validation for CSV headers and content
+  - [x] Implement fallback strategies for invalid URLs
+  - [x] Add progress recovery for interrupted batch operations
 
+- [x] **Add tests for CMS detection timeout and retry behavior** ✅ COMPLETED
+  - [x] Test timeout scenarios with various websites
+  - [x] Test retry logic for network failures  
+  - [x] Test concurrent detection limits
+  - [x] Test malformed URL handling
+  - [x] **Added tests for resource cleanup and iterator lifecycle** ✅ COMPLETED
+  - [x] **Fixed hanging timeout handles in test environment** ✅ COMPLETED
+
+## 🔥 High Priority Tasks
+
+### Data Capture and Detection
 - [ ] **Add DNS validation before crawling to prevent hijacked captures** (CRITICAL DATA QUALITY)
   - [ ] Implement pre-flight DNS validation to catch non-existent domains
   - [ ] Add detection for ISP DNS hijacking patterns (AT&T dnserrorassist, etc.)
@@ -121,6 +117,10 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Gap allows Drupal sites to be missed when "drupal" appears in unexpected headers
   - [ ] Ensures consistent detection coverage across all supported CMS platforms
   - [ ] Add unit tests to verify the pattern works correctly
+- [ ] **Add plugin system for custom CMS detection**
+  - [ ] Plugin interface for custom CMS types
+  - [ ] Configuration-based detection rules
+  - [ ] Community plugin support
 
 ### Architecture & Code Quality
 - [ ] **Split utils.ts into focused modules** (CRITICAL - 634 lines → max 150 per module)
@@ -158,25 +158,7 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Create `ImageProcessingService` for image operations
   - [ ] Update commands to use services (thin CLI wrappers)
 
-- [ ] **Implement dependency injection container**
-  - [ ] Create `Container` class for dependency management
-  - [ ] Register services in container
-  - [ ] Update commands to resolve dependencies from container
-  - [ ] Add interface abstractions for better testability
-
-### Performance & Caching
-- [ ] **Implement caching for AI responses to reduce costs**
-  - [ ] Design cache key strategy for AI requests
-  - [ ] Implement file-based cache with TTL
-  - [ ] Add cache invalidation mechanisms
-  - [ ] Add cache statistics and monitoring
-
 ### Error Handling & CSV Processing
-- [x] **Add enhanced CSV processing error handling**
-  - [x] Handle malformed CSV data gracefully
-  - [x] Add validation for CSV headers and content
-  - [x] Implement fallback strategies for invalid URLs
-  - [x] Add progress recovery for interrupted batch operations
 
 ### Testing Improvements
 - [ ] **Add integration tests for OpenAI API error handling**
@@ -185,13 +167,6 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Test rate limiting scenarios
   - [ ] Test file upload error scenarios
 
-- [x] **Add tests for CMS detection timeout and retry behavior** ✅ COMPLETED
-  - [x] Test timeout scenarios with various websites
-  - [x] Test retry logic for network failures  
-  - [x] Test concurrent detection limits
-  - [x] Test malformed URL handling
-  - [x] **Added tests for resource cleanup and iterator lifecycle** ✅ COMPLETED
-  - [x] **Fixed hanging timeout handles in test environment** ✅ COMPLETED
 
 - [x] **Add comprehensive test coverage** ✅ MAJOR PROGRESS
   - [x] Unit tests for retry utility (comprehensive coverage)
@@ -221,18 +196,6 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [x] Replace remaining console.log/error with proper logger (mostly completed)
   - [ ] Add performance metrics collection and reporting
 
-- [ ] **Add monitoring and observability**
-  - [ ] Implement health check endpoints
-  - [ ] Add metrics collection for operational visibility
-  - [ ] Create alerting system for critical failures
-  - [ ] Add memory usage monitoring for image processing
-
-- [x] **Add browser resource management and cleanup** ✅ COMPLETED
-  - [x] Implemented proper browser instance lifecycle management  
-  - [x] Added context isolation for batch processing
-  - [x] Fixed resource leaks preventing clean app exit
-  - [x] Added deterministic cleanup with finalize() pattern
-
 ### Developer Experience
 - [ ] **Improve error messages with actionable suggestions**
   - [ ] Add "did you mean?" suggestions for typos
@@ -252,32 +215,6 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Custom assistant configurations
   - [ ] Site-specific detection rules
 
-- [ ] **Add plugin system for custom CMS detection**
-  - [ ] Plugin interface for custom CMS types
-  - [ ] Configuration-based detection rules
-  - [ ] Community plugin support
-
-### Performance Monitoring
-
-### Advanced Features
-
-## 📊 Complexity Reduction Targets
-
-| Component | Current State | Target State | Priority | Status |
-|-----------|---------------|--------------|----------|---------|
-| `utils.ts` | 634 lines, 19 exports | 5 modules, max 150 lines each | 🔥 High | 🔄 In Progress (CMS ✅) |
-| `detectCMS()` | ~~100+ lines, high complexity~~ | ~~<30 lines, complexity ≤5~~ | ~~🔥 High~~ | ✅ **COMPLETED** |
-| Error handling | Mixed patterns | Consistent Result pattern | 🔥 High | 🔄 In Progress |
-| Try-catch blocks | 33 in utils.ts | Max 3 per module | 🚀 Medium | 🔄 In Progress |
-| Function size | 100+ lines average | Max 30 lines | 🚀 Medium | 🔄 In Progress |
-
-### Reliability Patterns
-- [ ] **Implement advanced reliability patterns**
-  - [ ] Add circuit breaker pattern for external API protection
-  - [ ] Implement bulkhead pattern for resource pool isolation
-  - [ ] Add graceful degradation for non-critical features
-  - [ ] Create shutdown handlers for graceful application termination
-
 ### Documentation
 - [ ] **Complete documentation improvements**
   - [ ] Create API documentation with OpenAPI/Swagger specification
@@ -285,7 +222,19 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] Create production deployment guide
   - [ ] Add configuration migration system documentation
 
-### Backlog Features
+## Backlog Features
+- [ ] **Decompose into Reusable Services**
+  - [ ] Isolate business logic into one or more modules or services
+  - [ ] Services are pure, stateless, serializable, and side-effect-free
+  - [ ] All errors should be returned in the output object (not thrown) or use a Result pattern
+  - [ ] Define input and output schemas
+  - [ ] Avoid CLI/process dependencies in service code
+- [ ] **Separate CLI + Commands from services**
+- [ ] **Create a new Browser Extension that leverages Capture/Analyze and CMS Detection services**
+- [ ] **Replace Node-only APIs**
+- [ ] **Create MCP tool versions of the primary services: CMS Detection and Capture/Analyze** 
+
+- [ ] **Reduce Dependencies by Incorporating Logic from Included NPM Modules**
 - [ ] **Add command aliases for common operations**
   - [ ] `inspector ss` → `inspector screenshot`
   - [ ] `inspector cms` → `inspector detect-cms`
@@ -303,6 +252,31 @@ This document tracks all pending tasks, improvements, and architectural changes 
   - [ ] PDF reports for CMS analysis
   - [ ] HTML reports with embedded screenshots
   - [ ] CSV export for batch analysis results
+- [ ] **Implement file size validation for uploads**
+  - [ ] Add size limits for screenshot uploads to prevent resource exhaustion
+  - [ ] Implement pre-upload validation checks
+  - [ ] Add warning/error messages for oversized files
+- [ ] **Add rate limiting for OpenAI API calls**
+  - [ ] Implement request rate limiting to prevent API abuse
+  - [ ] Add token bucket or sliding window rate limiting
+  - [ ] Configure appropriate limits for different API endpoints
+- [ ] **Implement dependency injection container**
+  - [ ] Create `Container` class for dependency management
+  - [ ] Register services in container
+  - [ ] Update commands to resolve dependencies from container
+  - [ ] Add interface abstractions for better testability
+- [ ] **Implement caching for AI responses to reduce costs**
+  - [ ] Design cache key strategy for AI requests
+  - [ ] Implement file-based cache with TTL
+  - [ ] Add cache invalidation mechanisms
+  - [ ] Add cache statistics and monitoring
+
+### Reliability Patterns
+- [ ] **Implement advanced reliability patterns**
+  - [ ] Add circuit breaker pattern for external API protection
+  - [ ] Implement bulkhead pattern for resource pool isolation
+  - [ ] Add graceful degradation for non-critical features
+  - [ ] Create shutdown handlers for graceful application termination
 
 
 ## 🎯 MAJOR MIGRATION: Unified Pipeline + Analysis Mode + CMS Extensibility
@@ -371,5 +345,16 @@ Each task should include:
 **Last Updated**: January 20, 2025  
 **Total Tasks**: 68 (52 completed, 16 pending)  
 **Focus Areas**: Unified pipeline migration, data-driven CMS detection, platform extensibility
+
+## 📊 Complexity Reduction Targets
+
+| Component | Current State | Target State | Priority | Status |
+|-----------|---------------|--------------|----------|---------|
+| `utils.ts` | 634 lines, 19 exports | 5 modules, max 150 lines each | 🔥 High | 🔄 In Progress (CMS ✅) |
+| `detectCMS()` | ~~100+ lines, high complexity~~ | ~~<30 lines, complexity ≤5~~ | ~~🔥 High~~ | ✅ **COMPLETED** |
+| Error handling | Mixed patterns | Consistent Result pattern | 🔥 High | 🔄 In Progress |
+| Try-catch blocks | 33 in utils.ts | Max 3 per module | 🚀 Medium | 🔄 In Progress |
+| Function size | 100+ lines average | Max 30 lines | 🚀 Medium | 🔄 In Progress |
+
 
 **Current Migration**: Phase 1 - Unified Detection Pipeline **🔄 IN PROGRESS**
