@@ -4,6 +4,7 @@ import { Jimp } from 'jimp';
 import { InvalidArgumentError } from 'commander';
 import { createModuleLogger } from './logger.js';
 import { loadCSVFromFile, validateFilePath } from './file/index.js';
+import { detectInputType, cleanUrlForDisplay } from './url/index.js';
 
 const logger = createModuleLogger('utils');
 
@@ -118,27 +119,7 @@ export function validJSON(str: string): boolean {
     return true;
 }
 
-// Auto-detect if input is URL or CSV file
-export function detectInputType(input: string): 'url' | 'csv' {
-    // Check for .csv extension first
-    if (input.toLowerCase().endsWith('.csv')) {
-        return 'csv';
-    }
-    
-    // Check if it's a URL
-    if (input.startsWith('http://') || input.startsWith('https://')) {
-        return 'url';
-    }
-    
-    // Try parsing as URL
-    try {
-        new URL(input.startsWith('http') ? input : `https://${input}`);
-        return 'url';
-    } catch {
-        // If URL parsing fails, assume it's a file
-        return 'csv';
-    }
-}
+// Auto-detect if input is URL or CSV file (re-exported from centralized URL utilities)
 
 // Extract URLs from CSV with flexible column detection
 export function extractUrlsFromCSV(csvPath: string): string[] {
@@ -175,10 +156,8 @@ export function extractUrlsFromCSV(csvPath: string): string[] {
     return urls;
 }
 
-// Clean URL for display (remove protocol)
-export function cleanUrlForDisplay(url: string): string {
-    return url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-}
+// URL utilities re-exported from centralized module
+export { detectInputType, cleanUrlForDisplay };
 
 // CMS detection types and functions moved to src/utils/cms/
 // Re-export for backward compatibility

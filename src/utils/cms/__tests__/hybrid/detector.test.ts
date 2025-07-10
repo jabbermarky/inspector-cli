@@ -1,5 +1,6 @@
 import { HybridCMSDetector, StrategyConfiguration, HybridDetectionOptions } from '../../hybrid/detector.js';
 import { DetectionStrategy, DetectionPage, PartialDetectionResult, CMSType } from '../../types.js';
+import { createMockPage, setupCMSDetectionTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../../../logger.js', () => ({
@@ -45,23 +46,14 @@ class MockStrategy implements DetectionStrategy {
     }
 }
 
-// Mock page object
-const createMockPage = (): any => ({
-    url: jest.fn().mockReturnValue('https://example.com'),
-    goto: jest.fn(),
-    evaluate: jest.fn(),
-    content: jest.fn(),
-    title: jest.fn(),
-    waitForSelector: jest.fn(),
-    waitForTimeout: jest.fn(),
-    setDefaultNavigationTimeout: jest.fn()
-});
+// Mock page object is now provided by test-utils
 
 describe('HybridCMSDetector', () => {
     let mockPage: any;
 
+    setupCMSDetectionTests();
+
     beforeEach(() => {
-        jest.clearAllMocks();
         mockPage = createMockPage();
     });
 

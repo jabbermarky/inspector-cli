@@ -1,7 +1,7 @@
 import { DetectionDataPoint, CollectionConfig, DataCollectionResult } from './types.js';
 import { BrowserManager, ManagedPage } from '../../browser/index.js';
 import { createModuleLogger } from '../../logger.js';
-import { validateAndNormalizeUrl } from '../../url/index.js';
+import { validateAndNormalizeUrl, createValidationContext } from '../../url/index.js';
 import { getCurrentVersion } from '../version-manager.js';
 
 const logger = createModuleLogger('data-collector');
@@ -41,13 +41,7 @@ export class DataCollector {
             logger.info('Starting data collection', { url });
 
             // Validate and normalize URL
-            const validationContext = {
-                environment: 'production' as const,
-                allowLocalhost: false,
-                allowPrivateIPs: false,
-                allowCustomPorts: false,
-                defaultProtocol: 'http' as const
-            };
+            const validationContext = createValidationContext('production');
             
             const normalizedUrl = validateAndNormalizeUrl(url, { context: validationContext });
             

@@ -3,7 +3,8 @@ import { ScreenshotOptions, ScreenshotValidationError } from './types.js';
 import { 
     validateUrl as validateUrlShared, 
     normalizeUrl as normalizeUrlShared,
-    UrlValidationError 
+    UrlValidationError,
+    createValidationContext
 } from '../url/index.js';
 
 const logger = createModuleLogger('screenshot-validation');
@@ -41,13 +42,7 @@ export class ScreenshotValidator {
     private static validateUrl(url: string): void {
         try {
             // Use shared URL validation with development-friendly context
-            const context = {
-                environment: 'development' as const,
-                allowLocalhost: true,
-                allowPrivateIPs: true,
-                allowCustomPorts: true,
-                defaultProtocol: 'http' as const // Use HTTP default as per revised plan
-            };
+            const context = createValidationContext('development');
             
             validateUrlShared(url, { context });
         } catch (error) {
@@ -191,9 +186,7 @@ export class ScreenshotValidator {
      * Normalize URL by adding protocol if missing (uses shared URL normalization)
      */
     static normalizeUrl(url: string): string {
-        const context = {
-            defaultProtocol: 'http' as const // Use HTTP default as per revised plan
-        };
+        const context = createValidationContext('development');
         
         return normalizeUrlShared(url, context);
     }

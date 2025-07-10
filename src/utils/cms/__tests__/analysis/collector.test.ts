@@ -12,12 +12,16 @@ jest.mock('../../../logger.js', () => ({
     })
 }));
 
-// Mock URL validator
+// Mock URL validator and utilities
 jest.mock('../../../url/index.js', () => ({
-    validateAndNormalizeUrl: jest.fn((url: string) => ({
-        isValid: true,
-        normalizedUrl: url,
-        errors: []
+    validateAndNormalizeUrl: jest.fn((url: string) => url),
+    createValidationContext: jest.fn(() => ({
+        environment: 'production',
+        allowLocalhost: false,
+        allowPrivateIPs: false,
+        allowCustomPorts: false,
+        strictMode: true,
+        defaultProtocol: 'https'
     }))
 }));
 

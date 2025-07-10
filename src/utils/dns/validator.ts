@@ -1,6 +1,10 @@
 import dns from 'dns';
 import { promisify } from 'util';
 import { createModuleLogger } from '../logger.js';
+import { extractDomain as _extractDomain } from '../url/index.js';
+
+// Re-export for backward compatibility
+export const extractDomain = _extractDomain;
 
 const logger = createModuleLogger('dns-validator');
 
@@ -17,6 +21,7 @@ export interface DNSValidationResult {
 }
 
 export enum DNSSkipReason {
+  EMPTY_URL = 'Empty or undefined URL',
   INVALID_FORMAT = 'Invalid domain format',
   NXDOMAIN = 'NXDOMAIN - domain does not exist',
   TIMEOUT = 'DNS timeout',
@@ -33,30 +38,24 @@ function isValidDomainFormat(domain: string): boolean {
   return domainRegex.test(domain);
 }
 
-/**
- * Extracts domain from URL
- */
-export function extractDomain(url: string): string {
-  try {
-    // Handle URLs without protocol
-    let urlToParse = url;
-    if (!url.includes('://')) {
-      urlToParse = `https://${url}`;
-    }
-    
-    const urlObj = new URL(urlToParse);
-    return urlObj.hostname;
-  } catch (error) {
-    // If URL parsing fails, return the original string
-    return url;
-  }
-}
+// extractDomain is now imported from the centralized URL utilities
 
 /**
  * Performs DNS validation for a domain
  */
 export async function validateDNS(url: string, timeoutMs: number = 5000): Promise<DNSValidationResult> {
   const startTime = Date.now();
+  
+  // Check for empty URL first
+  if (!url || url.trim() === '') {
+    logger.warn('Empty URL provided for DNS validation');
+    return {
+      valid: false,
+      reason: DNSSkipReason.EMPTY_URL,
+      duration: Date.now() - startTime
+    };
+  }
+  
   const domain = extractDomain(url);
   
   logger.debug('Validating DNS for domain', { url, domain });

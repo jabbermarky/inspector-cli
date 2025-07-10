@@ -1,4 +1,5 @@
 import { createModuleLogger } from './logger.js';
+import { joinUrl } from './url/index.js';
 import { withRetry } from './retry.js';
 
 const logger = createModuleLogger('robots-txt-analyzer');
@@ -74,14 +75,7 @@ export class RobotsTxtAnalyzer {
     }
 
     private buildRobotsUrl(url: string): string {
-        try {
-            const parsedUrl = new URL(url);
-            return new URL('/robots.txt', parsedUrl.origin).toString();
-        } catch (error) {
-            // If URL parsing fails, try to construct manually
-            const baseUrl = url.startsWith('http') ? url : `https://${url}`;
-            return `${baseUrl.replace(/\/$/, '')}/robots.txt`;
-        }
+        return joinUrl(url, '/robots.txt');
     }
 
     private extractHeaders(response: Response): Record<string, string> {

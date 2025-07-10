@@ -4,7 +4,7 @@ import { WordPressDetector } from './detectors/wordpress.js';
 import { JoomlaDetector } from './detectors/joomla.js';
 import { DrupalDetector } from './detectors/drupal.js';
 import { createModuleLogger } from '../logger.js';
-import { validateAndNormalizeUrl } from '../url/index.js';
+import { validateAndNormalizeUrl, createValidationContext } from '../url/index.js';
 import { DataCollector } from './analysis/collector.js';
 import { DataStorage } from './analysis/storage.js';
 import { CollectionConfig, DetectionDataPoint } from './analysis/types.js';
@@ -421,13 +421,7 @@ export async function detectCMSWithIsolation(url: string, _browserManager: Brows
         logger.info('Starting isolated CMS detection', { url });
 
         // Validate and normalize URL using shared validation
-        const validationContext = {
-            environment: 'production' as const,
-            allowLocalhost: false,
-            allowPrivateIPs: false,
-            allowCustomPorts: false,
-            defaultProtocol: 'http' as const // Use HTTP default as per revised plan
-        };
+        const validationContext = createValidationContext('production');
         
         const normalizedUrl = validateAndNormalizeUrl(url, { context: validationContext });
         logger.debug('Normalized URL for isolated CMS detection', { normalizedUrl });

@@ -12,14 +12,7 @@ jest.mock('../../logger.js', () => ({
 }));
 
 jest.mock('../../config.js', () => ({
-    getConfig: jest.fn(() => ({
-        puppeteer: {
-            timeout: 10000,
-            userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
-            viewport: { width: 1024, height: 768 },
-            blockAds: true
-        }
-    }))
+    getConfig: jest.fn()
 }));
 
 jest.mock('../semaphore.js', () => ({
@@ -42,7 +35,7 @@ import {
     BrowserResourceError,
     BrowserTimeoutError
 } from '../types.js';
-import { setupBrowserTests } from '@test-utils';
+import { setupBrowserTests, createTestConfig } from '@test-utils';
 
 // Mock puppeteer-extra
 const mockPage: any = {
@@ -97,6 +90,10 @@ describe('BrowserManager', () => {
     setupBrowserTests();
 
     beforeEach(() => {
+        // Setup config mock with optimized settings for testing
+        const testConfig = createTestConfig();
+        const mockGetConfig = jest.fn(() => testConfig);
+        require('../../config.js').getConfig = mockGetConfig;
         
         detectionConfig = {
             headless: true,
