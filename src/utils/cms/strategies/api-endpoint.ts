@@ -74,8 +74,10 @@ export class ApiEndpointStrategy implements DetectionStrategy {
                     endpoint: apiUrl, 
                     status: statusCode 
                 });
+                // Non-200, non-404 responses should not be treated as evidence of CMS
+                // Many sites return 403, 500, redirects for non-existent endpoints
                 return {
-                    confidence: 0.3, // Some confidence that CMS exists but API is restricted
+                    confidence: 0,
                     method: this.getName(),
                     error: `API endpoint returned status ${statusCode}`
                 };

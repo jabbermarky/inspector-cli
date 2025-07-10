@@ -9,6 +9,7 @@ import { DataCollector } from './analysis/collector.js';
 import { DataStorage } from './analysis/storage.js';
 import { CollectionConfig, DetectionDataPoint } from './analysis/types.js';
 import { getVersionManager } from './version-manager.js';
+import { validateDNS, DNSSkipReason, DNSValidationResult } from '../dns/index.js';
 
 const logger = createModuleLogger('cms-detection');
 
@@ -18,7 +19,8 @@ class CMSDetectionIterator {
     private dataStorage: DataStorage | null = null;
     private collectData: boolean = false;
     private sessionStartTime: number = 0;
-    private sessionResults: { successful: number; failed: number; blocked: number } = { successful: 0, failed: 0, blocked: 0 };
+    private sessionResults: { successful: number; failed: number; blocked: number; skipped: number } = { successful: 0, failed: 0, blocked: 0, skipped: 0 };
+    private dnsSkipDetails: Array<{ url: string; reason: string; error?: string }> = [];
 
     constructor(options: { collectData?: boolean; collectionConfig?: Partial<CollectionConfig> } = {}) {
         // Initialize browser manager with detection configuration
@@ -83,9 +85,56 @@ class CMSDetectionIterator {
             });
         }
     }
+    
+    /**
+     * Get DNS skip details for reporting
+     */
+    getDNSSkipDetails(): Array<{ url: string; reason: string; error?: string }> {
+        return [...this.dnsSkipDetails];
+    }
+    
+    /**
+     * Get session results including skip count
+     */
+    getSessionResults(): typeof this.sessionResults {
+        return { ...this.sessionResults };
+    }
 
     async detect(url: string): Promise<CMSDetectionResult> {
         try {
+            // Perform DNS validation first
+            const dnsResult = await validateDNS(url);
+            
+            if (!dnsResult.valid) {
+                // Track DNS skip
+                this.sessionResults.skipped++;
+                this.dnsSkipDetails.push({
+                    url,
+                    reason: dnsResult.reason || DNSSkipReason.RESOLUTION_FAILED,
+                    error: dnsResult.error
+                });
+                
+                logger.warn('Skipping URL due to DNS validation failure', {
+                    url,
+                    reason: dnsResult.reason,
+                    error: dnsResult.error,
+                    duration: dnsResult.duration
+                });
+                
+                // Return a special result indicating DNS skip
+                return {
+                    cms: 'Unknown',
+                    confidence: 0,
+                    originalUrl: url,
+                    finalUrl: url,
+                    error: `SKIPPED: ${dnsResult.reason}`,
+                    skipped: true,
+                    skipReason: dnsResult.reason,
+                    executionTime: dnsResult.duration || 0
+                };
+            }
+            
+            // DNS is valid, proceed with normal detection
             let result: CMSDetectionResult;
             
             if (this.collectData && this.dataCollector && this.dataStorage) {
@@ -303,6 +352,12 @@ class CMSDetectionIterator {
      */
     async finalize(): Promise<void> {
         this.endSession();
+        
+        // Save DNS skip report if there were any skips
+        if (this.dnsSkipDetails.length > 0) {
+            await this.saveDNSSkipReport();
+        }
+        
         await this.cleanup();
     }
 
@@ -310,6 +365,45 @@ class CMSDetectionIterator {
         if (this.browserManager) {
             await this.browserManager.cleanup();
             this.browserManager = null;
+        }
+        
+        // Reset state
+        this.dataCollector = null;
+        this.dataStorage = null;
+        this.dnsSkipDetails = [];
+    }
+    
+    /**
+     * Save DNS skip report to file
+     */
+    private async saveDNSSkipReport(): Promise<void> {
+        try {
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `dns-skip-report-${timestamp}.json`;
+            
+            const report = {
+                timestamp: new Date().toISOString(),
+                summary: {
+                    totalSkipped: this.dnsSkipDetails.length,
+                    byReason: this.dnsSkipDetails.reduce((acc, skip) => {
+                        acc[skip.reason] = (acc[skip.reason] || 0) + 1;
+                        return acc;
+                    }, {} as Record<string, number>)
+                },
+                details: this.dnsSkipDetails
+            };
+            
+            const fs = await import('fs/promises');
+            await fs.writeFile(filename, JSON.stringify(report, null, 2));
+            
+            logger.info('DNS skip report saved', { 
+                filename, 
+                totalSkipped: this.dnsSkipDetails.length 
+            });
+        } catch (error) {
+            logger.error('Failed to save DNS skip report', { 
+                error: (error as Error).message 
+            });
         }
     }
 }

@@ -321,6 +321,16 @@ describe('ClassUnderTest', () => {
 ### Data Analysis
 - When analyzing data, create temporary scripts in the reports folder
 
+## Development Best Practices
+
+### Testing
+- **Always re-run unit tests for all functions/methods/classes/modules that are changed and fix any errors uncovered**
+- **Remember to fix bugs when I ask you to. When I identify a bug, add a specific unit test case for that bug**
+- **remember to consult documents in the docs folder before trying to fix bugs.**
+- **remember to update relevant docs when bugs are found and code changes are made - try to keep the docs up to date with the current implementation.**
+- **it is not acceptable to delete a test file because of TypeScript issues**
+
 ## Architecture
 
-[... rest of the existing content remains unchanged ...]
+### URL Handling
+- Remember that there is centralized URL handling in src/utils/url

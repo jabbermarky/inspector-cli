@@ -90,7 +90,7 @@ export class VersionManager {
      */
     private generateVersion(): CaptureVersion {
         return {
-            schema: '1', // Current schema version
+            schema: '2', // Updated schema version - added robots.txt headers and response time
             engine: {
                 version: this.getPackageVersion(),
                 commit: this.getGitCommitHash(),

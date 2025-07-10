@@ -51,6 +51,8 @@ export interface DetectionDataPoint {
         accessible: boolean;
         size: number;
         statusCode?: number;
+        httpHeaders?: Record<string, string>;  // ADD: Capture robots.txt response headers
+        responseTime?: number;                 // ADD: Track response time
         error?: string;
         patterns?: {
             disallowedPaths: string[];

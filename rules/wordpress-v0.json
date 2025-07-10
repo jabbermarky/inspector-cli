@@ -1,0 +1,230 @@
+{
+  "ruleset": "wordpress-v0-extracted",
+  "version": "0.1.0",
+  "cms": "WordPress",
+  "extraction_info": {
+    "source_sites": 272,
+    "extraction_date": "2025-07-10T03:46:05.353Z",
+    "min_frequency": 0.3,
+    "tool": "extract-rules.js"
+  },
+  "rules": [
+    {
+      "id": "wordpress-meta-msapplication-TileImage",
+      "type": "meta-tag",
+      "selector": "name=msapplication-TileImage",
+      "condition": "contains",
+      "value": "WordPress",
+      "confidence": 0.21,
+      "frequency": 0.20955882352941177,
+      "found_in_sites": 57,
+      "total_sites": 272,
+      "examples": [
+        "https://www.harvard.edu/wp-content/uploads/2020/10/cropped-logo-branding-compressed.png?w=270",
+        "https://www.gitkraken.com/wp-content/uploads/2021/03/android-chrome-144x144-1.png",
+        "https://kinsta.com/wp-content/uploads/2024/09/cropped-Kinsta-black-favicon-1-270x270.png"
+      ]
+    },
+    {
+      "id": "wordpress-meta-description",
+      "type": "meta-tag",
+      "selector": "name=description",
+      "condition": "contains",
+      "value": "WordPress",
+      "confidence": 0.14,
+      "frequency": 0.13970588235294118,
+      "found_in_sites": 38,
+      "total_sites": 272,
+      "examples": [
+        "Create custom forms on WordPress with Gravity Forms, the easiest-to-use, secure, and reliable WordPress form builder plugin for your website.",
+        "Join the growing club of companies, developers & entrepreneurs who made the switch to Kinsta for simpler, faster, more reliable hosting for WordPress.",
+        "Create your WordPress website with built-in hosting, premium themes, and powerful tools. No technical setup required. Start building today—free plan available."
+      ]
+    },
+    {
+      "id": "wordpress-meta-generator",
+      "type": "meta-tag",
+      "selector": "name=generator",
+      "condition": "contains",
+      "value": "WordPress",
+      "confidence": 0.21,
+      "frequency": 0.21323529411764705,
+      "found_in_sites": 58,
+      "total_sites": 272,
+      "examples": [
+        "WordPress 6.7.2",
+        "WordPress 6.8.1",
+        "WordPress.com"
+      ]
+    },
+    {
+      "id": "wordpress-script-wpcontent",
+      "type": "script-src",
+      "condition": "contains",
+      "value": "wp-content",
+      "confidence": 0.44,
+      "frequency": 0.4375,
+      "found_in_sites": 119,
+      "total_sites": 272,
+      "examples": [
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/9jm6r2ei/641p7.js",
+        "https://www.usr.sicilia.it/wp-content/themes/EduTheme/assets/js/cookieNSCconsent.min.js",
+        "//www.usr.sicilia.it/wp-content/plugins/a3-lazy-load/assets/js/jquery.lazyloadxt.extra.min.js"
+      ]
+    },
+    {
+      "id": "wordpress-html-wpcontent",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "wp-content",
+      "confidence": 0.51,
+      "frequency": 0.5110294117647058,
+      "found_in_sites": 139,
+      "total_sites": 272
+    },
+    {
+      "id": "wordpress-html-wpincludes",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "wp-includes",
+      "confidence": 0.38,
+      "frequency": 0.38235294117647056,
+      "found_in_sites": 104,
+      "total_sites": 272
+    },
+    {
+      "id": "wordpress-html-wpjson",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "wp-json",
+      "confidence": 0.32,
+      "frequency": 0.3235294117647059,
+      "found_in_sites": 88,
+      "total_sites": 272
+    },
+    {
+      "id": "wordpress-html-wordpress",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "wordpress",
+      "confidence": 0.47,
+      "frequency": 0.46691176470588236,
+      "found_in_sites": 127,
+      "total_sites": 272
+    },
+    {
+      "id": "wordpress-stylesheet-wpcontent",
+      "type": "stylesheet-href",
+      "condition": "contains",
+      "value": "/wp-content/",
+      "confidence": 0.38,
+      "frequency": 0.375,
+      "found_in_sites": 102,
+      "total_sites": 272,
+      "examples": [
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/8n93mw3m/641p7.css",
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/11mzgvo8/641p7.css",
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/k00ldvkr/641p7.css"
+      ]
+    },
+    {
+      "id": "wordpress-stylesheet-themes",
+      "type": "stylesheet-href",
+      "condition": "contains",
+      "value": "/themes/",
+      "confidence": 0.31,
+      "frequency": 0.3088235294117647,
+      "found_in_sites": 84,
+      "total_sites": 272,
+      "examples": [
+        "https://www.harvard.edu/wp-content/themes/core/assets/css/dist/theme/master.min.css?ver=cef5ba15277392a7b925c694c23268925135cdd6b015a2b617d17108e7e4077b28e46682b5f02c7904dd45b04107d332106e5cd11af04ca4d2625af1d28598d9",
+        "https://www.harvard.edu/wp-content/themes/core/assets/css/dist/theme/print.min.css?m=1749483611g",
+        "https://www.branch.io/wp-content/themes/branch25/build/style-index.css?ver=1750182502"
+      ]
+    },
+    {
+      "id": "wordpress-dom-scriptsrcwp",
+      "type": "dom-element",
+      "selector": "script[src*=\"wp-\"]",
+      "condition": "exists",
+      "confidence": 0.46,
+      "frequency": 0.45955882352941174,
+      "found_in_sites": 125,
+      "total_sites": 272,
+      "total_elements": 1691,
+      "examples": []
+    },
+    {
+      "id": "wordpress-dom-linkhrefwp",
+      "type": "dom-element",
+      "selector": "link[href*=\"wp-\"]",
+      "condition": "exists",
+      "confidence": 0.42,
+      "frequency": 0.41911764705882354,
+      "found_in_sites": 114,
+      "total_sites": 272,
+      "total_elements": 2235,
+      "examples": []
+    },
+    {
+      "id": "wordpress-dom-bodyclasswp",
+      "type": "dom-element",
+      "selector": "body[class*=\"wp-\"]",
+      "condition": "exists",
+      "confidence": 0.37,
+      "frequency": 0.3713235294117647,
+      "found_in_sites": 101,
+      "total_sites": 272,
+      "total_elements": 101,
+      "examples": []
+    },
+    {
+      "id": "wordpress-link-wpcontent-stylesheet",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "wp-content",
+      "rel": "stylesheet",
+      "confidence": 0.34,
+      "frequency": 0.3382352941176471,
+      "found_in_sites": 92,
+      "total_sites": 272,
+      "examples": [
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/8n93mw3m/641p7.css",
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/11mzgvo8/641p7.css",
+        "//www.usr.sicilia.it/wp-content/cache/wpfc-minified/k00ldvkr/641p7.css"
+      ]
+    },
+    {
+      "id": "wordpress-link-wpjson-https://api.w.org/",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "wp-json",
+      "rel": "https://api.w.org/",
+      "confidence": 0.31,
+      "frequency": 0.30514705882352944,
+      "found_in_sites": 83,
+      "total_sites": 272,
+      "examples": [
+        "https://www.usr.sicilia.it/wp-json/",
+        "https://www.branch.io/wp-json/",
+        "https://www.gravityforms.com/wp-json/"
+      ]
+    },
+    {
+      "id": "wordpress-link-wpjson-alternate",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "wp-json",
+      "rel": "alternate",
+      "confidence": 0.31,
+      "frequency": 0.3088235294117647,
+      "found_in_sites": 84,
+      "total_sites": 272,
+      "examples": [
+        "https://www.usr.sicilia.it/wp-json/wp/v2/pages/13",
+        "https://www.usr.sicilia.it/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.usr.sicilia.it%2F",
+        "https://www.usr.sicilia.it/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.usr.sicilia.it%2F&format=xml"
+      ]
+    }
+  ]
+}

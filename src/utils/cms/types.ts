@@ -33,6 +33,10 @@ export interface CMSDetectionResult {
     detectionMethods?: string[];
     executionTime?: number;
     error?: string;
+    
+    // DNS skip tracking
+    skipped?: boolean;                   // URL was skipped due to DNS issues
+    skipReason?: string;                 // Reason for skipping (from DNSSkipReason)
 }
 
 /**

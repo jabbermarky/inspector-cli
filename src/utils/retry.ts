@@ -35,8 +35,8 @@ function isRetryableError(error: unknown, retryableErrors: string[]): boolean {
   if (!error) return false;
   
   const errorString = String(error).toLowerCase();
-  const errorCode = (error as any)?.code?.toLowerCase();
-  const errorType = (error as any)?.type?.toLowerCase();
+  const errorCode = typeof (error as any)?.code === 'string' ? (error as any).code.toLowerCase() : '';
+  const errorType = typeof (error as any)?.type === 'string' ? (error as any).type.toLowerCase() : '';
   
   return retryableErrors.some(retryableError => 
     errorString.includes(retryableError.toLowerCase()) ||

@@ -11,6 +11,8 @@ interface CMSResult {
     cms?: string;
     version?: string;
     error?: string;
+    skipped?: boolean;
+    skipReason?: string;
 }
 
 export async function processCMSDetectionBatch(urls: string[], options: { collectData?: boolean } = {}): Promise<CMSResult[]> {
@@ -49,8 +51,21 @@ export async function processCMSDetectionBatch(urls: string[], options: { collec
                 const detected = await cmsIterator.detect(url);
                 completed++;
                 
-                // Check if detectCMS returned an error (vs throwing an exception)
-                if (detected.error) {
+                // Check if URL was skipped due to DNS issues
+                if (detected.skipped) {
+                    const result: CMSResult = {
+                        url,
+                        success: false,
+                        error: detected.error,
+                        skipped: true,
+                        skipReason: detected.skipReason
+                    };
+                    
+                    // Real-time skip update with special formatting
+                    console.log(`[${completed}/${total}] ⚠ ${url} → ${detected.skipReason || 'DNS resolution failed'}`);
+                    
+                    results.push(result);
+                } else if (detected.error) {
                     const result: CMSResult = {
                         url,
                         success: false,
@@ -138,16 +153,24 @@ function displaySingleResult(url: string, detected: CMSDetectionResult | null) {
 
 function displayBatchResults(results: CMSResult[]) {
     const successful = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
+    const skipped = results.filter(r => r.skipped);
+    const failed = results.filter(r => !r.success && !r.skipped);
     
     console.log(`\nCMS Detection Results (${results.length} URLs processed):`);
-    console.log(`✓ ${successful.length} successful, ✗ ${failed.length} failed\n`);
+    console.log(`✓ ${successful.length} successful, ✗ ${failed.length} failed${skipped.length > 0 ? `, ⚠ ${skipped.length} skipped` : ''}\n`);
     
     if (successful.length > 0) {
         console.log('Successful detections (known CMS found):');
         successful.forEach(result => {
             const cmsInfo = `${result.cms}${result.version ? ` ${result.version}` : ''}`;
             console.log(`- ${result.url}: ${cmsInfo}`);
+        });
+    }
+    
+    if (skipped.length > 0) {
+        console.log(`\nSkipped URLs (DNS issues):`);
+        skipped.forEach(result => {
+            console.log(`- ${result.url}: ${result.skipReason || 'DNS resolution failed'}`);
         });
     }
     

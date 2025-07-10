@@ -1,0 +1,150 @@
+{
+  "ruleset": "joomla-v0-extracted",
+  "version": "0.1.0",
+  "cms": "Joomla",
+  "extraction_info": {
+    "source_sites": 93,
+    "extraction_date": "2025-07-10T03:46:05.194Z",
+    "min_frequency": 0.3,
+    "tool": "extract-rules.js"
+  },
+  "rules": [
+    {
+      "id": "joomla-meta-generator",
+      "type": "meta-tag",
+      "selector": "name=generator",
+      "condition": "contains",
+      "value": "Joomla",
+      "confidence": 0.31,
+      "frequency": 0.3118279569892473,
+      "found_in_sites": 29,
+      "total_sites": 93,
+      "examples": [
+        "Joomla! - Open Source Content Management"
+      ]
+    },
+    {
+      "id": "joomla-meta-description",
+      "type": "meta-tag",
+      "selector": "name=description",
+      "condition": "contains",
+      "value": "Joomla",
+      "confidence": 0.11,
+      "frequency": 0.10752688172043011,
+      "found_in_sites": 10,
+      "total_sites": 93,
+      "examples": [
+        "The home of best, professional, easy to use Joomla Extensions developed by Ossolution Team. The owner of popular Joomla Extensions like Events Booking, Joom Doa",
+        "Joomla! is the mobile-ready and user-friendly way to build your website. Choose from thousands of features and designs. Joomla! is free and open source.",
+        "Best of the Joomla templates since 2005. Offering responsive Joomla templates & free Joomla templates with 200+ Joomla template collection, 40+ Joomla extension library. 300K+ happy members"
+      ]
+    },
+    {
+      "id": "joomla-script-media",
+      "type": "script-src",
+      "condition": "contains",
+      "value": "/media/",
+      "confidence": 0.78,
+      "frequency": 0.7849462365591398,
+      "found_in_sites": 73,
+      "total_sites": 93,
+      "examples": [
+        "/media/plg_jchoptimize/cache/js/6b14b67a43198657a1b51b08cb283947.js",
+        "/media/bootstrap/js/jquery.min.js",
+        "/media/bootstrap/js/bootstrap.min.js"
+      ]
+    },
+    {
+      "id": "joomla-html-joomla",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "joomla",
+      "confidence": 0.83,
+      "frequency": 0.8279569892473119,
+      "found_in_sites": 77,
+      "total_sites": 93
+    },
+    {
+      "id": "joomla-html-templates",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "/templates/",
+      "confidence": 0.84,
+      "frequency": 0.8387096774193549,
+      "found_in_sites": 78,
+      "total_sites": 93
+    },
+    {
+      "id": "joomla-html-components",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "/components/",
+      "confidence": 0.38,
+      "frequency": 0.3763440860215054,
+      "found_in_sites": 35,
+      "total_sites": 93
+    },
+    {
+      "id": "joomla-stylesheet-media",
+      "type": "stylesheet-href",
+      "condition": "contains",
+      "value": "/media/",
+      "confidence": 0.61,
+      "frequency": 0.6129032258064516,
+      "found_in_sites": 57,
+      "total_sites": 93,
+      "examples": [
+        "/media/plg_jchoptimize/cache/css/8ef8c799dbcef13731dd4b4f0303f71b.css",
+        "/media/bootstrap/css/bootstrap.css",
+        "/media/bootstrap/font-awesome/css/font-awesome.min.css"
+      ]
+    },
+    {
+      "id": "joomla-stylesheet-templates",
+      "type": "stylesheet-href",
+      "condition": "contains",
+      "value": "/templates/",
+      "confidence": 0.65,
+      "frequency": 0.6451612903225806,
+      "found_in_sites": 60,
+      "total_sites": 93,
+      "examples": [
+        "/templates/fmca/css/main.css",
+        "/templates/fmca/css/topmenu.css",
+        "/templates/fmca/css/legacy.css"
+      ]
+    },
+    {
+      "id": "joomla-link-media-stylesheet",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "/media/",
+      "rel": "stylesheet",
+      "confidence": 0.63,
+      "frequency": 0.6344086021505376,
+      "found_in_sites": 59,
+      "total_sites": 93,
+      "examples": [
+        "/media/plg_jchoptimize/cache/css/8ef8c799dbcef13731dd4b4f0303f71b.css",
+        "/media/bootstrap/css/bootstrap.css",
+        "/media/bootstrap/font-awesome/css/font-awesome.min.css"
+      ]
+    },
+    {
+      "id": "joomla-link-templates-stylesheet",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "/templates/",
+      "rel": "stylesheet",
+      "confidence": 0.65,
+      "frequency": 0.6451612903225806,
+      "found_in_sites": 60,
+      "total_sites": 93,
+      "examples": [
+        "/templates/fmca/css/main.css",
+        "/templates/fmca/css/topmenu.css",
+        "/templates/fmca/css/legacy.css"
+      ]
+    }
+  ]
+}

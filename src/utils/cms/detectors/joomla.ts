@@ -19,7 +19,9 @@ export class JoomlaDetector extends BaseCMSDetector {
             '/modules/',
             '/templates/',
             'Joomla.JText',
-            'joomla-cms'
+            'joomla-cms',
+            'joomla-script-options new',  // 100% confidence Joomla signal
+            '/media/jui/js/'  // Joomla UI library path
         ], 'Joomla', 4000),
         new HttpHeaderStrategy([
             {

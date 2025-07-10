@@ -1,0 +1,126 @@
+{
+  "ruleset": "drupal-v0-extracted",
+  "version": "0.1.0",
+  "cms": "Drupal",
+  "extraction_info": {
+    "source_sites": 111,
+    "extraction_date": "2025-07-10T03:46:05.267Z",
+    "min_frequency": 0.3,
+    "tool": "extract-rules.js"
+  },
+  "rules": [
+    {
+      "id": "drupal-meta-Generator",
+      "type": "meta-tag",
+      "selector": "name=Generator",
+      "condition": "contains",
+      "value": "Drupal",
+      "confidence": 0.6,
+      "frequency": 0.6036036036036037,
+      "found_in_sites": 67,
+      "total_sites": 111,
+      "examples": [
+        "Drupal 11 (https://www.drupal.org)",
+        "Drupal 7 (http://drupal.org)",
+        "Drupal 10 (https://www.drupal.org)"
+      ]
+    },
+    {
+      "id": "drupal-script-sites",
+      "type": "script-src",
+      "condition": "contains",
+      "value": "/sites/",
+      "confidence": 0.45,
+      "frequency": 0.45045045045045046,
+      "found_in_sites": 50,
+      "total_sites": 111,
+      "examples": [
+        "/sites/default/files/js/js__QRQa5bAeJYgz5XR7wzB347gf3C5WHf_3nQCXAkupqY.js?scope=footer&delta=0&language=en&theme=kinetic&include=eJw9ilsOgCAMBC8E9EwVSqzElpTGx-01hvizOztZLMUV5QackKqpeMhqBFn3rkLiIzUWcs4xroSFLMwNixG2rvx-fjc7HEzngC8Tbng97jwp5w",
+        "/sites/default/files/js/js_Zaqk6LIR8jd3kZdp5IKwqtjyzq1pivHr-zmaNEV7Bmo.js?scope=footer&delta=2&language=en&theme=kinetic&include=eJw9ilsOgCAMBC8E9EwVSqzElpTGx-01hvizOztZLMUV5QackKqpeMhqBFn3rkLiIzUWcs4xroSFLMwNixG2rvx-fjc7HEzngC8Tbng97jwp5w",
+        "/sites/default/files/js/js_c8W8Dnv5mfeYJnP2wEKL2nGB-JsUTdmEKuqbLBEfRgM.js?scope=footer&delta=5&language=en&theme=kinetic&include=eJw9ilsOgCAMBC8E9EwVSqzElpTGx-01hvizOztZLMUV5QackKqpeMhqBFn3rkLiIzUWcs4xroSFLMwNixG2rvx-fjc7HEzngC8Tbng97jwp5w"
+      ]
+    },
+    {
+      "id": "drupal-script-modules",
+      "type": "script-src",
+      "condition": "contains",
+      "value": "/modules/",
+      "confidence": 0.48,
+      "frequency": 0.4774774774774775,
+      "found_in_sites": 53,
+      "total_sites": 111,
+      "examples": [
+        "https://www.un.org/sites/un2.un.org/modules/jquery_update/replace/jquery/2.2/jquery.min.js?v=2.2.4",
+        "https://www.un.org/sites/un2.un.org/modules/jquery_update/replace/jquery-migrate/1/jquery-migrate.min.js?v=1",
+        "https://www.un.org/sites/un2.un.org/modules/jquery_update/js/jquery_browser.js?v=0.0.1"
+      ]
+    },
+    {
+      "id": "drupal-html-drupal",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "drupal",
+      "confidence": 0.72,
+      "frequency": 0.7207207207207207,
+      "found_in_sites": 80,
+      "total_sites": 111
+    },
+    {
+      "id": "drupal-html-sites",
+      "type": "html-content",
+      "condition": "contains",
+      "value": "/sites/",
+      "confidence": 0.46,
+      "frequency": 0.4594594594594595,
+      "found_in_sites": 51,
+      "total_sites": 111
+    },
+    {
+      "id": "drupal-stylesheet-sites",
+      "type": "stylesheet-href",
+      "condition": "contains",
+      "value": "/sites/",
+      "confidence": 0.32,
+      "frequency": 0.3153153153153153,
+      "found_in_sites": 35,
+      "total_sites": 111,
+      "examples": [
+        "/sites/default/files/css/css_Eu4omW-Tp601IGjP6tJEpkKj-7J0Guca-K44urnZzfY.css?delta=0&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw",
+        "/sites/default/files/css/css_AiQyDoTYM8UkA5dD3UqUiFKMLp_LXDL2ByvqoUca1co.css?delta=1&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw",
+        "/sites/default/files/css/css_dkE5kdO528th4TkQIvHknfdfFBZcdvWj6r3i_-pEiq4.css?delta=3&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw"
+      ]
+    },
+    {
+      "id": "drupal-link-sites-stylesheet",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "/sites/",
+      "rel": "stylesheet",
+      "confidence": 0.32,
+      "frequency": 0.32432432432432434,
+      "found_in_sites": 36,
+      "total_sites": 111,
+      "examples": [
+        "/sites/default/files/css/css_Eu4omW-Tp601IGjP6tJEpkKj-7J0Guca-K44urnZzfY.css?delta=0&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw",
+        "/sites/default/files/css/css_AiQyDoTYM8UkA5dD3UqUiFKMLp_LXDL2ByvqoUca1co.css?delta=1&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw",
+        "/sites/default/files/css/css_dkE5kdO528th4TkQIvHknfdfFBZcdvWj6r3i_-pEiq4.css?delta=3&language=en&theme=kinetic&include=eJx9j12WwyAIhTfkz5qI0sSpggfIdDqrH0-TZp7qC8jl8oGQszHQM8L5CDdhMpdYMCZunQnJNNwLoZXk_VJqXRgkf7akaffGbCizvjTvIVlh8kN7sNw_uzeEPKOVNCi10ARB-FBvCDrjKB4HCa4jHb4se4ca4At-DoHG6VDLL7pzLi6DehVnvuqGqrCiXgJxRtdBYBXom74X_Cthp74vteiG2elTDduxwgR0i6_ovsv4UHzF0DjvFf8AP0K6Iw"
+      ]
+    },
+    {
+      "id": "drupal-link-drupal-",
+      "type": "link-href",
+      "condition": "contains",
+      "value": "drupal",
+      "rel": "any",
+      "confidence": 0.32,
+      "frequency": 0.3153153153153153,
+      "found_in_sites": 35,
+      "total_sites": 111,
+      "examples": [
+        "/product/drupal-hosting",
+        "/drupal/acquia-drupal-starter-kits",
+        "/drupal"
+      ]
+    }
+  ]
+}

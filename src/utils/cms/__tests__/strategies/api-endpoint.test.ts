@@ -191,7 +191,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.3);
+            expect(result.confidence).toBe(0);
             expect(result.error).toBe('API endpoint returned status 403');
         });
 

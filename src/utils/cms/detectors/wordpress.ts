@@ -174,8 +174,10 @@ export class WordPressDetector extends BaseCMSDetector {
             '/wp-content/',
             '/wp-includes/',
             '/wp-json/',
-            'wp-',
-            'wordpress'
+            '/wp-admin/',
+            'wp-config.php',
+            'wp-login.php',
+            'wp-cron.php'
         ], 'WordPress', 4000),
         new ApiEndpointStrategy('/wp-json/', 'WordPress', 6000),
         new HttpHeaderStrategy([

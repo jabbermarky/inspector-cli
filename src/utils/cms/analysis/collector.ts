@@ -135,11 +135,34 @@ export class DataCollector {
         // Collect links
         const links = await this.collectLinks(page);
         
+        // Wait for page to be fully loaded before collecting scripts
+        if (this.config.includeScriptAnalysis) {
+            try {
+                // Wait for network to be idle (Puppeteer equivalent)
+                await page.waitForFunction(() => {
+                    return document.readyState === 'complete';
+                }, { timeout: 5000 });
+                await page.waitForTimeout(1000); // Give JS time to inject dynamic scripts
+            } catch (error) {
+                logger.debug('Failed to wait for page load state', { error: (error as Error).message });
+            }
+        }
+        
         // Collect scripts and stylesheets
         const scripts = this.config.includeScriptAnalysis ? 
             await this.collectScripts(page) : [];
         const stylesheets = this.config.includeScriptAnalysis ? 
             await this.collectStylesheets(page) : [];
+        
+        // Validate script collection
+        if (this.config.includeScriptAnalysis && (!scripts || scripts.length === 0)) {
+            logger.warn('No scripts collected - potential collection failure', {
+                url: finalUrl,
+                htmlLength: htmlContent?.length,
+                hasScriptTags: htmlContent?.includes('<script') || false,
+                scriptsArrayLength: scripts?.length || 0
+            });
+        }
         
         // Collect forms
         const forms = await this.collectForms(page);
@@ -325,25 +348,38 @@ export class DataCollector {
 
     private async collectScripts(page: ManagedPage): Promise<DetectionDataPoint['scripts']> {
         try {
-            return await page.evaluate((maxSize) => {
+            const scripts = await page.evaluate((maxSize) => {
                 const scripts: any[] = [];
-                const scriptElements = document.querySelectorAll('script');
+                // Use getElementsByTagName for more reliable script collection
+                const scriptElements = Array.from(document.getElementsByTagName('script'));
                 
-                scriptElements.forEach(script => {
+                scriptElements.forEach((script, index) => {
                     const src = script.getAttribute('src');
-                    const isInline = !src && script.textContent;
+                    const isInline = !src && !!script.textContent;
                     
-                    scripts.push({
+                    const scriptData = {
                         src: src || undefined,
                         inline: isInline,
                         content: isInline ? 
                             script.textContent?.substring(0, maxSize) : undefined,
-                        type: script.getAttribute('type') || undefined
-                    });
+                        type: script.getAttribute('type') || undefined,
+                        id: script.getAttribute('id') || undefined,
+                        async: script.hasAttribute('async') || undefined,
+                        defer: script.hasAttribute('defer') || undefined
+                    };
+                    
+                    scripts.push(scriptData);
                 });
                 
                 return scripts.slice(0, 50); // Limit to first 50 scripts
             }, this.config.maxScriptSize);
+            
+            logger.debug('Script collection completed', {
+                scriptCount: scripts.length,
+                firstFewScripts: scripts.slice(0, 3).map(s => s.src || '[inline script]')
+            });
+            
+            return scripts;
         } catch (error) {
             logger.warn('Failed to collect scripts', { error: (error as Error).message });
             return [];
@@ -438,6 +474,8 @@ export class DataCollector {
             
             logger.debug('Fetching robots.txt', { url: robotsUrl });
 
+            const startTime = Date.now();
+            
             // Fetch robots.txt using node's fetch (available in Node 18+)
             const response = await fetch(robotsUrl, {
                 method: 'GET',
@@ -448,14 +486,23 @@ export class DataCollector {
                 signal: AbortSignal.timeout(5000)
             });
 
+            const responseTime = Date.now() - startTime;
             const content = await response.text();
             const patterns = this.parseRobotsTxt(content);
+
+            // Extract headers from response
+            const httpHeaders: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+                httpHeaders[key.toLowerCase()] = value;
+            });
 
             logger.debug('Robots.txt collected successfully', { 
                 url: robotsUrl, 
                 size: content.length,
                 statusCode: response.status,
-                disallowedPaths: patterns.disallowedPaths.length
+                disallowedPaths: patterns.disallowedPaths.length,
+                headerCount: Object.keys(httpHeaders).length,
+                responseTime
             });
 
             return {
@@ -463,6 +510,8 @@ export class DataCollector {
                 accessible: response.ok,
                 size: content.length,
                 statusCode: response.status,
+                httpHeaders,
+                responseTime,
                 patterns
             };
 

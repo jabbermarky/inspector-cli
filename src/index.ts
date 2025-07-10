@@ -26,6 +26,7 @@ import './commands/assistants.js';
 import './commands/assistant.js';
 import './commands/eval.js';
 import './commands/detect_cms.js';
+import './commands/ground-truth.js';
 import './commands/analyze.js';
 import './commands/analyze-blocking.js';
 import './commands/generate.js';

@@ -9,3 +9,6 @@
 export * from './mocks/index.js';
 export * from './factories/index.js';
 export * from './setup/index.js';
+
+// Export ground-truth specific testing utilities
+export * from './ground-truth-helpers.js';
