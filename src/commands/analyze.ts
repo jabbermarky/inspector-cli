@@ -21,7 +21,7 @@ interface AnalyzeOptions {
 /**
  * Main analysis function that processes collected CMS data
  */
-async function analyzeCollectedData(options: AnalyzeOptions): Promise<void> {
+export async function analyzeCollectedData(options: AnalyzeOptions): Promise<void> {
     try {
         logger.info('Starting CMS data analysis', options);
 
@@ -147,7 +147,7 @@ async function analyzeCollectedData(options: AnalyzeOptions): Promise<void> {
 /**
  * Generate quick insights summary for console output
  */
-async function generateInsightsSummary(dataPoints: any[]): Promise<void> {
+export async function generateInsightsSummary(dataPoints: any[]): Promise<void> {
     const patternDiscovery = new PatternDiscovery(dataPoints);
     const comparison = patternDiscovery.compareDetectionPatterns();
 

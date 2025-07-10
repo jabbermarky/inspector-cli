@@ -4,6 +4,26 @@ import { createModuleLogger } from '../utils/logger.js';
 
 const logger = createModuleLogger('screenshot');
 
+interface ScreenshotOptions {
+    width?: number;
+}
+
+/**
+ * Take a screenshot of a URL and save it to the specified path
+ */
+export async function takeScreenshot(url: string, path: string, options: ScreenshotOptions = {}): Promise<void> {
+    try {
+        const width = options.width || 768;
+        const processedPath = analyzeFilePath(path, width);
+        logger.info('Taking screenshot', { url, path: processedPath, width });
+        await takeAScreenshotPuppeteer(url, processedPath, width);
+        logger.info('Screenshot completed successfully', { url, path: processedPath, width });
+    } catch (error) {
+        logger.error('Screenshot failed', { url, path, width: options.width || 768 }, error as Error);
+        throw error; // Re-throw for handling by caller
+    }
+}
+
 program
     .command("screenshot")
     .description("Take a screenshot of url and save it to path")
@@ -12,13 +32,8 @@ program
     .option('-w, --width <width>', 'Specify the width of the screenshot', myParseInt)
     .action(async (url, path, options) => {
         try {
-            const width = options.width || 768;
-            path = analyzeFilePath(path, width);
-            logger.info('Taking screenshot', { url, path, width });
-            await takeAScreenshotPuppeteer(url, path, width);
-            logger.info('Screenshot completed successfully', { url, path, width });
+            await takeScreenshot(url, path, { width: options.width });
         } catch (error) {
-            logger.error('Screenshot failed', { url, path: path, width: options.width || 768 }, error as Error);
             console.error('Screenshot failed:', (error as Error).message);
             process.exit(1);
         }

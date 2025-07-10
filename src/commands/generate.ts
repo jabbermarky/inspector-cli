@@ -19,7 +19,7 @@ interface GenerateOptions extends RuleGenerationOptions {
 /**
  * Generate detection strategies from analyzed data
  */
-async function generateDetectionStrategies(options: GenerateOptions): Promise<void> {
+export async function generateDetectionStrategies(options: GenerateOptions): Promise<void> {
     try {
         logger.info('Starting rule generation', options);
 
@@ -137,7 +137,7 @@ async function generateDetectionStrategies(options: GenerateOptions): Promise<vo
 /**
  * Generate integration instructions for the new strategies
  */
-async function generateIntegrationInstructions(strategies: Map<string, GeneratedStrategy>, outputDir: string): Promise<void> {
+export async function generateIntegrationInstructions(strategies: Map<string, GeneratedStrategy>, outputDir: string): Promise<void> {
     console.log('\n📋 Integration Instructions:');
     console.log('\n1. **Import the generated strategies** in your detector files:');
     
