@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { ScreenshotValidator } from '../validation.js';
 import { ScreenshotValidationError } from '../types.js';
+import { setupScreenshotTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -8,11 +9,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
 describe('ScreenshotValidator', () => {
+    setupScreenshotTests();
     describe('validate', () => {
         it('should pass validation for valid options', () => {
             const validOptions = {

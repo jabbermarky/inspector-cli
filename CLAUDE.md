@@ -35,6 +35,39 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - `npm run quality` - Combined linting and formatting validation
 - `npm run quality:fix` - Fix both linting and formatting issues
 
+**Testing Specific Files (CRITICAL - Remember correct Jest syntax)**
+```bash
+# CORRECT: Run specific test file
+npm test -- --testPathPatterns="filename.test.ts"
+
+# WRONG: This will error (old syntax)
+npm test -- --testPathPattern="filename.test.ts"
+
+# Examples:
+npm test -- --testPathPatterns="analyze-blocking.functional.test.ts"
+npm test -- --testPathPatterns=".*\.functional\.test\.ts"  # All functional tests
+npm test -- --testPathPatterns="commands.*test.ts"        # All command tests
+```
+
+**Pre-Test Implementation Study Commands (CRITICAL - Always run these FIRST):**
+```bash
+# 1. Study the actual class/module before testing it
+cat src/utils/cms/analysis/storage.ts          # Read implementation
+cat src/utils/cms/analysis/types.ts            # Check interfaces
+
+# 2. Find real usage patterns  
+grep -r "DataStorage" src/commands/             # How it's used in commands
+grep -r "storage\." src/ --include="*.ts"      # Method usage patterns
+grep -r "new ClassName" src/ --include="*.ts"  # Constructor usage
+
+# 3. Check existing tests for patterns
+ls src/utils/cms/analysis/__tests__/           # See what tests already exist
+cat src/utils/cms/analysis/__tests__/*.test.ts # Study existing test patterns
+
+# 4. Verify public API surface
+grep -n "export\|public" src/path/to/module.ts # Find exported/public members
+```
+
 ## CLI Usage (CRITICAL - Remember across sessions)
 
 ### CMS Detection Commands
@@ -324,11 +357,85 @@ describe('ClassUnderTest', () => {
 ## Development Best Practices
 
 ### Testing
+
+**🚨 CRITICAL TESTING RULES - NEVER VIOLATE THESE:**
+- **NEVER DELETE TEST FILES** - Test files represent valuable work and coverage gains
+- **NEVER DELETE TESTS** - Individual test cases should be fixed, not removed
+- **ALWAYS FIX TYPE ISSUES** - TypeScript errors in tests must be resolved by fixing types, not deleting tests
+- **PRESERVE COVERAGE GAINS** - Functional tests especially represent significant coverage improvements
+
+**Testing Best Practices:**
 - **Always re-run unit tests for all functions/methods/classes/modules that are changed and fix any errors uncovered**
 - **Remember to fix bugs when I ask you to. When I identify a bug, add a specific unit test case for that bug**
 - **remember to consult documents in the docs folder before trying to fix bugs.**
 - **remember to update relevant docs when bugs are found and code changes are made - try to keep the docs up to date with the current implementation.**
-- **it is not acceptable to delete a test file because of TypeScript issues**
+
+**🎯 Implementation-First Test Development Process:**
+1. **DISCOVER**: Read existing source code to understand actual APIs
+2. **VALIDATE**: Check how modules are used in real application code  
+3. **DESIGN**: Plan tests based on actual interface, not assumptions
+4. **IMPLEMENT**: Write tests using real methods and patterns
+5. **VERIFY**: Ensure tests exercise actual functionality, not imaginary APIs
+
+**⚠️ Anti-Patterns to Avoid:**
+- **Assumption-Based Testing**: Writing tests for APIs you think should exist
+- **Standard Pattern Assumption**: Assuming CRUD/REST patterns without verification
+- **Complex Mocking**: Mocking filesystem/external APIs instead of application interfaces
+- **Imaginary Interface Testing**: Testing methods that don't actually exist
+- **Copy-Paste Testing**: Using test patterns from other projects without adaptation
+
+**When encountering TypeScript errors in tests:**
+1. **FIRST**: Check actual interface definitions in the source code
+2. **THEN**: Update test data/mocks to match real interfaces  
+3. **NEVER**: Delete tests or test files as a solution
+4. **REMEMBER**: Tests have value - they represent work done and coverage achieved
+
+**🚨 CRITICAL: Test Against ACTUAL Implementation - NEVER Assume APIs**
+- **ALWAYS READ THE SOURCE CODE FIRST** before writing any test
+- **STUDY THE ACTUAL PUBLIC METHODS** available on classes/modules being tested
+- **CHECK HOW THE CODE IS ACTUALLY USED** in existing files (commands, other modules)
+- **NEVER assume standard CRUD patterns** - each module may have specialized APIs
+- **AVOID "typical API" assumptions** - test what actually exists, not what you expect
+
+**Pre-Test Implementation Study Checklist:**
+1. **Read the actual class/module implementation** - understand public methods
+2. **Find existing usage examples** - grep for how it's used in real code
+3. **Check interface definitions** - verify parameter and return types
+4. **Identify the actual API surface** - what methods really exist vs. what you assume
+5. **Test through public interfaces only** - don't test internal implementation details
+
+**Examples of Implementation-First Testing:**
+```bash
+# BEFORE writing storage tests:
+# 1. Read the actual DataStorage class
+cat src/utils/cms/analysis/storage.ts
+
+# 2. Check how it's actually used  
+grep -r "storage\." src/commands/
+
+# 3. Then write tests using ACTUAL methods:
+await storage.query({ cmsTypes: ['WordPress'] })  # ✅ Exists
+await storage.getDataPoint('url')                 # ❌ Doesn't exist
+```
+
+**Functional Testing Specific Guidelines:**
+- **Functional tests must use REAL INTERFACES** - they test actual code execution, not mocked behaviors
+- **Study the target module's public API** before writing any functional test
+- **Use selective mocking** - only mock external dependencies, not the module being tested
+- **Validate test assumptions** against real usage patterns in the codebase
+- **When mocking fails**, it often means you're testing the wrong interface
+
+**Real Example from DataStorage:**
+```typescript
+// ❌ WRONG: Testing imaginary API
+await storage.getDataPoint('https://example.com');
+await storage.bulkStore(dataPoints);
+
+// ✅ RIGHT: Testing actual API  
+const results = await storage.query({ cmsTypes: ['WordPress'] });
+await storage.storeBatch(dataPoints);
+await storage.getAllDataPoints();
+```
 
 ## Architecture
 

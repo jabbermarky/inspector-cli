@@ -21,7 +21,7 @@ jest.mock('../../version-manager.js', () => ({
 
 // 2. IMPORTS
 import { jest } from '@jest/globals';
-import { setupCMSDetectionTests } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage } from '@test-utils';
 
 // 3. TEST SUITE
 describe('DataCollector - Script Collection Bug Fix', () => {
@@ -32,11 +32,7 @@ describe('DataCollector - Script Collection Bug Fix', () => {
     
     // 5. SETUP
     beforeEach(() => {
-        mockPage = {
-            evaluate: jest.fn(),
-            waitForFunction: jest.fn(),
-            waitForTimeout: jest.fn()
-        };
+        mockPage = createMockPage();
     });
     
     // 6. TESTS GROUPED BY FUNCTIONALITY

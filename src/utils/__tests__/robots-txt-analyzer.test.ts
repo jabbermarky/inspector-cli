@@ -1,4 +1,5 @@
 import { RobotsTxtAnalyzer } from '../robots-txt-analyzer.js';
+import { setupAnalysisTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../logger.js', () => ({
@@ -6,16 +7,21 @@ jest.mock('../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
-// Mock retry
+// Use standardized retry mock pattern from test-utils
 jest.mock('../retry.js', () => ({
     withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 describe('RobotsTxtAnalyzer', () => {
+    setupAnalysisTests();
+    
     let analyzer: RobotsTxtAnalyzer;
 
     beforeEach(() => {

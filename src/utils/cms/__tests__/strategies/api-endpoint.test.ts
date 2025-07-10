@@ -13,7 +13,7 @@ jest.mock('../../../logger.js', () => ({
 
 import { jest } from '@jest/globals';
 import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
-import { setupStrategyTests } from '@test-utils';
+import { setupStrategyTests, createMockPage } from '@test-utils';
 
 describe('ApiEndpointStrategy', () => {
     let strategy: ApiEndpointStrategy;
@@ -31,11 +31,7 @@ describe('ApiEndpointStrategy', () => {
             ok: jest.fn().mockReturnValue(true)
         } as any;
 
-        mockPage = {
-            content: jest.fn(),
-            goto: jest.fn(),
-            evaluate: jest.fn()
-        } as any;
+        mockPage = createMockPage();
         
         // Setup default mock behavior
         mockPage.goto.mockResolvedValue(mockResponse);

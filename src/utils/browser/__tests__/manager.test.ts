@@ -35,34 +35,12 @@ import {
     BrowserResourceError,
     BrowserTimeoutError
 } from '../types.js';
-import { setupBrowserTests, createTestConfig } from '@test-utils';
+import { setupBrowserTests, createTestConfig, createMockPage, createMockBrowserManager } from '@test-utils';
 
-// Mock puppeteer-extra
-const mockPage: any = {
-    goto: jest.fn(),
-    url: jest.fn(() => 'https://example.com'), // Add missing url() method
-    setUserAgent: jest.fn(),
-    setDefaultTimeout: jest.fn(),
-    setDefaultNavigationTimeout: jest.fn(),
-    setRequestInterception: jest.fn(),
-    on: jest.fn(),
-    screenshot: jest.fn(),
-    evaluate: jest.fn(),
-    close: jest.fn(),
-    waitForTimeout: jest.fn(),
-    _browserManagerContext: undefined
-};
-
-const mockContext: any = {
-    newPage: jest.fn(() => Promise.resolve(mockPage)),
-    close: jest.fn()
-};
-
-const mockBrowser: any = {
-    newPage: jest.fn(() => Promise.resolve(mockPage)),
-    createBrowserContext: jest.fn(() => Promise.resolve(mockContext)),
-    close: jest.fn()
-};
+// Mock puppeteer-extra - get from factory functions
+let mockPage: any;
+let mockContext: any;
+let mockBrowser: any;
 
 jest.mock('puppeteer-extra', () => ({
     __esModule: true,
@@ -90,6 +68,18 @@ describe('BrowserManager', () => {
     setupBrowserTests();
 
     beforeEach(() => {
+        // Create fresh mock objects for each test
+        mockPage = createMockPage();
+        mockContext = {
+            newPage: jest.fn(() => Promise.resolve(mockPage)),
+            close: jest.fn()
+        };
+        mockBrowser = {
+            newPage: jest.fn(() => Promise.resolve(mockPage)),
+            createBrowserContext: jest.fn(() => Promise.resolve(mockContext)),
+            close: jest.fn()
+        };
+        
         // Setup config mock with optimized settings for testing
         const testConfig = createTestConfig();
         const mockGetConfig = jest.fn(() => testConfig);

@@ -14,7 +14,10 @@ jest.mock('../../../logger.js', () => ({
 import { jest } from '@jest/globals';
 import { BaseCMSDetector } from '../../detectors/base.js';
 import { DetectionStrategy, CMSType, DetectionPage, PartialDetectionResult } from '../../types.js';
-import { setupCMSDetectionTests, createMockPage } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Test implementation of BaseCMSDetector
 class TestCMSDetector extends BaseCMSDetector {
@@ -81,13 +84,12 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
-            expect(result.confidence).toBeGreaterThanOrEqual(0.6); // Should aggregate high confidence
-            expect(result.detectionMethods).toContain('strategy1');
-            expect(result.detectionMethods).toContain('strategy2');
-            expect(result.detectionMethods).toContain('strategy3');
-            expect(result.version).toBe('1.0'); // Should use version from high confidence strategy (>0.7)
-            expect(result.executionTime).toBeDefined();
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result).toHaveConfidenceAbove(0.59);
+            expect(result).toHaveUsedMethods(['strategy1', 'strategy2', 'strategy3']);
+            expect(result.version).toBe('1.0');
+            expect(result).toHaveExecutedWithin(0, 10000);
         });
 
         it('should handle strategy failures gracefully', async () => {

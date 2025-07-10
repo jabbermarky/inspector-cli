@@ -11,31 +11,25 @@ jest.mock('../../../logger.js', () => ({
     }))
 }));
 
+// Use standardized retry mock pattern from test-utils
 jest.mock('../../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => {
-        return await fn();
-    })
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 import { jest } from '@jest/globals';
 import { JoomlaDetector } from '../../detectors/joomla.js';
 import { DetectionPage } from '../../types.js';
-import { setupCMSDetectionTests } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage } from '@test-utils';
 
 describe('Joomla Detector', () => {
     let detector: JoomlaDetector;
-    let mockPage: jest.Mocked<DetectionPage>;
+    let mockPage: any;
 
     setupCMSDetectionTests();
 
     beforeEach(() => {
         detector = new JoomlaDetector();
-        
-        mockPage = {
-            content: jest.fn(),
-            goto: jest.fn(),
-            evaluate: jest.fn()
-        } as any;
+        mockPage = createMockPage();
     });
 
     describe('Meta Tag Detection', () => {

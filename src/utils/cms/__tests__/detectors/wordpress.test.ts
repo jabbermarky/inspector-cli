@@ -11,29 +11,28 @@ jest.mock('../../../logger.js', () => ({
     }))
 }));
 
+// Use standardized retry mock pattern from test-utils
 jest.mock('../../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation((fn: any) => fn())
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 import { jest } from '@jest/globals';
 import { WordPressDetector } from '../../detectors/wordpress.js';
 import { DetectionPage } from '../../types.js';
-import { setupCMSDetectionTests } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('WordPress Detector', () => {
     let detector: WordPressDetector;
-    let mockPage: jest.Mocked<DetectionPage>;
+    let mockPage: any;
 
     setupCMSDetectionTests();
 
     beforeEach(() => {
         detector = new WordPressDetector();
-        
-        mockPage = {
-            content: jest.fn(),
-            goto: jest.fn(),
-            evaluate: jest.fn()
-        } as any;
+        mockPage = createMockPage();
     });
 
     describe('Meta Tag Detection', () => {
@@ -44,10 +43,11 @@ describe('WordPress Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
-            expect(result.confidence).toBeGreaterThan(0.9);
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result).toHaveConfidenceAbove(0.9);
             expect(result.version).toBe('5.9');
-            expect(result.detectionMethods).toContain('meta-tag');
+            expect(result).toHaveUsedMethods(['meta-tag']);
         });
 
         it('should handle missing meta tag gracefully', async () => {
@@ -64,9 +64,10 @@ describe('WordPress Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
-            expect(result.confidence).toBeGreaterThan(0);
-            expect(result.detectionMethods).toContain('html-content');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result).toHaveConfidenceAbove(0);
+            expect(result).toHaveUsedMethods(['html-content']);
         });
     });
 

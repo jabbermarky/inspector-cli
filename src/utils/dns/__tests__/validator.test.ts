@@ -1,4 +1,5 @@
 import { validateDNS, extractDomain, DNSSkipReason } from '../validator.js';
+import { setupAnalysisTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -6,11 +7,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
 describe('DNS Validator', () => {
+    setupAnalysisTests();
     describe('extractDomain', () => {
         it('should be imported from centralized URL utilities', () => {
             expect(extractDomain).toBeDefined();

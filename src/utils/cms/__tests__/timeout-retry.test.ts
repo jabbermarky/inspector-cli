@@ -4,6 +4,7 @@ import { HtmlContentStrategy } from '../strategies/html-content.js';
 import { ApiEndpointStrategy } from '../strategies/api-endpoint.js';
 import { WordPressDetector } from '../detectors/wordpress.js';
 import { CMSTimeoutError, CMSNetworkError } from '../types.js';
+import { setupCMSDetectionTests, createMockPage } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -11,31 +12,26 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     })
 }));
 
-// Mock retry utility
+// Use standardized retry mock pattern from test-utils
 jest.mock('../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => {
-        // For testing, just call the function directly
-        return await fn();
-    })
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 describe('CMS Detection Timeout and Retry Behavior', () => {
+    setupCMSDetectionTests();
+    
     let mockPage: any;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        
         // Create mock page
-        mockPage = {
-            goto: jest.fn(),
-            content: jest.fn(),
-            evaluate: jest.fn(),
-            close: jest.fn()
-        };
+        mockPage = createMockPage();
     });
 
     describe('Strategy Timeout Handling', () => {

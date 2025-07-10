@@ -11,31 +11,28 @@ jest.mock('../../../logger.js', () => ({
     }))
 }));
 
+// Use standardized retry mock pattern from test-utils
 jest.mock('../../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => {
-        return await fn();
-    })
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 import { jest } from '@jest/globals';
 import { DrupalDetector } from '../../detectors/drupal.js';
 import { DetectionPage } from '../../types.js';
-import { setupCMSDetectionTests } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Drupal Detector', () => {
     let detector: DrupalDetector;
-    let mockPage: jest.Mocked<DetectionPage>;
+    let mockPage: any;
 
     setupCMSDetectionTests();
 
     beforeEach(() => {
         detector = new DrupalDetector();
-        
-        mockPage = {
-            content: jest.fn(),
-            goto: jest.fn(),
-            evaluate: jest.fn()
-        } as any;
+        mockPage = createMockPage();
     });
 
     describe('Meta Tag Detection', () => {
@@ -46,10 +43,11 @@ describe('Drupal Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Drupal');
-            expect(result.confidence).toBeGreaterThan(0.9);
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Drupal');
+            expect(result).toHaveConfidenceAbove(0.9);
             expect(result.version).toBe('10.1.5');
-            expect(result.detectionMethods).toContain('meta-tag');
+            expect(result).toHaveUsedMethods(['meta-tag']);
         });
 
         it('should handle missing meta tag gracefully', async () => {

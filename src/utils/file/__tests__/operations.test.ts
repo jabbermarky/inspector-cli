@@ -11,6 +11,7 @@ import {
     getFileStats,
     SUPPORTED_IMAGE_EXTENSIONS
 } from '../operations';
+import { setupFileTests } from '@test-utils';
 
 // Mock the config module
 jest.mock('../../config.js', () => ({
@@ -27,11 +28,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     })
 }));
 
 describe('File Operations', () => {
+    setupFileTests();
     // Create test files before tests
     const testDir = '/tmp/test-file-ops';
     const validImageFile = path.join(testDir, 'test.png');

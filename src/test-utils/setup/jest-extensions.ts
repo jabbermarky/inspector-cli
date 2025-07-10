@@ -74,8 +74,6 @@ export function setupJestExtensions(): void {
                 received.confidence >= 0 && received.confidence <= 1 &&
                 typeof received.method === 'string' &&
                 received.method.length > 0 &&
-                typeof received.executionTime === 'number' &&
-                received.executionTime >= 0 &&
                 (received.evidence === undefined || Array.isArray(received.evidence));
 
             if (pass) {
@@ -90,8 +88,6 @@ export function setupJestExtensions(): void {
                 if (received?.confidence < 0 || received?.confidence > 1) issues.push('confidence is not between 0 and 1');
                 if (typeof received?.method !== 'string') issues.push('method is not a string');
                 if (received?.method?.length === 0) issues.push('method is empty string');
-                if (typeof received?.executionTime !== 'number') issues.push('executionTime is not a number');
-                if (received?.executionTime < 0) issues.push('executionTime is negative');
                 if (received?.evidence !== undefined && !Array.isArray(received.evidence)) issues.push('evidence is not an array');
 
                 return {

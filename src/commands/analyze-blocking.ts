@@ -23,7 +23,7 @@ interface BlockingAnalysisOptions {
     includeUnblocked?: boolean;
 }
 
-async function analyzeBlocking(options: BlockingAnalysisOptions = {}) {
+export async function analyzeBlocking(options: BlockingAnalysisOptions = {}) {
     try {
         const {
             dataDir = './data/cms-analysis',
@@ -283,4 +283,4 @@ program
         await analyzeBlocking(options);
     });
 
-export { analyzeBlocking };
+// Remove duplicate export as function is already exported above

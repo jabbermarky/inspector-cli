@@ -13,7 +13,7 @@ jest.mock('../../../logger.js', () => ({
 
 import { HttpHeaderStrategy, HeaderPattern } from '../../strategies/http-headers.js';
 import { DetectionPage } from '../../types.js';
-import { setupStrategyTests } from '@test-utils';
+import { setupStrategyTests, createMockPage } from '@test-utils';
 
 describe('HttpHeaderStrategy', () => {
     let strategy: HttpHeaderStrategy;
@@ -22,15 +22,9 @@ describe('HttpHeaderStrategy', () => {
     setupStrategyTests();
 
     beforeEach(() => {
-        mockPage = {
-            _browserManagerContext: {
-                lastNavigation: {
-                    originalUrl: 'https://example.com',
-                    finalUrl: 'https://example.com',
-                    headers: {}
-                }
-            }
-        } as any;
+        mockPage = createMockPage({
+            httpHeaders: {}
+        });
     });
 
     describe('Basic functionality', () => {

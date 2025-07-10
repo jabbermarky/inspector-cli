@@ -7,6 +7,7 @@ import {
     UrlSecurityError,
     UrlValidationError 
 } from '../types.js';
+import { setupUrlTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -14,11 +15,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
 describe('UrlValidator', () => {
+    setupUrlTests();
     describe('validate', () => {
         describe('Basic input validation', () => {
             it('should validate correct URLs', () => {

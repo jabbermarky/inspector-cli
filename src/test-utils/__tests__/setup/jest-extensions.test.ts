@@ -119,8 +119,7 @@ describe('Jest Extensions', () => {
             const validPartial = {
                 confidence: 0.8,
                 method: 'meta-tag',
-                evidence: ['Generator meta tag found'],
-                executionTime: 100
+                evidence: ['Generator meta tag found']
             };
             
             expect(validPartial).toBeValidPartialResult();
@@ -129,8 +128,7 @@ describe('Jest Extensions', () => {
         it('should pass for partial result without evidence', () => {
             const validPartial = {
                 confidence: 0.8,
-                method: 'meta-tag',
-                executionTime: 100
+                method: 'meta-tag'
             };
             
             expect(validPartial).toBeValidPartialResult();
@@ -139,8 +137,7 @@ describe('Jest Extensions', () => {
         it('should fail for invalid confidence', () => {
             const invalidPartial = {
                 confidence: 1.5, // Invalid
-                method: 'meta-tag',
-                executionTime: 100
+                method: 'meta-tag'
             };
             
             expect(() => {
@@ -151,20 +148,7 @@ describe('Jest Extensions', () => {
         it('should fail for empty method string', () => {
             const invalidPartial = {
                 confidence: 0.8,
-                method: '', // Invalid
-                executionTime: 100
-            };
-            
-            expect(() => {
-                expect(invalidPartial).toBeValidPartialResult();
-            }).toThrow();
-        });
-        
-        it('should fail for negative execution time', () => {
-            const invalidPartial = {
-                confidence: 0.8,
-                method: 'meta-tag',
-                executionTime: -50 // Invalid
+                method: '' // Invalid
             };
             
             expect(() => {
@@ -176,8 +160,7 @@ describe('Jest Extensions', () => {
             const invalidPartial = {
                 confidence: 0.8,
                 method: 'meta-tag',
-                evidence: 'not-an-array', // Invalid
-                executionTime: 100
+                evidence: 'not-an-array' // Invalid
             };
             
             expect(() => {

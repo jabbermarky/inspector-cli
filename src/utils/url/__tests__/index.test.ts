@@ -15,6 +15,7 @@ import {
     UrlSecurityError,
     UrlFormatError
 } from '../index.js';
+import { setupUrlTests } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -22,11 +23,15 @@ jest.mock('../../logger.js', () => ({
         debug: jest.fn(),
         info: jest.fn(),
         warn: jest.fn(),
-        error: jest.fn()
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
     }))
 }));
 
 describe('URL Module Index', () => {
+    setupUrlTests();
     describe('Exports', () => {
         it('should export main classes', () => {
             expect(UrlValidator).toBeDefined();

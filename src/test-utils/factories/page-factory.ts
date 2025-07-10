@@ -88,7 +88,18 @@ export function createMockPage(options: PageMockOptions = {}): any {
         
         // Timeouts
         setDefaultNavigationTimeout: jest.fn(),
-        setDefaultTimeout: jest.fn()
+        setDefaultTimeout: jest.fn(),
+        
+        // Event handling
+        on: jest.fn(),
+        off: jest.fn(),
+        once: jest.fn(),
+        
+        // Request interception
+        setRequestInterception: jest.fn(),
+        
+        // Lifecycle events
+        close: jest.fn()
     };
 
     // Setup evaluation behavior

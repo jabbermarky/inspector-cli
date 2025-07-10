@@ -13,7 +13,7 @@ jest.mock('../../../logger.js', () => ({
 
 import { RobotsTxtStrategy, RobotsPattern, WORDPRESS_ROBOTS_PATTERNS, DRUPAL_ROBOTS_PATTERNS, JOOMLA_ROBOTS_PATTERNS } from '../../strategies/robots-txt.js';
 import { DetectionPage } from '../../types.js';
-import { setupStrategyTests } from '@test-utils';
+import { setupStrategyTests, createMockPage } from '@test-utils';
 
 describe('RobotsTxtStrategy', () => {
     let strategy: RobotsTxtStrategy;
@@ -22,8 +22,8 @@ describe('RobotsTxtStrategy', () => {
     setupStrategyTests();
 
     beforeEach(() => {
-        mockPage = {
-            _robotsTxtData: {
+        mockPage = createMockPage({
+            robotsTxtData: {
                 accessible: true,
                 content: '',
                 patterns: {
@@ -31,7 +31,7 @@ describe('RobotsTxtStrategy', () => {
                     sitemapUrls: []
                 }
             }
-        };
+        });
     });
 
     describe('Basic functionality', () => {

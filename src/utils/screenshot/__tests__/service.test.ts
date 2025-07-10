@@ -1,5 +1,6 @@
 import { ScreenshotService } from '../service.js';
 import { ScreenshotValidationError } from '../types';
+import { setupScreenshotTests, createMockPage, createMockBrowserManager } from '@test-utils';
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -16,29 +17,8 @@ jest.mock('../../logger.js', () => ({
     }))
 }));
 
-// Mock browser manager
-const mockPage = {
-    goto: jest.fn(),
-    setUserAgent: jest.fn(),
-    setDefaultTimeout: jest.fn(),
-    setDefaultNavigationTimeout: jest.fn(),
-    setRequestInterception: jest.fn(),
-    on: jest.fn(),
-    screenshot: jest.fn(),
-    evaluate: jest.fn(),
-    close: jest.fn(),
-    waitForTimeout: jest.fn(),
-    _browserManagerContext: undefined
-};
-
-const mockBrowserManager = {
-    createPage: jest.fn(() => Promise.resolve(mockPage)),
-    captureScreenshot: jest.fn(() => Promise.resolve([1024, 768])),
-    cleanup: jest.fn()
-};
-
 jest.mock('../../browser/index.js', () => ({
-    BrowserManager: jest.fn(() => mockBrowserManager),
+    BrowserManager: jest.fn(() => createMockBrowserManager()),
     createCaptureConfig: jest.fn(() => ({})),
     BrowserNetworkError: class BrowserNetworkError extends Error {
         constructor(message: string) { super(message); }
@@ -54,6 +34,8 @@ beforeAll(() => {
 });
 
 describe('ScreenshotService', () => {
+    setupScreenshotTests();
+    
     let service: ScreenshotService;
 
     beforeEach(() => {
