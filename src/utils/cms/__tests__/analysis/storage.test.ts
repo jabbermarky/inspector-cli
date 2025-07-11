@@ -181,7 +181,10 @@ describe('DataStorage Unit Tests', () => {
             const results = await storage.query({ minConfidence: 0.8 });
             
             expect(results.length).toBeGreaterThan(0);
-            expect(results.every(r => r.detectionResults.some(dr => dr.confidence >= 0.8))).toBe(true);
+            // Verify each result has detection results with confidence >= 0.8
+            results.forEach(result => {
+                expect(result.detectionResults.some(dr => dr.confidence >= 0.8)).toBe(true);
+            });
         });
         
         it('should query by date range', async () => {

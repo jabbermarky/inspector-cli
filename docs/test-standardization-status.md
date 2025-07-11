@@ -54,9 +54,9 @@ This document tracks the implementation status of test infrastructure improvemen
 | `src/utils/cms/__tests__/analysis/collector.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/utils/cms/__tests__/analysis/collector.functional.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/utils/cms/__tests__/analysis/collector-script-collection.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/utils/cms/__tests__/analysis/storage.functional.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/utils/cms/__tests__/analysis/storage.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/utils/cms/__tests__/analysis/storage.integration.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/utils/cms/__tests__/analysis/storage.functional.test.ts` | CMS-Analysis | ✅ | ➖ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/utils/cms/__tests__/analysis/storage.test.ts` | CMS-Analysis | ✅ | ➖ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/utils/cms/__tests__/analysis/storage.integration.test.ts` | CMS-Analysis | ✅ | ➖ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
 | `src/utils/cms/__tests__/analysis/reports.functional.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/utils/cms/__tests__/analysis/patterns.functional.test.ts` | CMS-Analysis | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/utils/cms/__tests__/analysis/bot-blocking.test.ts` | CMS-Analysis | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | **MODERN** |
