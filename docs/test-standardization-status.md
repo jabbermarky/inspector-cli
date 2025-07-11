@@ -17,7 +17,7 @@ This document tracks the implementation status of test infrastructure improvemen
 | ❓ | **QUESTIONABLE** | Implementation may be incomplete or experimental |
 | ➖ | **N/A** | Not applicable for this file type |
 
-## Status Matrix
+## Infrastructure Standardization Matrix
 
 | File Path | Category | Uses @test-utils | Custom Matchers | Factory Functions | Setup Functions | Complete Logger Mocks | Standardized Retry | Status |
 |-----------|----------|------------------|------------------|-------------------|-----------------|----------------------|-------------------|---------|
@@ -92,35 +92,78 @@ This document tracks the implementation status of test infrastructure improvemen
 | `src/test-utils/__tests__/integration/import-paths.test.ts` | Test-Utils | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ | **MODERN** |
 | `src/test-utils/__tests__/index.test.ts` | Test-Utils | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ | **MODERN** |
 
-## Summary Statistics
+## Coverage Status Matrix
 
-| Improvement | Complete (✅) | Partial (⚠️) | Needed (❌) | Skipped (🚫) | N/A (➖) | Completion Rate |
-|-------------|---------------|---------------|---------------|---------------|-------------|-----------------|
-| **Uses @test-utils** | 48 | 7 | 9 | 0 | 0 | 75% |
-| **Custom Matchers** | 32 | 0 | 31 | 0 | 1 | 50% |
-| **Factory Functions** | 31 | 0 | 23 | 0 | 10 | 53% |
-| **Setup Functions** | 41 | 0 | 22 | 0 | 1 | 64% |
-| **Complete Logger Mocks** | 48 | 4 | 11 | 0 | 1 | 75% |
-| **Standardized Retry** | 8 | 0 | 43 | 0 | 13 | 12% |
+| File Path | Category | No Skipped Tests | Happy Path Coverage | Error Scenario Coverage | Functional Tests | Integration Tests | Status |
+|-----------|----------|------------------|---------------------|-------------------------|------------------|------------------|--------|
+| **COMMAND TESTS** | | | | | | | |
+| TBD - To be assessed | | | | | | | |
+| **CMS DETECTION TESTS** | | | | | | | |
+| TBD - To be assessed | | | | | | | |
+| **UTILITY TESTS** | | | | | | | |
+| TBD - To be assessed | | | | | | | |
+| **TEST UTILS TESTS** | | | | | | | |
+| TBD - To be assessed | | | | | | | |
+
 
 ## Systematic Approach
-### Test Utils Folder
+### 1. Commands Folder
+for the src/commands folder:
+insure that tests use @test-utils where appropriate, otherwise update status as N/A
+insure that tests use Custom Matchers where appropriate, otherwise update status as N/A
+insure that tests use Factory Functions where appropriate, otherwise update status as N/A
+insure that tests use Setup Functions where appropriate, otherwise update status as N/A
+Complete Logger Mocks for all tests where appropriate, otherwise update status as N/A 
+insure that tests use Standardized Retry where appropriate, otherwise update status as N/A
+insure that none of the tests or test suites are skipped;
+insure that the happy paths are fully covered with tests;
+insure that the error scenarios are covered with tests;
+create missing functional tests;
+create missing integration tests;                         
+
+### 2. Test Utils Folder
 for the src/test-utils folder:
-I want insure that none of the tests or test suites are skipped;
-I want to insure that the happy paths are fully covered with tests;
-I want to insure that the error scenarios are covered with tests;
-I want to create missing functional tests;
-I want to create missing integration tests;                         
-### CMS Detection Folder
+insure that tests use @test-utils where appropriate, otherwise update status as N/A
+insure that tests use Custom Matchers where appropriate, otherwise update status as N/A
+insure that tests use Factory Functions where appropriate, otherwise update status as N/A
+insure that tests use Setup Functions where appropriate, otherwise update status as N/A
+Complete Logger Mocks for all tests where appropriate, otherwise update status as N/A 
+insure that tests use Standardized Retry where appropriate, otherwise update status as N/A
+insure that none of the tests or test suites are skipped;
+insure that the happy paths are fully covered with tests;
+insure that the error scenarios are covered with tests;
+create missing functional tests;
+create missing integration tests;                         
+
+### 3. CMS Detection Folder
 for the src/utils/cms folder:
-I want insure that none of the tests or test suites are skipped;
-I want to insure that the happy paths are fully covered with tests;
-I want to insure that the error scenarios are covered with tests;
-I want to create missing functional tests;
-I want to create missing integration tests;                         
+insure that tests use @test-utils where appropriate, otherwise update status as N/A
+insure that tests use Custom Matchers where appropriate, otherwise update status as N/A
+insure that tests use Factory Functions where appropriate, otherwise update status as N/A
+insure that tests use Setup Functions where appropriate, otherwise update status as N/A
+Complete Logger Mocks for all tests where appropriate, otherwise update status as N/A 
+insure that tests use Standardized Retry where appropriate, otherwise update status as N/A
+insure that none of the tests or test suites are skipped;
+insure that the happy paths are fully covered with tests;
+insure that the error scenarios are covered with tests;
+create missing functional tests;
+create missing integration tests;                         
 
+### 4. Utils Folder
+for the src/utils folder:
+insure that tests use @test-utils where appropriate, otherwise update status as N/A
+insure that tests use Custom Matchers where appropriate, otherwise update status as N/A
+insure that tests use Factory Functions where appropriate, otherwise update status as N/A
+insure that tests use Setup Functions where appropriate, otherwise update status as N/A
+Complete Logger Mocks for all tests where appropriate, otherwise update status as N/A 
+insure that tests use Standardized Retry where appropriate, otherwise update status as N/A
+insure that none of the tests or test suites are skipped;
+insure that the happy paths are fully covered with tests;
+insure that the error scenarios are covered with tests;
+create missing functional tests;
+create missing integration tests;
 
-
+**STATUS**: Based on git logs and commit 2bd3320, infrastructure standardization appears COMPLETE. Coverage expansion completed with 73 new tests added (Phase 3.3). Need to verify and update status flags accordingly.
 
 ## Phase 2 Implementation Priorities
 
