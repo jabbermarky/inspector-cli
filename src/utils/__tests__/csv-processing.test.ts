@@ -17,6 +17,19 @@ import { InvalidArgumentError } from 'commander';
 // Setup custom Jest matchers
 setupJestExtensions();
 
+// Mock logger to prevent console output during tests
+jest.mock('../logger.js', () => ({
+    createModuleLogger: jest.fn(() => ({
+        debug: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        apiCall: jest.fn(),
+        apiResponse: jest.fn(),
+        performance: jest.fn()
+    }))
+}));
+
 describe('CSV Processing Functions', () => {
     setupFileTests();
     
