@@ -12,13 +12,13 @@ jest.mock('../../../logger.js', () => ({
 }));
 
 import { jest } from '@jest/globals';
-import { DataStorage } from '../storage.js';
-import { setupDataStorageIntegrationTests } from '../test-setup.js';
+import { DataStorage } from '../../analysis/storage.js';
+import { setupDataStorageIntegrationTests } from '../../analysis/test-setup.js';
 import { 
     createTestDataPoint, 
     createWordPressDataPoint, 
     createLargeTestDataBatch
-} from '../test-factories.js';
+} from '../../analysis/test-factories.js';
 
 describe('DataStorage Integration Tests', () => {
     const { getStorage, getTempDir } = setupDataStorageIntegrationTests();

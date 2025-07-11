@@ -12,9 +12,9 @@ jest.mock('../../../logger.js', () => ({
 }));
 
 import { jest } from '@jest/globals';
-import { DataStorage } from '../storage.js';
-import { InMemoryFileSystemAdapter } from '../filesystem-adapter.js';
-import { setupDataStorageTests } from '../test-setup.js';
+import { DataStorage } from '../../analysis/storage.js';
+import { InMemoryFileSystemAdapter } from '../../analysis/filesystem-adapter.js';
+import { setupDataStorageTests } from '../../analysis/test-setup.js';
 import { 
     createTestDataPoint, 
     createWordPressDataPoint, 
@@ -23,7 +23,7 @@ import {
     createUnknownCMSDataPoint,
     createErrorDataPoint,
     createTestDataPointBatch
-} from '../test-factories.js';
+} from '../../analysis/test-factories.js';
 
 describe('DataStorage Unit Tests', () => {
     const { getStorage, getFileSystem } = setupDataStorageTests();
