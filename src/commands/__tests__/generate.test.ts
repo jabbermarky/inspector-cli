@@ -14,6 +14,10 @@ jest.mock('../../utils/cms/analysis/generator.js', () => ({
     RuleGenerator: jest.fn()
 }));
 
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
 jest.mock('../../utils/logger.js', () => ({
     createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),

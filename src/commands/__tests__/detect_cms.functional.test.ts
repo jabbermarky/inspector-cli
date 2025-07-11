@@ -15,6 +15,10 @@ setupJestExtensions();
 import { processCMSDetectionBatch } from '../detect_cms.js';
 
 // Mock only the external dependencies that would cause issues in test environment
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
 jest.mock('../../utils/cms/index.js', () => ({
     CMSDetectionIterator: class MockCMSDetectionIterator {
         constructor(options: any) {

@@ -15,6 +15,10 @@ setupJestExtensions();
 import { generateDetectionStrategies, generateIntegrationInstructions } from '../generate.js';
 
 // Mock external dependencies that would cause issues in test environment
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
 jest.mock('../../utils/cms/analysis/storage.js', () => ({
     DataStorage: class MockDataStorage {
         constructor(dataDir: string) {

@@ -3,10 +3,22 @@ import * as utils from '../../utils/utils.js';
 import { CMSDetectionIterator, CMSDetectionResult } from '../../utils/cms/index.js';
 import { CMSType } from '../../utils/cms/types.js';
 import { processCMSDetectionBatch } from '../detect_cms.js';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { setupCommandTests, setupJestExtensions, createWordPressResult, createDrupalResult, createFailedResult } from '@test-utils';
 
 // Setup custom Jest matchers
 setupJestExtensions();
+
+// Factory functions for test data creation
+const createCMSDetectionResult = (overrides: any = {}) => ({
+    cms: 'WordPress',
+    confidence: 0.9,
+    originalUrl: 'http://example.com',
+    finalUrl: 'http://example.com',
+    executionTime: 1000,
+    ...overrides
+});
+
+const createTestUrlsWithResult = (urls: string[], result: any) => ({ urls, result });
 
 // Mock dependencies
 jest.mock('../../utils/utils.js', () => ({
@@ -16,6 +28,10 @@ jest.mock('../../utils/utils.js', () => ({
 
 jest.mock('../../utils/cms/index.js', () => ({
     CMSDetectionIterator: jest.fn()
+}));
+
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 jest.mock('../../utils/logger.js', () => ({

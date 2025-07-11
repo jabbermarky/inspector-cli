@@ -1,4 +1,8 @@
 // Mock external dependencies BEFORE imports
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
 jest.mock('../../utils/logger.js', () => ({
     createModuleLogger: jest.fn(() => ({
         debug: jest.fn(),

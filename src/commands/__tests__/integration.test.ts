@@ -18,6 +18,10 @@ setupJestExtensions();
  */
 
 // Mock all dependencies for integration testing
+jest.mock('../../utils/retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+}));
+
 jest.mock('../../utils/utils.js', () => ({
     detectInputType: jest.fn(),
     extractUrlsFromCSV: jest.fn(),

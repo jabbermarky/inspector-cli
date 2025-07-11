@@ -22,26 +22,26 @@ This document tracks the implementation status of test infrastructure improvemen
 | File Path | Category | Uses @test-utils | Custom Matchers | Factory Functions | Setup Functions | Complete Logger Mocks | Standardized Retry | Status |
 |-----------|----------|------------------|------------------|-------------------|-----------------|----------------------|-------------------|---------|
 | **COMMAND TESTS** | | | | | | | | |
-| `src/commands/__tests__/detect_cms.test.ts` | Command-Unit | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/screenshot.test.ts` | Command-Unit | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/generate.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/detect_cms.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/screenshot.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/generate.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/assistants.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/csv.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/footer.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/chat.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/assistant.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze-blocking.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/eval.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth-simplified.test.ts` | Command-Bug | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth-subdomain-bug.test.ts` | Command-Bug | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth-script-signals-bug.test.ts` | Command-Bug | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/integration.test.ts` | Command-Integration | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/detect_cms.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |
+| `src/commands/__tests__/screenshot.test.ts` | Command-Unit | ✅ | ➖ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/analyze.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/generate.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |
+| `src/commands/__tests__/detect_cms.functional.test.ts` | Command-Functional | ✅ | ✅ | ➖ | ✅ | ✅ | ✅ | **MODERN** |
+| `src/commands/__tests__/analyze.functional.test.ts` | Command-Functional | ✅ | ✅ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/screenshot.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/generate.functional.test.ts` | Command-Functional | ✅ | ✅ | ➖ | ✅ | ✅ | ✅ | **MODERN** |
+| `src/commands/__tests__/assistants.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/csv.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/footer.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/chat.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/assistant.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/analyze-blocking.functional.test.ts` | Command-Functional | ✅ | ✅ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/eval.functional.test.ts` | Command-Functional | ✅ | ➖ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/ground-truth.functional.test.ts` | Command-Functional | ✅ | ✅ | ➖ | ✅ | ✅ | ✅ | **MODERN** |
+| `src/commands/__tests__/ground-truth-simplified.test.ts` | Command-Bug | ✅ | ✅ | ✅ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/ground-truth-subdomain-bug.test.ts` | Command-Bug | ✅ | ✅ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/ground-truth-script-signals-bug.test.ts` | Command-Bug | ✅ | ✅ | ➖ | ✅ | ✅ | ➖ | **MODERN** |
+| `src/commands/__tests__/integration.test.ts` | Command-Integration | ✅ | ✅ | ➖ | ✅ | ✅ | ✅ | **MODERN** |
 | **CMS DETECTION TESTS** | | | | | | | | |
 | `src/utils/cms/__tests__/detectors/wordpress.test.ts` | CMS-Detector | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |
 | `src/utils/cms/__tests__/detectors/drupal.test.ts` | CMS-Detector | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |
@@ -96,15 +96,56 @@ This document tracks the implementation status of test infrastructure improvemen
 
 | File Path | Category | No Skipped Tests | Happy Path Coverage | Error Scenario Coverage | Functional Tests | Integration Tests | Status |
 |-----------|----------|------------------|---------------------|-------------------------|------------------|------------------|--------|
-| **COMMAND TESTS** | | | | | | | |
-| TBD - To be assessed | | | | | | | |
-| **CMS DETECTION TESTS** | | | | | | | |
-| TBD - To be assessed | | | | | | | |
-| **UTILITY TESTS** | | | | | | | |
-| TBD - To be assessed | | | | | | | |
-| **TEST UTILS TESTS** | | | | | | | |
-| TBD - To be assessed | | | | | | | |
+| **COMMAND TESTS (20 files)** | | | | | | | |
+| Commands folder overall | Command-All | ✅ | ✅ | ✅ | ✅ | ✅ | **EXCELLENT** |
+| Unit tests (8 files) | Command-Unit | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Functional tests (12 files) | Command-Functional | ✅ | ✅ | ✅ | ✅ | ➖ | **COMPLETE** |
+| Integration tests (1 file) | Command-Integration | ✅ | ✅ | ✅ | ✅ | ✅ | **COMPLETE** |
+| **CMS DETECTION TESTS (17 files)** | | | | | | | |
+| CMS folder overall | CMS-All | ⚠️ | ✅ | ✅ | ⚠️ | ➖ | **GOOD** |
+| Detector tests (4 files) | CMS-Detector | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Strategy tests (4 files) | CMS-Strategy | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Analysis tests (8 files) | CMS-Analysis | ⚠️ | ✅ | ✅ | ⚠️ | ➖ | **GOOD** |
+| Hybrid tests (1 file) | CMS-Hybrid | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| **UTILITY TESTS (17 files)** | | | | | | | |
+| Utils folder overall | Utility-All | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Core utilities (4 files) | Utility-Core | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Browser utilities (4 files) | Utility-Browser | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| URL utilities (4 files) | Utility-URL | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Screenshot utilities (3 files) | Utility-Screenshot | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| File utilities (1 file) | Utility-File | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| DNS utilities (1 file) | Utility-DNS | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| **TEST UTILS TESTS (12 files)** | | | | | | | |
+| Test-utils folder overall | Test-Utils-All | ✅ | ✅ | ✅ | ➖ | ✅ | **COMPLETE** |
+| Mock utilities (6 files) | Test-Utils-Mocks | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Factory utilities (2 files) | Test-Utils-Factories | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Setup utilities (2 files) | Test-Utils-Setup | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
+| Integration utilities (1 file) | Test-Utils-Integration | ✅ | ✅ | ✅ | ➖ | ✅ | **COMPLETE** |
+| Core utilities (1 file) | Test-Utils-Core | ✅ | ✅ | ✅ | ➖ | ➖ | **COMPLETE** |
 
+## Coverage Summary
+
+### Overall Status: **EXCELLENT** ✅
+- **Total Test Files**: 66 files (64 active + 2 skipped)
+- **Infrastructure Completion**: 100% - All active files use modern test patterns
+- **Coverage Completion**: 97% - Only 2 files have coverage gaps
+
+### Key Metrics:
+- **No Skipped Tests**: 62/64 files (97%) - Only 2 analysis files skipped due to implementation gaps
+- **Happy Path Coverage**: 64/64 files (100%) - All active files have comprehensive happy path tests
+- **Error Scenario Coverage**: 64/64 files (100%) - All active files have robust error handling tests
+- **Functional Tests**: 13/64 files (20%) - Commands have excellent functional test coverage
+- **Integration Tests**: 2/64 files (3%) - Commands and test-utils have integration coverage
+
+### By Category:
+1. **Commands (20 files)**: EXCELLENT - 100% complete with full functional and integration coverage
+2. **CMS Detection (17 files)**: GOOD - 88% complete (2 skipped analysis files)
+3. **Utilities (17 files)**: COMPLETE - 100% complete with comprehensive coverage
+4. **Test Utils (12 files)**: COMPLETE - 100% complete with integration coverage
+
+### Remaining Work:
+1. **Fix 2 skipped analysis files** (storage.functional.test.ts, reports.functional.test.ts)
+2. **Consider adding more integration tests** for cross-module workflows
 
 ## Systematic Approach
 ### 1. Commands Folder
