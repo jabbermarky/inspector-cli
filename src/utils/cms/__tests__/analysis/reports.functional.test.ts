@@ -16,9 +16,9 @@ jest.mock('fs/promises', () => ({
 }));
 
 import { jest } from '@jest/globals';
-import { AnalysisReporter } from '../reports.js';
+import { AnalysisReporter } from '../../analysis/reports.js';
 import { setupAnalysisTests } from '@test-utils';
-import { DetectionDataPoint } from '../types.js';
+import { DetectionDataPoint } from '../../analysis/types.js';
 import * as fs from 'fs/promises';
 
 // Helper function to create valid DetectionDataPoint
@@ -91,7 +91,7 @@ function createTestDataPoint(overrides: Partial<DetectionDataPoint> = {}): Detec
     };
 }
 
-jest.mock('../patterns.js', () => ({
+jest.mock('../../analysis/patterns.js', () => ({
     PatternDiscovery: class MockPatternDiscovery {
         constructor(private dataPoints: any[]) {}
 

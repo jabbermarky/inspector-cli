@@ -21,8 +21,8 @@ jest.mock('../../../logger.js', () => ({
 }));
 
 // Import the actual class we want to test
-import { PatternDiscovery } from '../patterns.js';
-import { DetectionDataPoint } from '../types.js';
+import { PatternDiscovery } from '../../analysis/patterns.js';
+import { DetectionDataPoint } from '../../analysis/types.js';
 
 describe('Functional: PatternDiscovery', () => {
     setupAnalysisTests();
@@ -142,7 +142,7 @@ describe('Functional: PatternDiscovery', () => {
             expect(wpPatterns.length).toBeGreaterThan(0);
             
             // Should find generator pattern with high confidence
-            const generatorPattern = wpPatterns.find(p => p.pattern === 'name:generator');
+            const generatorPattern = wpPatterns.find((p: any) => p.pattern === 'name:generator');
             expect(generatorPattern).toBeDefined();
             expect(generatorPattern!.frequency).toBe(1.0); // All sites have it
             expect(generatorPattern!.confidence).toBeGreaterThan(0.9);
@@ -171,7 +171,7 @@ describe('Functional: PatternDiscovery', () => {
 
             expect(patterns.has('Drupal')).toBe(true);
             const drupalPatterns = patterns.get('Drupal')!;
-            expect(drupalPatterns.some(p => p.pattern === 'name:Generator')).toBe(true);
+            expect(drupalPatterns.some((p: any) => p.pattern === 'name:Generator')).toBe(true);
         });
 
         it('should calculate pattern confidence across multiple CMS types', () => {
@@ -199,8 +199,8 @@ describe('Functional: PatternDiscovery', () => {
             const wpPatterns = patterns.get('WordPress')!;
             const drupalPatterns = patterns.get('Drupal')!;
             
-            const wpGen = wpPatterns.find(p => p.pattern === 'name:generator');
-            const drupalGen = drupalPatterns.find(p => p.pattern === 'name:generator');
+            const wpGen = wpPatterns.find((p: any) => p.pattern === 'name:generator');
+            const drupalGen = drupalPatterns.find((p: any) => p.pattern === 'name:generator');
             
             expect(wpGen).toBeDefined();
             expect(wpGen!.confidence).toBeCloseTo(0.666, 2); // 2 out of 3 generator tags
@@ -237,10 +237,10 @@ describe('Functional: PatternDiscovery', () => {
             const testPatterns = patterns.get('TestCMS')!;
             
             // 'common' appears in 100% (2/2), should be included
-            expect(testPatterns.some(p => p.pattern === 'name:common')).toBe(true);
+            expect(testPatterns.some((p: any) => p.pattern === 'name:common')).toBe(true);
             
             // 'rare' appears in 50% (1/2), might be included based on confidence
-            const rarePattern = testPatterns.find(p => p.pattern === 'name:rare');
+            const rarePattern = testPatterns.find((p: any) => p.pattern === 'name:rare');
             if (rarePattern) {
                 expect(rarePattern.frequency).toBe(0.5);
             }
@@ -294,8 +294,8 @@ describe('Functional: PatternDiscovery', () => {
             const wpPatterns = patterns.get('WordPress')!;
             
             // Should find wp-* pattern
-            expect(wpPatterns.some(p => p.pattern === 'script:wp-*')).toBe(true);
-            expect(wpPatterns.some(p => p.pattern === 'path:wp-content')).toBe(true);
+            expect(wpPatterns.some((p: any) => p.pattern === 'script:wp-*')).toBe(true);
+            expect(wpPatterns.some((p: any) => p.pattern === 'path:wp-content')).toBe(true);
         });
 
         it('should discover Drupal script patterns', () => {
@@ -323,8 +323,8 @@ describe('Functional: PatternDiscovery', () => {
             expect(patterns.has('Drupal')).toBe(true);
             const drupalPatterns = patterns.get('Drupal')!;
             
-            expect(drupalPatterns.some(p => p.pattern === 'path:sites')).toBe(true);
-            expect(drupalPatterns.some(p => p.pattern === 'inline:Drupal.')).toBe(true);
+            expect(drupalPatterns.some((p: any) => p.pattern === 'path:sites')).toBe(true);
+            expect(drupalPatterns.some((p: any) => p.pattern === 'inline:Drupal.')).toBe(true);
         });
 
         it('should extract inline script patterns', () => {
@@ -342,7 +342,7 @@ describe('Functional: PatternDiscovery', () => {
             const patterns = discovery.analyzeScriptPatterns();
 
             const joomlaPatterns = patterns.get('Joomla')!;
-            expect(joomlaPatterns.some(p => p.pattern === 'inline:Joomla.')).toBe(true);
+            expect(joomlaPatterns.some((p: any) => p.pattern === 'inline:Joomla.')).toBe(true);
         });
 
         it('should handle scripts with no src or content', () => {
@@ -380,7 +380,7 @@ describe('Functional: PatternDiscovery', () => {
             const patterns = discovery.analyzeScriptPatterns();
 
             const testPatterns = patterns.get('TestCMS')!;
-            testPatterns.forEach(pattern => {
+            testPatterns.forEach((pattern: any) => {
                 expect(pattern.examples.length).toBeLessThanOrEqual(3);
             });
         });
@@ -426,7 +426,7 @@ describe('Functional: PatternDiscovery', () => {
             const wpPatterns = patterns.get('WordPress')!;
             
             // body[class*="wp-"] appears in 100% of sites
-            const bodyPattern = wpPatterns.find(p => p.pattern === 'body[class*="wp-"]');
+            const bodyPattern = wpPatterns.find((p: any) => p.pattern === 'body[class*="wp-"]');
             expect(bodyPattern).toBeDefined();
             expect(bodyPattern!.frequency).toBe(1.0);
         });
@@ -452,7 +452,7 @@ describe('Functional: PatternDiscovery', () => {
             
             // Pattern appears in 3/5 = 60% of sites
             // Should only be included if confidence is high enough
-            const commonPattern = testPatterns.find(p => p.pattern === 'div[class*="common"]');
+            const commonPattern = testPatterns.find((p: any) => p.pattern === 'div[class*="common"]');
             if (commonPattern) {
                 expect(commonPattern.frequency).toBe(0.6);
             }
@@ -753,7 +753,7 @@ describe('Functional: PatternDiscovery', () => {
             // Should use the highest confidence result (Drupal)
             expect(patterns.has('Drupal')).toBe(true);
             const drupalPatterns = patterns.get('Drupal')!;
-            expect(drupalPatterns.some(p => p.pattern === 'name:generator')).toBe(true);
+            expect(drupalPatterns.some((p: any) => p.pattern === 'name:generator')).toBe(true);
         });
 
         it('should handle empty pattern analysis gracefully', () => {
@@ -801,7 +801,7 @@ describe('Functional: PatternDiscovery', () => {
 
             // Should only process valid meta tags
             const testPatterns = patterns.get('TestCMS')!;
-            expect(testPatterns.some(p => p.pattern === 'name:valid')).toBe(true);
+            expect(testPatterns.some((p: any) => p.pattern === 'name:valid')).toBe(true);
         });
     });
 });

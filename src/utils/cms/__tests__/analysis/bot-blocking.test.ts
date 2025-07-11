@@ -4,8 +4,8 @@
  * Comprehensive test suite for bot blocking detection and evasion analysis.
  */
 
-import { BotBlockingAnalyzer } from '../bot-blocking.js';
-import { DetectionDataPoint } from '../types.js';
+import { BotBlockingAnalyzer } from '../../analysis/bot-blocking.js';
+import { DetectionDataPoint } from '../../analysis/types.js';
 import { setupJestExtensions } from '@test-utils';
 
 // Setup custom Jest matchers
@@ -223,7 +223,7 @@ describe('BotBlockingAnalyzer', () => {
                 expect(result.isBlocked).toBe(true);
                 expect(result.signatures.length).toBeGreaterThan(1);
                 
-                const providers = result.signatures.map(s => s.provider);
+                const providers = result.signatures.map((s: any) => s.provider);
                 expect(providers).toContain('Cloudflare');
                 expect(providers).toContain('Google');
                 
@@ -343,8 +343,8 @@ describe('BotBlockingAnalyzer', () => {
             const result = analyzer.analyzeDataPoint(dataPoint);
             
             expect(result.isBlocked).toBe(true);
-            expect(result.evasionStrategies.some(s => s.type === 'captcha')).toBe(true);
-            expect(result.evasionStrategies.some(s => s.name === 'CAPTCHA Solving Integration')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.type === 'captcha')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.name === 'CAPTCHA Solving Integration')).toBe(true);
         });
         
         it('should recommend proxy strategies for IP blocking', () => {
@@ -356,8 +356,8 @@ describe('BotBlockingAnalyzer', () => {
             const result = analyzer.analyzeDataPoint(dataPoint);
             
             expect(result.isBlocked).toBe(true);
-            expect(result.evasionStrategies.some(s => s.type === 'proxy')).toBe(true);
-            expect(result.evasionStrategies.some(s => s.name === 'Residential Proxy Rotation')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.type === 'proxy')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.name === 'Residential Proxy Rotation')).toBe(true);
         });
         
         it('should recommend timing strategies for rate limiting', () => {
@@ -369,8 +369,8 @@ describe('BotBlockingAnalyzer', () => {
             const result = analyzer.analyzeDataPoint(dataPoint);
             
             expect(result.isBlocked).toBe(true);
-            expect(result.evasionStrategies.some(s => s.type === 'timing')).toBe(true);
-            expect(result.evasionStrategies.some(s => s.name === 'Add Request Delays')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.type === 'timing')).toBe(true);
+            expect(result.evasionStrategies.some((s: any) => s.name === 'Add Request Delays')).toBe(true);
         });
     });
     
@@ -420,7 +420,7 @@ describe('BotBlockingAnalyzer', () => {
                 const result = analyzer.analyzeDataPoint(dataPoint);
                 
                 expect(result.isBlocked).toBe(true);
-                expect(result.signatures.some(s => s.provider === provider)).toBe(true);
+                expect(result.signatures.some((s: any) => s.provider === provider)).toBe(true);
             });
         });
     });

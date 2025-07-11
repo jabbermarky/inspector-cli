@@ -21,9 +21,9 @@ jest.mock('fs/promises', () => ({
 }));
 
 import { jest } from '@jest/globals';
-import { DataStorage } from '../storage.js';
+import { DataStorage } from '../../analysis/storage.js';
 import { setupAnalysisTests } from '@test-utils';
-import { DetectionDataPoint } from '../types.js';
+import { DetectionDataPoint } from '../../analysis/types.js';
 import * as fs from 'fs/promises';
 
 /**

@@ -45,8 +45,8 @@ global.AbortSignal = {
 } as any;
 
 // Import the actual class we want to test
-import { DataCollector } from '../collector.js';
-import { CollectionConfig } from '../types.js';
+import { DataCollector } from '../../analysis/collector.js';
+import { CollectionConfig } from '../../analysis/types.js';
 
 describe('Functional: DataCollector', () => {
     setupAnalysisTests();
