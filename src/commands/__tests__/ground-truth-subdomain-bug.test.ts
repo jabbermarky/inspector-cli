@@ -1,7 +1,10 @@
 // Simplified test without problematic mocks since we're testing isolated methods
 
 import { jest } from '@jest/globals';
-import { setupCommandTests } from '@test-utils';
+import { setupCommandTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 import * as fs from 'fs';
 import * as path from 'path';
 

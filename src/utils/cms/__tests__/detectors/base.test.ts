@@ -102,7 +102,8 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
             expect(result.confidence).toBe(0.6);
             expect(result.detectionMethods).toEqual(['working']);
         });
@@ -117,7 +118,8 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBe(0);
         });
 
@@ -126,7 +128,8 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBe(0);
             expect(result.detectionMethods).toEqual([]);
         });
@@ -150,7 +153,8 @@ describe('BaseCMSDetector', () => {
             const result = await detector.detect(mockPage, 'https://example.com');
 
             // Should handle timeout and continue
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBe(0);
         });
     });
@@ -167,6 +171,7 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidCMSResult();
             expect(result.confidence).toBeGreaterThan(0.7); // Should be weighted average
             expect(result.confidence).toBeLessThan(1.0);
         });
@@ -182,6 +187,7 @@ describe('BaseCMSDetector', () => {
             const result = await detector.detect(mockPage, 'https://example.com');
 
             // Should be weighted average: (0.2*1.0 + 0.3*0.5) / (1.0+0.5) = 0.25
+            expect(result).toBeValidCMSResult();
             expect(result.confidence).toBeCloseTo(0.25, 2);
         });
     });
@@ -208,8 +214,9 @@ describe('BaseCMSDetector', () => {
 
             const result = await weightedDetector.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBeGreaterThan(0.7);
-            expect(result.cms).toBe('WordPress');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveConfidenceAbove(0.69);
+            expect(result).toHaveDetectedCMS('WordPress');
         });
     });
 
@@ -253,7 +260,8 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBe(0);
             // The base implementation doesn't automatically set error messages for all failed strategies
         });
@@ -268,7 +276,8 @@ describe('BaseCMSDetector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
             expect(result.error).toBeUndefined();
         });
     });

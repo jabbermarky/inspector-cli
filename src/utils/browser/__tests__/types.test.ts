@@ -8,6 +8,10 @@ import {
     DEFAULT_ESSENTIAL_SCRIPT_PATTERNS,
     DEFAULT_BROWSER_CONFIG
 } from '../types.js';
+import { setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Browser Manager Types', () => {
     describe('Error Classes', () => {

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { setupCommandTests } from '@test-utils';
+import { setupCommandTests, createMockDataPoint } from '@test-utils';
 import type { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 
 // Mock dependencies
@@ -34,64 +34,7 @@ import { RuleGenerator } from '../../utils/cms/analysis/generator.js';
 const MockDataStorage = DataStorage as jest.MockedClass<typeof DataStorage>;
 const MockRuleGenerator = RuleGenerator as jest.MockedClass<typeof RuleGenerator>;
 
-// Helper function to create mock detection data points
-function createMockDataPoint(overrides: Partial<DetectionDataPoint> = {}): DetectionDataPoint {
-    return {
-        url: 'https://example.com',
-        timestamp: new Date('2023-06-01'),
-        userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
-        captureVersion: {
-            schema: '2',
-            engine: {
-                version: '2.0.0',
-                commit: 'abc123',
-                buildDate: '2023-06-01T00:00:00Z'
-            },
-            algorithms: {
-                detection: '2',
-                confidence: '1'
-            },
-            patterns: {
-                lastUpdated: '2023-06-01T00:00:00Z'
-            },
-            features: {
-                experimentalFlags: ['feature1', 'feature2']
-            }
-        },
-        originalUrl: 'https://example.com',
-        finalUrl: 'https://example.com',
-        redirectChain: [],
-        totalRedirects: 0,
-        protocolUpgraded: false,
-        navigationTime: 1000,
-        httpHeaders: { 'content-type': 'text/html' },
-        statusCode: 200,
-        contentType: 'text/html',
-        contentLength: 5000,
-        metaTags: [{ name: 'generator', content: 'WordPress 6.3' }],
-        title: 'Example Site',
-        htmlContent: '<html><head><title>Example</title></head><body></body></html>',
-        htmlSize: 5000,
-        scripts: [],
-        stylesheets: [],
-        links: [],
-        forms: [],
-        detectionResults: [{
-            detector: 'wordpress-detector',
-            strategy: 'meta-tag',
-            cms: 'WordPress',
-            confidence: 0.9,
-            version: '6.3',
-            executionTime: 1000
-        }],
-        loadTime: 1000,
-        resourceCount: 10,
-        domElements: [],
-        technologies: [],
-        errors: [],
-        ...overrides
-    };
-}
+// Now using standardized factory from test-utils instead of custom implementation
 
 // Create mock generated strategy
 function createMockGeneratedStrategy(cms: string) {

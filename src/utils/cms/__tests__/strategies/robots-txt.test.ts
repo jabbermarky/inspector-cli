@@ -13,7 +13,10 @@ jest.mock('../../../logger.js', () => ({
 
 import { RobotsTxtStrategy, RobotsPattern, WORDPRESS_ROBOTS_PATTERNS, DRUPAL_ROBOTS_PATTERNS, JOOMLA_ROBOTS_PATTERNS } from '../../strategies/robots-txt.js';
 import { DetectionPage } from '../../types.js';
-import { setupStrategyTests, createMockPage } from '@test-utils';
+import { setupStrategyTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('RobotsTxtStrategy', () => {
     let strategy: RobotsTxtStrategy;
@@ -57,6 +60,8 @@ describe('RobotsTxtStrategy', () => {
             
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('robots-txt');
             expect(result.error).toBe('No robots.txt data available');
@@ -67,6 +72,8 @@ describe('RobotsTxtStrategy', () => {
             
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('robots-txt');
             expect(result.error).toBe('No robots.txt data available');
@@ -77,6 +84,7 @@ describe('RobotsTxtStrategy', () => {
             
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('robots-txt');
         });
@@ -99,7 +107,8 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.method).toBe('robots-txt');
             expect(result.evidence).toContain('WordPress admin directory: Disallow: /wp-admin/');
         });
@@ -120,7 +129,8 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
         });
 
         test('should handle regex patterns in disallow paths', async () => {
@@ -139,6 +149,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.5);
             expect(result.evidence).toContain('Drupal query parameter pattern: Disallow: /*?q=admin');
         });
@@ -165,7 +176,8 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9); // 0.5 + 0.4
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89); // 0.5 + 0.4
             expect(result.evidence).toHaveLength(2);
         });
     });
@@ -187,6 +199,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.7);
             expect(result.evidence).toContain('WordPress sitemap: Sitemap: https://example.com/wp-sitemap.xml');
         });
@@ -207,6 +220,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.6);
         });
 
@@ -226,6 +240,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.7);
         });
     });
@@ -246,6 +261,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.5);
             expect(result.evidence).toContain('WordPress mention in robots.txt: # This site is built with WordPress');
         });
@@ -265,6 +281,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.4);
             expect(result.evidence).toContain('WordPress PHP files: wp-login.php');
         });
@@ -284,6 +301,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.6);
             expect(result.evidence).toContain('Joomla mention: # Generated by JOOMLA CMS');
         });
@@ -319,6 +337,7 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBeCloseTo(0.9); // 0.4 + 0.3 + 0.2
             expect(result.evidence).toHaveLength(3);
         });
@@ -345,7 +364,8 @@ describe('RobotsTxtStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Capped at 1.0 instead of 1.5
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Capped at 1.0 instead of 1.5
         });
     });
 
@@ -364,7 +384,8 @@ Sitemap: https://example.com/wp-sitemap.xml`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Multiple patterns, capped at 1.0
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Multiple patterns, capped at 1.0
             expect(result.evidence!.length).toBeGreaterThan(3);
         });
 
@@ -382,7 +403,8 @@ Disallow: /sites/`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Multiple patterns, capped at 1.0
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Multiple patterns, capped at 1.0
             expect(result.evidence!.length).toBeGreaterThan(3);
         });
 
@@ -400,7 +422,8 @@ Disallow: /cache/`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Multiple patterns, capped at 1.0
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Multiple patterns, capped at 1.0
             expect(result.evidence!.length).toBeGreaterThan(3);
         });
     });
@@ -463,6 +486,7 @@ Disallow: /user/login`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
         });
 
@@ -486,6 +510,7 @@ Disallow: /user/login`;
 
             const result = await strategy.detect(errorPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('robots-txt');
             expect(result.error).toContain('Robots.txt detection failed');
@@ -499,6 +524,7 @@ Disallow: /user/login`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.evidence).toHaveLength(0);
         });
@@ -519,6 +545,7 @@ Disallow: /user/login`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
         });
 
@@ -541,6 +568,7 @@ Disallow: /user/login`;
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
         });
     });

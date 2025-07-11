@@ -1,6 +1,9 @@
 import { jest } from '@jest/globals';
 import { Semaphore, createSemaphore } from '../semaphore.js';
-import { setupBrowserTests } from '@test-utils';
+import { setupBrowserTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock dependencies
 jest.mock('../../config.js', () => ({

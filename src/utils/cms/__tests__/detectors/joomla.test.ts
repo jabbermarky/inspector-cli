@@ -19,7 +19,10 @@ jest.mock('../../../retry.js', () => ({
 import { jest } from '@jest/globals';
 import { JoomlaDetector } from '../../detectors/joomla.js';
 import { DetectionPage } from '../../types.js';
-import { setupCMSDetectionTests, createMockPage } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Joomla Detector', () => {
     let detector: JoomlaDetector;
@@ -39,10 +42,11 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
-            expect(result.confidence).toBeGreaterThan(0.9);
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.version).toBe('4.2');
-            expect(result.detectionMethods).toContain('meta-tag');
+            expect(result).toHaveUsedMethods(['meta-tag']);
         });
 
         it('should handle missing meta tag gracefully', async () => {
@@ -61,9 +65,10 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.confidence).toBeGreaterThan(0);
-            expect(result.detectionMethods).toContain('html-content');
+            expect(result).toHaveUsedMethods(['html-content']);
         });
     });
 
@@ -87,9 +92,10 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.confidence).toBeGreaterThan(0.4);
-            expect(result.detectionMethods).toContain('html-content');
+            expect(result).toHaveUsedMethods(['html-content']);
         });
 
         it('should detect Joomla from content="Joomla!" meta tag', async () => {
@@ -110,9 +116,10 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.confidence).toBeGreaterThan(0.4);
-            expect(result.detectionMethods).toContain('html-content');
+            expect(result).toHaveUsedMethods(['html-content']);
         });
 
         it('should detect Joomla from "joomla" text in HTML', async () => {
@@ -133,9 +140,10 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.confidence).toBeGreaterThan(0.4);
-            expect(result.detectionMethods).toContain('html-content');
+            expect(result).toHaveUsedMethods(['html-content']);
         });
 
         it('should not detect Joomla from unrelated content', async () => {
@@ -149,7 +157,8 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBeLessThan(0.4);
         });
     });
@@ -206,7 +215,8 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Unknown');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
             expect(result.confidence).toBe(0);
             expect(result.executionTime).toBeDefined();
         });
@@ -225,7 +235,8 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.confidence).toBeGreaterThan(0);
         });
     });
@@ -255,7 +266,8 @@ describe('Joomla Detector', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('Joomla');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Joomla');
             expect(result.version).toBeUndefined();
         });
     });

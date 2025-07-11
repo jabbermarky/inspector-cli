@@ -6,6 +6,7 @@
  */
 
 import { CMSType, CMSDetectionResult, PartialDetectionResult } from '../../utils/cms/types.js';
+import { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 
 export interface DetectionResultOptions {
     cms?: CMSType | 'Unknown';
@@ -22,7 +23,6 @@ export interface PartialDetectionResultOptions {
     method?: string;
     version?: string;
     evidence?: string[];
-    executionTime?: number;
 }
 
 /**
@@ -58,16 +58,14 @@ export function createPartialDetectionResult(options: PartialDetectionResultOpti
         confidence = 0.8,
         method = 'test-method',
         version,
-        evidence = ['Test evidence'],
-        executionTime = 100
+        evidence = ['Test evidence']
     } = options;
 
     return {
         confidence,
         method,
         version,
-        evidence,
-        executionTime
+        evidence
     };
 }
 
@@ -117,5 +115,98 @@ export function createFailedResult(errorMessage: string = 'Detection failed'): C
             confidence: 0
         }),
         error: errorMessage
+    };
+}
+
+export interface DataPointOptions {
+    url?: string;
+    timestamp?: Date;
+    userAgent?: string;
+    originalUrl?: string;
+    finalUrl?: string;
+    httpHeaders?: Record<string, string>;
+    statusCode?: number;
+    contentType?: string;
+    htmlContent?: string;
+    metaTags?: Array<{name?: string; property?: string; httpEquiv?: string; content: string}>;
+    title?: string;
+    detectionResults?: any[];
+}
+
+/**
+ * Creates a standardized DetectionDataPoint object for testing
+ */
+export function createMockDataPoint(options: DataPointOptions = {}): DetectionDataPoint {
+    const {
+        url = 'https://example.com',
+        timestamp = new Date('2023-06-01'),
+        userAgent = 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
+        originalUrl = 'https://example.com',
+        finalUrl = 'https://example.com', 
+        httpHeaders = { 'content-type': 'text/html' },
+        statusCode = 200,
+        contentType = 'text/html',
+        htmlContent = '<html><head><title>Example</title></head><body><h1>Hello</h1></body></html>',
+        metaTags = [{ name: 'generator', content: 'WordPress 6.3' }],
+        title = 'Example Title',
+        detectionResults = []
+    } = options;
+
+    return {
+        url,
+        timestamp,
+        userAgent,
+        captureVersion: {
+            schema: '2',
+            engine: {
+                version: '2.0.0',
+                commit: 'abc123',
+                buildDate: '2023-06-01T00:00:00Z'
+            },
+            algorithms: {
+                detection: '2',
+                confidence: '1'
+            },
+            patterns: {
+                lastUpdated: '2023-06-01T00:00:00Z'
+            },
+            features: {
+                experimentalFlags: ['feature1', 'feature2']
+            }
+        },
+        originalUrl,
+        finalUrl,
+        redirectChain: [],
+        totalRedirects: 0,
+        protocolUpgraded: false,
+        navigationTime: 1000,
+        httpHeaders,
+        statusCode,
+        contentType,
+        contentLength: htmlContent.length,
+        metaTags,
+        title,
+        htmlContent,
+        htmlSize: htmlContent.length,
+        robotsTxt: {
+            content: 'User-agent: *\nDisallow: /wp-admin/',
+            accessible: true,
+            size: 30,
+            patterns: {
+                disallowedPaths: ['/wp-admin/'],
+                sitemapUrls: [],
+                userAgents: ['*']
+            }
+        },
+        domElements: [],
+        links: [],
+        scripts: [],
+        stylesheets: [],
+        forms: [],
+        technologies: [],
+        loadTime: 1500,
+        resourceCount: 25,
+        detectionResults,
+        errors: []
     };
 }

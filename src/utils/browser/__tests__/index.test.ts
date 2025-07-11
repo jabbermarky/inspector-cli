@@ -10,7 +10,10 @@ import {
     Semaphore,
     createSemaphore
 } from '../index.js';
-import { setupBrowserTests } from '@test-utils';
+import { setupBrowserTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock dependencies
 jest.mock('../../config.js', () => ({

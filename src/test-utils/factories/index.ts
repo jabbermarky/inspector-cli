@@ -7,3 +7,20 @@
 
 export * from './page-factory.js';
 export * from './result-factory.js';
+
+// Re-export commonly used factories for convenience
+export {
+    createMockPage,
+    createMetaTagMockPage,
+    createHttpHeaderMockPage
+} from './page-factory.js';
+
+export {
+    createDetectionResult,
+    createWordPressResult,
+    createDrupalResult,
+    createJoomlaResult,
+    createFailedResult,
+    createMockDataPoint,
+    createPartialDetectionResult
+} from './result-factory.js';

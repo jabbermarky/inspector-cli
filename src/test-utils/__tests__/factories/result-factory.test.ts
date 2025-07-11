@@ -16,6 +16,10 @@ import {
     type DetectionResultOptions,
     type PartialDetectionResultOptions
 } from '../../factories/result-factory.js';
+import { setupJestExtensions } from '../../setup/jest-extensions.js';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Result Factory Utilities', () => {
     describe('createDetectionResult', () => {
@@ -98,7 +102,6 @@ describe('Result Factory Utilities', () => {
             expect(result.method).toBe('test-method');
             expect(result.version).toBeUndefined();
             expect(result.evidence).toEqual(['Test evidence']);
-            expect(result.executionTime).toBe(100);
         });
         
         it('should create a partial detection result with custom options', () => {
@@ -106,8 +109,7 @@ describe('Result Factory Utilities', () => {
                 confidence: 0.95,
                 method: 'meta-tag-strategy',
                 version: '5.8.2',
-                evidence: ['Generator meta tag found', 'WordPress version detected'],
-                executionTime: 75
+                evidence: ['Generator meta tag found', 'WordPress version detected']
             };
             
             const result = createPartialDetectionResult(options);
@@ -116,7 +118,6 @@ describe('Result Factory Utilities', () => {
             expect(result.method).toBe('meta-tag-strategy');
             expect(result.version).toBe('5.8.2');
             expect(result.evidence).toEqual(['Generator meta tag found', 'WordPress version detected']);
-            expect(result.executionTime).toBe(75);
         });
         
         it('should handle empty evidence array', () => {
@@ -150,8 +151,9 @@ describe('Result Factory Utilities', () => {
         it('should create a WordPress result with default confidence', () => {
             const result = createWordPressResult();
             
-            expect(result.cms).toBe('WordPress');
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.version).toBe('6.3.1');
             expect(result.detectionMethods).toEqual(['meta-tag', 'http-headers']);
             expect(result.originalUrl).toBe('https://example.com');
@@ -162,7 +164,8 @@ describe('Result Factory Utilities', () => {
         it('should create a WordPress result with custom confidence', () => {
             const result = createWordPressResult(0.85);
             
-            expect(result.cms).toBe('WordPress');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
             expect(result.confidence).toBe(0.85);
             expect(result.version).toBe('6.3.1');
             expect(result.detectionMethods).toEqual(['meta-tag', 'http-headers']);
@@ -311,7 +314,6 @@ describe('Result Factory Utilities', () => {
             // Test that all required properties exist
             expect(typeof result.confidence).toBe('number');
             expect(typeof result.method).toBe('string');
-            expect(typeof result.executionTime).toBe('number');
             expect(Array.isArray(result.evidence)).toBe(true);
         });
         

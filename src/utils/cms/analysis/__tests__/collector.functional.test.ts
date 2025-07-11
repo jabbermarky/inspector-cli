@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { setupAnalysisTests } from '@test-utils';
+import { setupAnalysisTests, createMockPage, createMockBrowserManager } from '@test-utils';
 
 /**
  * Functional Tests for DataCollector
@@ -58,12 +58,17 @@ describe('Functional: DataCollector', () => {
     let mockFetch: jest.MockedFunction<typeof fetch>;
 
     beforeEach(() => {
-        // Create mock page with all required methods
-        mockPage = {
-            content: jest.fn(() => Promise.resolve('<html><head><title>Test Page</title></head><body></body></html>')),
-            evaluate: jest.fn().mockImplementation((fn: any, ...args: any[]) => {
-                // Mock evaluate responses based on function behavior
-                const fnString = fn.toString();
+        // Create mock page using factory as base, then enhance with custom behavior
+        mockPage = createMockPage({
+            title: 'Test Page',
+            content: '<html><head><title>Test Page</title></head><body></body></html>',
+            userAgent: 'Mozilla/5.0 Test Browser'
+        });
+        
+        // Override evaluate with complex custom behavior needed for functional tests
+        mockPage.evaluate = jest.fn().mockImplementation((fn: any, ...args: any[]) => {
+            // Mock evaluate responses based on function behavior
+            const fnString = fn.toString();
                 
                 if (fnString.includes('navigator.userAgent')) {
                     return 'Mozilla/5.0 Test Browser';
@@ -144,22 +149,13 @@ describe('Functional: DataCollector', () => {
                 }
                 // Return empty array for unmatched queries
                 return [];
-            }),
-            title: jest.fn(() => Promise.resolve('Test Page')),
-            waitForFunction: jest.fn(() => Promise.resolve(undefined)),
-            waitForTimeout: jest.fn(() => Promise.resolve(undefined))
-        };
+        });
 
         mockContext = { id: 'test-context' };
 
-        // Create mock browser manager
-        mockBrowserManager = {
-            createPageInIsolatedContext: jest.fn(() => Promise.resolve({
-                page: mockPage,
-                context: mockContext
-            })),
-            closeContext: jest.fn(() => Promise.resolve(undefined)),
-            getNavigationInfo: jest.fn().mockReturnValue({
+        // Create mock browser manager using factory
+        mockBrowserManager = createMockBrowserManager({
+            customNavigationInfo: {
                 finalUrl: 'https://example.com',
                 redirectChain: [],
                 totalRedirects: 0,
@@ -169,8 +165,14 @@ describe('Functional: DataCollector', () => {
                     'content-type': 'text/html; charset=UTF-8',
                     'content-length': '12345'
                 }
-            })
-        };
+            }
+        });
+        
+        // Override createPageInIsolatedContext to return our custom page
+        mockBrowserManager.createPageInIsolatedContext.mockImplementation(async () => ({
+            page: mockPage,
+            context: mockContext
+        }));
 
         // Reset and setup fetch mock
         mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;

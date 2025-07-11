@@ -1,7 +1,12 @@
 import { UrlNormalizer } from '../normalizer.js';
 import { UrlProtocolError } from '../types.js';
+import { setupUrlTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('UrlNormalizer', () => {
+    setupUrlTests();
     describe('normalizeUrl', () => {
         it('should add HTTP protocol to URLs without protocol', () => {
             expect(UrlNormalizer.normalizeUrl('example.com')).toBe('http://example.com');

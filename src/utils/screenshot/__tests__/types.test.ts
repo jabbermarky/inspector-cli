@@ -1,4 +1,8 @@
 import { ScreenshotError, ScreenshotValidationError, ScreenshotNetworkError } from '../types.js';
+import { setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Screenshot Error Classes', () => {
     describe('ScreenshotError', () => {

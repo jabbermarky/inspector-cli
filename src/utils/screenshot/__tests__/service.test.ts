@@ -1,6 +1,9 @@
 import { ScreenshotService } from '../service.js';
 import { ScreenshotValidationError } from '../types';
-import { setupScreenshotTests, createMockPage, createMockBrowserManager } from '@test-utils';
+import { setupScreenshotTests, setupJestExtensions, createMockPage, createMockBrowserManager } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock logger
 jest.mock('../../logger.js', () => ({

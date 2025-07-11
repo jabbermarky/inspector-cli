@@ -7,7 +7,47 @@ import {
     UrlSecurityError,
     UrlValidationError 
 } from '../types.js';
-import { setupUrlTests } from '@test-utils';
+import { setupUrlTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
+
+// Factory functions for validation options
+const createValidationOptions = (overrides: any = {}) => ({
+    maxLength: 2048,
+    allowedProtocols: ['http:', 'https:'],
+    ...overrides
+});
+
+const createContextOptions = (contextOverrides: any = {}, options: any = {}) => ({
+    context: {
+        allowLocalhost: false,
+        allowPrivateIPs: false,
+        allowCustomPorts: false,
+        strictMode: false,
+        environment: 'production' as const,
+        ...contextOverrides
+    },
+    ...options
+});
+
+const createDevelopmentContext = (overrides: any = {}) => createContextOptions({
+    environment: 'development' as const,
+    allowLocalhost: true,
+    allowPrivateIPs: true,
+    allowCustomPorts: true,
+    strictMode: false,
+    ...overrides
+});
+
+const createProductionContext = (overrides: any = {}) => createContextOptions({
+    environment: 'production' as const,
+    allowLocalhost: false,
+    allowPrivateIPs: false,
+    allowCustomPorts: false,
+    strictMode: true,
+    ...overrides
+});
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -113,7 +153,7 @@ describe('UrlValidator', () => {
             });
 
             it('should allow localhost in development context', () => {
-                const options = { context: { allowLocalhost: true } };
+                const options = createContextOptions({ allowLocalhost: true });
                 expect(() => UrlValidator.validate('http://localhost', options)).not.toThrow();
                 expect(() => UrlValidator.validate('http://127.0.0.1', options)).not.toThrow();
             });

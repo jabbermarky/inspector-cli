@@ -11,7 +11,40 @@ import {
     getFileStats,
     SUPPORTED_IMAGE_EXTENSIONS
 } from '../operations';
-import { setupFileTests } from '@test-utils';
+import { setupFileTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
+
+// Factory functions for file operations testing
+const createTestFileStructure = (baseDir: string = '/tmp/test-file-ops') => {
+    const structure = {
+        testDir: baseDir,
+        validImageFile: path.join(baseDir, 'test.png'),
+        invalidFile: path.join(baseDir, 'test.txt'),
+        csvFile: path.join(baseDir, 'test.csv')
+    };
+    
+    return structure;
+};
+
+const createFileTestContent = () => ({
+    imageContent: 'fake png content',
+    textContent: 'text content',
+    csvContent: 'url,name\nhttps://example.com,test\nhttps://test.com,test2'
+});
+
+const createInvalidFilePathCases = () => [
+    '../test.png',
+    '../../etc/passwd', 
+    '~/test.png',
+    'folder/../test.png',
+    'test$.png',
+    'test@file.png',
+    'test file.png',
+    'test;file.png',
+    'test&file.png'
+];
 
 // Mock the config module
 jest.mock('../../config.js', () => ({
@@ -37,11 +70,11 @@ jest.mock('../../logger.js', () => ({
 
 describe('File Operations', () => {
     setupFileTests();
-    // Create test files before tests
-    const testDir = '/tmp/test-file-ops';
-    const validImageFile = path.join(testDir, 'test.png');
-    const invalidFile = path.join(testDir, 'test.txt');
-    const csvFile = path.join(testDir, 'test.csv');
+    
+    // Create test files before tests using factory
+    const fileStructure = createTestFileStructure();
+    const { testDir, validImageFile, invalidFile, csvFile } = fileStructure;
+    const content = createFileTestContent();
 
     beforeAll(() => {
         // Create test directory
@@ -49,10 +82,10 @@ describe('File Operations', () => {
             fs.mkdirSync(testDir, { recursive: true });
         }
         
-        // Create test files
-        fs.writeFileSync(validImageFile, 'fake png content');
-        fs.writeFileSync(invalidFile, 'text content');
-        fs.writeFileSync(csvFile, 'url,name\nhttps://example.com,test\nhttps://test.com,test2');
+        // Create test files using factory content
+        fs.writeFileSync(validImageFile, content.imageContent);
+        fs.writeFileSync(invalidFile, content.textContent);
+        fs.writeFileSync(csvFile, content.csvContent);
     });
 
     afterAll(() => {

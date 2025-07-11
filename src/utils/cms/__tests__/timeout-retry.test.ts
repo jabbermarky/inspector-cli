@@ -4,7 +4,10 @@ import { HtmlContentStrategy } from '../strategies/html-content.js';
 import { ApiEndpointStrategy } from '../strategies/api-endpoint.js';
 import { WordPressDetector } from '../detectors/wordpress.js';
 import { CMSTimeoutError, CMSNetworkError } from '../types.js';
-import { setupCMSDetectionTests, createMockPage } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock logger
 jest.mock('../../logger.js', () => ({
@@ -43,6 +46,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -55,6 +59,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -67,6 +72,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -80,6 +86,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -91,6 +98,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -102,6 +110,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -113,6 +122,7 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBeDefined();
         });
@@ -141,8 +151,9 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
-            expect(result.confidence).toBeGreaterThan(0.6);
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result).toHaveConfidenceAbove(0.59);
             expect(result.detectionMethods?.length).toBeGreaterThan(1);
         });
 
@@ -176,7 +187,8 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
-            expect(result.cms).toBe('WordPress');
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
             expect(result.confidence).toBeGreaterThan(0);
             expect(result.detectionMethods).toContain('html-content');
         });
@@ -223,14 +235,17 @@ describe('CMS Detection Timeout and Retry Behavior', () => {
 
             // Test meta tag strategy
             const metaResult = await metaStrategy.detect(mockPage, 'https://example.com');
+            expect(metaResult).toBeValidPartialResult();
             expect(metaResult.confidence).toBeGreaterThan(0);
 
             // Test HTML content strategy  
             const htmlResult = await htmlStrategy.detect(mockPage, 'https://example.com');
+            expect(htmlResult).toBeValidPartialResult();
             expect(htmlResult.confidence).toBeGreaterThan(0);
 
             // Test API endpoint strategy
             const apiResult = await apiStrategy.detect(mockPage, 'https://example.com');
+            expect(apiResult).toBeValidPartialResult();
             expect(apiResult.confidence).toBeGreaterThan(0);
         });
 

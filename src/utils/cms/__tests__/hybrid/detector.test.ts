@@ -1,6 +1,9 @@
 import { HybridCMSDetector, StrategyConfiguration, HybridDetectionOptions } from '../../hybrid/detector.js';
 import { DetectionStrategy, DetectionPage, PartialDetectionResult, CMSType } from '../../types.js';
-import { createMockPage, setupCMSDetectionTests } from '@test-utils';
+import { createMockPage, setupCMSDetectionTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock logger
 jest.mock('../../../logger.js', () => ({

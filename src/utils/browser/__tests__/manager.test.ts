@@ -35,7 +35,10 @@ import {
     BrowserResourceError,
     BrowserTimeoutError
 } from '../types.js';
-import { setupBrowserTests, createTestConfig, createMockPage, createMockBrowserManager } from '@test-utils';
+import { setupBrowserTests, setupJestExtensions, createTestConfig, createMockPage, createMockBrowserManager } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock puppeteer-extra - get from factory functions
 let mockPage: any;

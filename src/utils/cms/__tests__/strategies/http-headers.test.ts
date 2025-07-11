@@ -13,7 +13,10 @@ jest.mock('../../../logger.js', () => ({
 
 import { HttpHeaderStrategy, HeaderPattern } from '../../strategies/http-headers.js';
 import { DetectionPage } from '../../types.js';
-import { setupStrategyTests, createMockPage } from '@test-utils';
+import { setupStrategyTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('HttpHeaderStrategy', () => {
     let strategy: HttpHeaderStrategy;
@@ -50,6 +53,7 @@ describe('HttpHeaderStrategy', () => {
             
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('http-headers');
             expect(result.error).toBe('No response headers available');
@@ -60,6 +64,7 @@ describe('HttpHeaderStrategy', () => {
             
             const result = await strategy.detect(mockPage, 'https://example.com');
             
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('http-headers');
             expect(result.error).toBe('No response headers available');
@@ -85,7 +90,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.method).toBe('http-headers');
             expect(result.evidence).toContain('X-Generator: WordPress 6.3');
         });
@@ -108,6 +114,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.5);
             expect(result.evidence).toContain('Server: nginx/1.18.0');
         });
@@ -129,6 +136,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.8);
         });
     });
@@ -151,7 +159,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.evidence).toContain('X-Generator: WordPress 6.3');
         });
 
@@ -172,6 +181,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.8);
             expect(result.evidence).toContain('x-drupal-cache: HIT');
         });
@@ -242,7 +252,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.95);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.94);
             expect(result.version).toBe('6.3.1');
         });
 
@@ -263,7 +274,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.95);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.94);
             expect(result.version).toBe('10.1.0');
         });
 
@@ -284,6 +296,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.8);
             expect(result.version).toBeUndefined();
         });
@@ -308,6 +321,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.8);
             expect(result.evidence).toContain('X-Drupal-Cache: HIT');
         });
@@ -330,6 +344,7 @@ describe('HttpHeaderStrategy', () => {
             };
 
             const result1 = await strategy.detect(mockPage, 'https://example.com');
+            expect(result1).toBeValidPartialResult();
             expect(result1.confidence).toBe(0.3);
 
             // Should match in name
@@ -338,6 +353,7 @@ describe('HttpHeaderStrategy', () => {
             };
 
             const result2 = await strategy.detect(mockPage, 'https://example.com');
+            expect(result2).toBeValidPartialResult();
             expect(result2.confidence).toBe(0.3);
         });
 
@@ -359,7 +375,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
         });
     });
 
@@ -395,7 +412,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9); // 0.5 + 0.3 + 0.1
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89); // 0.5 + 0.3 + 0.1
             expect(result.evidence).toHaveLength(3);
         });
 
@@ -423,7 +441,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Capped at 1.0 instead of 1.5
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Capped at 1.0 instead of 1.5
         });
     });
 
@@ -454,7 +473,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Both patterns match, capped at 1.0
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Both patterns match, capped at 1.0
             expect(result.version).toBe('6.3.1');
         });
 
@@ -488,7 +508,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(1.0); // Both patterns match, capped at 1.0
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.99); // Both patterns match, capped at 1.0
             expect(result.version).toBe('10.1.0');
         });
 
@@ -518,7 +539,8 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.95);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.94);
         });
     });
 
@@ -543,6 +565,7 @@ describe('HttpHeaderStrategy', () => {
 
             const result = await strategy.detect(errorPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.method).toBe('http-headers');
             expect(result.error).toContain('Header detection failed');

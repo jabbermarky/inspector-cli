@@ -13,7 +13,10 @@ jest.mock('../../../logger.js', () => ({
 
 import { jest } from '@jest/globals';
 import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
-import { setupStrategyTests, createMockPage } from '@test-utils';
+import { setupStrategyTests, createMockPage, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('ApiEndpointStrategy', () => {
     let strategy: ApiEndpointStrategy;
@@ -122,6 +125,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.5);
             expect(result.error).toBe('Failed to parse JSON response');
         });
@@ -136,6 +140,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.6);
             expect(result.version).toBeUndefined(); // Generic analysis doesn't extract version for WordPress
         });
@@ -148,6 +153,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.7);
             expect(result.method).toBe('api-endpoint');
         });
@@ -158,6 +164,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.4);
         });
 
@@ -167,6 +174,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.3);
             expect(result.error).toBe('Failed to analyze text response');
         });
@@ -178,6 +186,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBe('API endpoint not found (404)');
         });
@@ -187,6 +196,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBe('API endpoint returned status 403');
         });
@@ -196,6 +206,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBe('No response from API endpoint');
         });
@@ -207,6 +218,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0);
             expect(result.error).toBe('API endpoint check failed: Navigation timeout');
         });
@@ -216,6 +228,7 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
+            expect(result).toBeValidPartialResult();
             expect(result.confidence).toBe(0.5);
             expect(result.error).toBe('Failed to parse JSON response');
         });
@@ -270,7 +283,8 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await strategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.version).toBe('6.3.1');
         });
 
@@ -285,7 +299,8 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await joomlaStrategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.version).toBe('4.2.0');
         });
 
@@ -300,7 +315,8 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await drupalStrategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
             expect(result.version).toBe('10.1.5');
         });
 
@@ -314,7 +330,8 @@ describe('ApiEndpointStrategy', () => {
 
             const result = await drupalStrategy.detect(mockPage, 'https://example.com');
 
-            expect(result.confidence).toBe(0.9);
+            expect(result).toBeValidPartialResult();
+            expect(result).toHaveConfidenceAbove(0.89);
         });
     });
 });

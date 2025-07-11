@@ -6,6 +6,10 @@ import {
     UrlFormatError,
     UrlValidationErrorType
 } from '../types.js';
+import { setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('URL Validation Error Classes', () => {
     describe('UrlValidationError', () => {

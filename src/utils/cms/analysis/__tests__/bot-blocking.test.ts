@@ -6,6 +6,10 @@
 
 import { BotBlockingAnalyzer } from '../bot-blocking.js';
 import { DetectionDataPoint } from '../types.js';
+import { setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Helper function to create test data points
 function createTestDataPoint(partial: Partial<DetectionDataPoint>): DetectionDataPoint {

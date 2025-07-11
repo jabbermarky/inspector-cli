@@ -15,7 +15,10 @@ import {
     UrlSecurityError,
     UrlFormatError
 } from '../index.js';
-import { setupUrlTests } from '@test-utils';
+import { setupUrlTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock logger
 jest.mock('../../logger.js', () => ({

@@ -11,8 +11,37 @@ jest.mock('../logger.js', () => ({
     }))
 }));
 
+// Note: This file tests the retry module itself, so it uses real retry functions
+// rather than mocking them. The standardized retry mock pattern would be:
+// jest.mock('../retry.js', () => ({
+//     withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+// }));
+
 import { withRetry, withRetryOpenAI } from '../retry';
-import { setupFileTests } from '@test-utils';
+import { setupFileTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
+
+// Factory functions for retry configurations
+const createRetryOptions = (overrides: any = {}) => ({
+    maxRetries: 1,
+    initialDelayMs: 10,
+    ...overrides
+});
+
+const createStrictRetryOptions = (retryableErrors: string[], overrides: any = {}) => ({
+    retryableErrors,
+    maxRetries: 1,
+    initialDelayMs: 10,
+    ...overrides
+});
+
+const createLongRetryOptions = (overrides: any = {}) => ({
+    maxRetries: 2,
+    initialDelayMs: 10,
+    ...overrides
+});
 
 describe('Retry Utility', () => {
   setupFileTests();
@@ -33,7 +62,7 @@ describe('Retry Utility', () => {
       
       const result = await withRetry(
         mockOperation,
-        { maxRetries: 1, initialDelayMs: 10 },
+        createRetryOptions(),
         'test-operation'
       );
       
@@ -47,7 +76,7 @@ describe('Retry Utility', () => {
       
       await expect(withRetry(
         mockOperation,
-        { retryableErrors: ['ECONNRESET'], maxRetries: 1, initialDelayMs: 10 },
+        createStrictRetryOptions(['ECONNRESET']),
         'test-operation'
       )).rejects.toThrow('Invalid input');
       

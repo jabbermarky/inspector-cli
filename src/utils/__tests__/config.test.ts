@@ -1,7 +1,56 @@
 import { jest } from '@jest/globals';
 import { ConfigManager, ConfigValidator, getConfig, reloadConfig } from '../config.js';
 import { LogLevel } from '../logger.js';
-import { setupFileTests } from '@test-utils';
+import { setupFileTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
+
+// Factory functions for test configurations
+const createBaseConfig = (overrides: any = {}) => ({
+    openai: {
+        apiKey: 'sk-test',
+        temperature: 0.7,
+        topP: 1.0,
+        maxTokens: 4096,
+        ...overrides.openai
+    },
+    puppeteer: {
+        headless: true,
+        timeout: 30000,
+        viewport: { width: 1024, height: 768 },
+        userAgent: 'test',
+        blockAds: true,
+        blockImages: false,
+        maxConcurrency: 2,
+        ...overrides.puppeteer
+    },
+    app: {
+        environment: 'test' as const,
+        screenshotDir: './test',
+        logLevel: 'DEBUG' as const,
+        logFormat: 'text' as const,
+        ...overrides.app
+    },
+    api: {
+        retryAttempts: 3,
+        retryDelay: 1000,
+        requestTimeout: 60000,
+        enableCaching: false,
+        ...overrides.api
+    }
+});
+
+const createInvalidConfig = (field: string, value: any) => {
+    const config = createBaseConfig();
+    const keys = field.split('.');
+    let target: any = config;
+    for (let i = 0; i < keys.length - 1; i++) {
+        target = target[keys[i]];
+    }
+    target[keys[keys.length - 1]] = value;
+    return config;
+};
 
 // Mock dependencies
 jest.mock('fs', () => ({
@@ -11,6 +60,11 @@ jest.mock('fs', () => ({
 
 jest.mock('path', () => ({
     join: jest.fn((...args) => args.join('/'))
+}));
+
+// Mock retry utility with standardized pattern
+jest.mock('../retry.js', () => ({
+    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 jest.mock('../logger.js', () => ({
@@ -43,69 +97,17 @@ const mockUpdateLoggerConfig = updateLoggerConfig as jest.MockedFunction<typeof 
 describe('ConfigValidator', () => {
     describe('validateOpenAIConfig', () => {
         it('should pass validation in non-strict mode without API key', () => {
-            const config = {
-                openai: {
-                    apiKey: '',
-                    temperature: 0.7,
-                    topP: 1.0,
-                    maxTokens: 4096
-                },
-                puppeteer: {
-                    headless: true,
-                    timeout: 30000,
-                    viewport: { width: 1024, height: 768 },
-                    userAgent: 'test',
-                    blockAds: true,
-                    blockImages: false,
-                    maxConcurrency: 2
-                },
-                app: {
-                    environment: 'test' as const,
-                    screenshotDir: './test',
-                    logLevel: 'DEBUG' as const,
-                    logFormat: 'text' as const
-                },
-                api: {
-                    retryAttempts: 3,
-                    retryDelay: 1000,
-                    requestTimeout: 60000,
-                    enableCaching: false
-                }
-            };
+            const config = createBaseConfig({
+                openai: { apiKey: '' }
+            });
 
             expect(() => ConfigValidator.validate(config, false)).not.toThrow();
         });
 
         it('should require API key in strict mode', () => {
-            const config = {
-                openai: {
-                    apiKey: '',
-                    temperature: 0.7,
-                    topP: 1.0,
-                    maxTokens: 4096
-                },
-                puppeteer: {
-                    headless: true,
-                    timeout: 30000,
-                    viewport: { width: 1024, height: 768 },
-                    userAgent: 'test',
-                    blockAds: true,
-                    blockImages: false,
-                    maxConcurrency: 2
-                },
-                app: {
-                    environment: 'test' as const,
-                    screenshotDir: './test',
-                    logLevel: 'DEBUG' as const,
-                    logFormat: 'text' as const
-                },
-                api: {
-                    retryAttempts: 3,
-                    retryDelay: 1000,
-                    requestTimeout: 60000,
-                    enableCaching: false
-                }
-            };
+            const config = createBaseConfig({
+                openai: { apiKey: '' }
+            });
 
             expect(() => ConfigValidator.validate(config, true))
                 .toThrow('OPENAI_API_KEY is required for AI-powered commands');
@@ -147,14 +149,7 @@ describe('ConfigValidator', () => {
         });
 
         it('should validate temperature range', () => {
-            const config = {
-                openai: {
-                    apiKey: 'sk-test',
-                    temperature: 3.0, // Invalid
-                    topP: 1.0,
-                    maxTokens: 4096
-                }
-            };
+            const config = createInvalidConfig('openai.temperature', 3.0);
 
             expect(() => ConfigValidator.validateForOpenAI(config))
                 .toThrow('OpenAI temperature must be between 0 and 2');

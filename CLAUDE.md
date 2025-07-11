@@ -67,7 +67,6 @@ cat src/utils/cms/analysis/__tests__/*.test.ts # Study existing test patterns
 # 4. Verify public API surface
 grep -n "export\|public" src/path/to/module.ts # Find exported/public members
 ```
-
 ## CLI Usage (CRITICAL - Remember across sessions)
 
 ### CMS Detection Commands
@@ -403,6 +402,8 @@ describe('ClassUnderTest', () => {
 3. **Check interface definitions** - verify parameter and return types
 4. **Identify the actual API surface** - what methods really exist vs. what you assume
 5. **Test through public interfaces only** - don't test internal implementation details
+6. **Keep the test inventory updated** - There is an inventory of tests in docs/test-standardization-status.md. Refer to this file when creating and updating tests, and update this document accordingly.
+
 
 **Examples of Implementation-First Testing:**
 ```bash
