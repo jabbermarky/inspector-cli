@@ -3,7 +3,10 @@ import * as utils from '../../utils/utils.js';
 import { CMSDetectionIterator, CMSDetectionResult } from '../../utils/cms/index.js';
 import { CMSType } from '../../utils/cms/types.js';
 import { processCMSDetectionBatch } from '../detect_cms.js';
-import { setupCommandTests } from '@test-utils';
+import { setupCommandTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock dependencies
 jest.mock('../../utils/utils.js', () => ({

@@ -1,5 +1,8 @@
 import { jest } from '@jest/globals';
-import { setupCommandTests, createMockDataPoint } from '@test-utils';
+import { setupCommandTests, createMockDataPoint, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 import type { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 
 // Mock dependencies

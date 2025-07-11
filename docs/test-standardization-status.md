@@ -22,26 +22,26 @@ This document tracks the implementation status of test infrastructure improvemen
 | File Path | Category | Uses @test-utils | Custom Matchers | Factory Functions | Setup Functions | Complete Logger Mocks | Standardized Retry | Status |
 |-----------|----------|------------------|------------------|-------------------|-----------------|----------------------|-------------------|---------|
 | **COMMAND TESTS** | | | | | | | | |
-| `src/commands/__tests__/detect_cms.test.ts` | Command-Unit | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/detect_cms.test.ts` | Command-Unit | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/screenshot.test.ts` | Command-Unit | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze.test.ts` | Command-Unit | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/generate.test.ts` | Command-Unit | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/detect_cms.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/analyze.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/generate.test.ts` | Command-Unit | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/detect_cms.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/analyze.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/screenshot.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/generate.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/generate.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/assistants.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/csv.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/footer.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/chat.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/assistant.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/analyze-blocking.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/analyze-blocking.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/eval.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth.functional.test.ts` | Command-Functional | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/ground-truth-simplified.test.ts` | Command-Bug | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/ground-truth.functional.test.ts` | Command-Functional | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/ground-truth-simplified.test.ts` | Command-Bug | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/ground-truth-subdomain-bug.test.ts` | Command-Bug | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | **MODERN** |
 | `src/commands/__tests__/ground-truth-script-signals-bug.test.ts` | Command-Bug | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ | **MODERN** |
-| `src/commands/__tests__/integration.test.ts` | Command-Integration | ✅ | ❌ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
+| `src/commands/__tests__/integration.test.ts` | Command-Integration | ✅ | ✅ | ⚠️ | ✅ | ✅ | ❌ | **MODERN** |
 | **CMS DETECTION TESTS** | | | | | | | | |
 | `src/utils/cms/__tests__/detectors/wordpress.test.ts` | CMS-Detector | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |
 | `src/utils/cms/__tests__/detectors/drupal.test.ts` | CMS-Detector | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **MODERN** |

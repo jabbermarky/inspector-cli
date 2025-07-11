@@ -15,8 +15,12 @@ import {
     mockSimplePatternCount,
     mockDomainAwarePatternCount,
     createDomainValidationTestCases,
-    setupGroundTruthTests
+    setupGroundTruthTests,
+    setupJestExtensions
 } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 describe('Ground-Truth Domain Validation Bug Analysis', () => {
     setupGroundTruthTests();

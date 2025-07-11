@@ -1,5 +1,8 @@
 import { jest } from '@jest/globals';
-import { setupCommandTests } from '@test-utils';
+import { setupCommandTests, setupJestExtensions } from '@test-utils';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 /**
  * Functional Tests for detect_cms.ts

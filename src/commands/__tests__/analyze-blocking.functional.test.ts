@@ -18,8 +18,11 @@ jest.mock('fs/promises', () => ({
 
 import { jest } from '@jest/globals';
 import { analyzeBlocking } from '../analyze-blocking.js';
-import { setupCommandTests } from '@test-utils';
+import { setupCommandTests, setupJestExtensions } from '@test-utils';
 import * as fs from 'fs/promises';
+
+// Setup custom Jest matchers
+setupJestExtensions();
 
 // Mock the classes BEFORE they are used
 jest.mock('../../utils/cms/analysis/storage.js', () => ({
