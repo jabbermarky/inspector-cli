@@ -265,3 +265,90 @@ describe('DataStorage Unit Tests', () => {
 ## Conclusion
 
 This multi-strategy approach provides comprehensive test coverage while eliminating the root causes of flakiness. The abstraction layer makes tests predictable and fast, while integration tests ensure real-world behavior is validated. The investment in refactoring will pay off in test stability and developer confidence.
+
+## Clarifying Questions
+
+  ### 1. FileSystemAdapter Interface Design
+
+  - Question: Should the FileSystemAdapter interface include more granular methods like stat(), chmod(), or copyFile() that might be needed for advanced operations?
+  - Assumption: The current interface covers the basic CRUD operations DataStorage needs, but we may need to extend it later.
+  - Answer: No. Add them when we need them.
+
+  ### 2. Error Handling Strategy
+
+  - Question: How should the InMemoryFileSystemAdapter simulate filesystem errors (ENOENT, EACCES, EMFILE, etc.)? Should it have configurable error injection?
+  - Assumption: We'll need a way to test error scenarios, but the plan doesn't specify how to trigger them in the in-memory implementation.
+  - Answer: yes use configurable error injection.
+
+  ### 3. Path Handling
+
+  - Question: Should the abstraction handle path normalization, or should DataStorage continue to use path.join() directly?
+  - Assumption: DataStorage will still handle path logic, and the adapter just takes the final paths.
+  - Answer: the adapter takes the final paths.
+
+  ### 4. Backwards Compatibility
+
+  - Question: Do we need to maintain API compatibility with the existing DataStorage constructor? Should the adapter be optional for backwards compatibility?
+  - Assumption: We can modify the constructor since this is an internal refactor.
+  - Answer: no, we can modify the constructor.
+
+  ### 5. InMemoryFileSystemAdapter Implementation
+
+  - Question: Should the in-memory adapter simulate directory structure (nested paths) or just treat paths as flat keys?
+  - Question: How should it handle path operations like mkdir -p (recursive directory creation)?
+  - Assumption: The adapter should simulate real filesystem behavior as closely as possible.
+  - Answer: I don't think that the app needs recursive directory creation.
+
+  ### 6. Transaction/Batch Operations
+
+  - Question: The plan mentions "transaction consistency" and "rolls back on partial failure" - does DataStorage currently support transactions, or is this new behavior?
+  - Assumption: This might be new behavior we're adding during the refactor.
+  - Answer: no, we are not adding these behaviors right now. deprioritize them.
+
+  ### 7. Performance Benchmarks
+
+  - Question: What specific performance thresholds should we target? (e.g., "query 1000 items in <50ms")
+  - Assumption: We'll establish baseline performance metrics during implementation.
+  - Answer: establish baseline performance metrics during implementation.
+
+  ### 8. Test Data Management
+
+  - Question: Should we create standardized test data factories that match the existing DetectionDataPoint structure exactly?
+  - Assumption: We'll need to ensure test data is realistic and matches production data structure.
+  - Answer: yes, create test data factories.
+
+  ### 9. Migration Strategy
+
+  - Question: Should we implement the refactor in a feature branch, or can we do it incrementally on main?
+  - Question: Do we need to maintain the old implementation during migration for safety?
+  - Assumption: We can do the refactor in one go since it's internal.
+  - Answer: do it incrementally on main. do it in one go.
+
+  ### 10. Integration with Existing Test Infrastructure
+
+  - Question: Should the new tests use the existing @test-utils patterns and setup functions?
+  - Question: Do we need to create new setup functions specifically for DataStorage tests?
+  - Assumption: We should integrate with existing test infrastructure for consistency.
+  - Answer: Yes, use all of the standardized test patterns and functions; be consistent.
+
+  ### Key Assumptions to Validate
+
+  1. Scope: The refactor only affects DataStorage tests, not the DataStorage API itself
+  2. Dependencies: No new external dependencies are acceptable (no memfs, mock-fs, etc.)
+  3. Test Coverage: The existing skipped tests cover the scenarios we need to implement
+  4. Performance: In-memory tests should be significantly faster than current filesystem tests
+  5. Isolation: Each test should be completely isolated with no shared state
+  6. Maintenance: The new approach should be easier to maintain than current fs mocking
+
+  ### Most Critical Questions
+
+  Before proceeding, I need clarification on:
+
+  Question: Should the FileSystemAdapter be injected via constructor dependency injection, or should we use a factory pattern?
+  Answer: use a factory pattern.
+  Question: How detailed should the InMemoryFileSystemAdapter be in simulating filesystem behavior (permissions, disk space, etc.)?
+  Answer: don't simulate the behavior. allow testing any error that might result from permissioning problems or disk space problems.
+  Question: Should we maintain any backwards compatibility, or can we freely modify the DataStorage constructor?
+  Answer: freely modify the DataStorage constructor, but maintain the same functionality, and ensure that dependent code still functions and all tests pass.
+  Question: What's the expected timeline - should this be done incrementally or as one large refactor?
+  Answer: we're doing this in a single refactor. but we will be systematic.

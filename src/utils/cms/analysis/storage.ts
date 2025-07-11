@@ -1,6 +1,6 @@
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DetectionDataPoint, AnalysisQuery, CollectionConfig } from './types.js';
+import { FileSystemAdapter, FileSystemAdapterFactory } from './filesystem-adapter.js';
 
 // Re-export for external use
 export type { AnalysisQuery };
@@ -16,10 +16,12 @@ export class DataStorage {
     private dataDir: string;
     private indexFile: string;
     private index: Map<string, DataPointIndex> = new Map();
+    private fileSystem: FileSystemAdapter;
 
-    constructor(dataDir: string = './data/cms-analysis') {
+    constructor(dataDir: string = './data/cms-analysis', fileSystemType: 'node' | 'memory' = 'node') {
         this.dataDir = dataDir;
         this.indexFile = path.join(dataDir, 'index.json');
+        this.fileSystem = FileSystemAdapterFactory.create(fileSystemType);
     }
 
     /**
@@ -28,7 +30,7 @@ export class DataStorage {
     async initialize(): Promise<void> {
         try {
             // Create data directory if it doesn't exist
-            await fs.mkdir(this.dataDir, { recursive: true });
+            await this.fileSystem.mkdir(this.dataDir, { recursive: true });
             
             // Load existing index
             await this.loadIndex();
@@ -57,7 +59,7 @@ export class DataStorage {
             
             // Write data point to file
             const jsonData = JSON.stringify(dataPoint, null, 2);
-            await fs.writeFile(filePath, jsonData, 'utf8');
+            await this.fileSystem.writeFile(filePath, jsonData, 'utf8');
             
             // Update index
             const indexEntry: DataPointIndex = {
@@ -97,6 +99,12 @@ export class DataStorage {
     async storeBatch(dataPoints: DetectionDataPoint[]): Promise<string[]> {
         const fileIds: string[] = [];
         
+        // Handle empty batch - still need to ensure index exists
+        if (dataPoints.length === 0) {
+            await this.saveIndex();
+            return fileIds;
+        }
+        
         for (const dataPoint of dataPoints) {
             try {
                 const fileId = await this.store(dataPoint);
@@ -106,7 +114,9 @@ export class DataStorage {
                     url: dataPoint.url,
                     error: (error as Error).message 
                 });
-                // Continue with other data points
+                // For batch operations, if any writes fail, we should propagate the error
+                // This matches the expected behavior in tests
+                throw error;
             }
         }
         
@@ -120,6 +130,13 @@ export class DataStorage {
     }
 
     /**
+     * Get a data point by file ID (alias for retrieve)
+     */
+    async getDataPoint(fileId: string): Promise<DetectionDataPoint | null> {
+        return this.retrieve(fileId);
+    }
+
+    /**
      * Retrieve a data point by file ID
      */
     async retrieve(fileId: string): Promise<DetectionDataPoint | null> {
@@ -130,7 +147,7 @@ export class DataStorage {
             }
             
             const filePath = path.join(this.dataDir, indexEntry.filePath);
-            const jsonData = await fs.readFile(filePath, 'utf8');
+            const jsonData = await this.fileSystem.readFile(filePath, 'utf8');
             const dataPoint = JSON.parse(jsonData) as DetectionDataPoint;
             
             // Convert timestamp back to Date object
@@ -156,9 +173,17 @@ export class DataStorage {
             const dataPoints: DetectionDataPoint[] = [];
             
             for (const entry of matchingEntries) {
-                const dataPoint = await this.retrieve(entry.fileId);
-                if (dataPoint) {
-                    dataPoints.push(dataPoint);
+                try {
+                    const dataPoint = await this.retrieve(entry.fileId);
+                    if (dataPoint) {
+                        dataPoints.push(dataPoint);
+                    }
+                } catch (error) {
+                    // If we can't read a specific file, just skip it instead of failing the entire query
+                    logger.warn('Failed to retrieve data point during query', { 
+                        fileId: entry.fileId,
+                        error: (error as Error).message 
+                    });
                 }
             }
             
@@ -263,12 +288,13 @@ export class DataStorage {
     private generateFileId(url: string, timestamp: Date): string {
         const urlHash = Buffer.from(url).toString('base64url').substring(0, 10);
         const timeHash = timestamp.getTime().toString(36);
-        return `${timeHash}-${urlHash}`;
+        const randomSuffix = Math.random().toString(36).substring(2, 6);
+        return `${timeHash}-${urlHash}-${randomSuffix}`;
     }
 
     private async loadIndex(): Promise<void> {
         try {
-            const indexData = await fs.readFile(this.indexFile, 'utf8');
+            const indexData = await this.fileSystem.readFile(this.indexFile, 'utf8');
             const parsedData = JSON.parse(indexData);
             
             // Handle both formats: direct array or {files: array}
@@ -289,16 +315,26 @@ export class DataStorage {
                 entries: indexArray.length 
             });
         } catch (error) {
-            // Index file doesn't exist or is corrupted, start fresh
-            logger.info('Starting with fresh index', { reason: (error as Error).message });
-            this.index.clear();
+            if ((error as any).code === 'ENOENT') {
+                // Index file doesn't exist, start fresh
+                logger.info('Starting with fresh index', { reason: 'Index file not found' });
+                this.index.clear();
+            } else if (error instanceof SyntaxError) {
+                // JSON parsing error - this should be thrown for corrupted JSON
+                logger.error('Corrupted index file', { error: error.message });
+                throw new Error('Corrupted index file: ' + error.message);
+            } else {
+                // Other errors should be thrown
+                logger.error('Failed to load index', { error: (error as Error).message });
+                throw error;
+            }
         }
     }
 
     private async saveIndex(): Promise<void> {
         const indexArray = Array.from(this.index.values());
         const jsonData = JSON.stringify(indexArray, null, 2);
-        await fs.writeFile(this.indexFile, jsonData, 'utf8');
+        await this.fileSystem.writeFile(this.indexFile, jsonData, 'utf8');
     }
 
     private filterIndex(query: AnalysisQuery): DataPointIndex[] {
@@ -367,12 +403,12 @@ export class DataStorage {
 
     private async exportJson(dataPoints: DetectionDataPoint[], outputPath: string): Promise<void> {
         const jsonData = JSON.stringify(dataPoints, null, 2);
-        await fs.writeFile(outputPath, jsonData, 'utf8');
+        await this.fileSystem.writeFile(outputPath, jsonData, 'utf8');
     }
 
     private async exportJsonLines(dataPoints: DetectionDataPoint[], outputPath: string): Promise<void> {
         const lines = dataPoints.map(dp => JSON.stringify(dp)).join('\n');
-        await fs.writeFile(outputPath, lines, 'utf8');
+        await this.fileSystem.writeFile(outputPath, lines, 'utf8');
     }
 
     private async exportCsv(dataPoints: DetectionDataPoint[], outputPath: string): Promise<void> {
@@ -399,11 +435,10 @@ export class DataStorage {
             dp.links.length
         ]);
         
-        const csvContent = [headers, ...rows]
-            .map(row => row.map(cell => `"${cell}"`).join(','))
+        const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))]
             .join('\n');
         
-        await fs.writeFile(outputPath, csvContent, 'utf8');
+        await this.fileSystem.writeFile(outputPath, csvContent, 'utf8');
     }
 }
 
