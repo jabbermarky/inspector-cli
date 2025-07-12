@@ -13,9 +13,11 @@ vi.mock('../../../logger.js', () => ({
     }))
 }));
 
-// Use standardized retry mock pattern from test-utils
+// Fixed retry mock - must return function result
 vi.mock('../../../retry.js', () => ({
-    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
+    withRetry: async (fn: any) => {
+        return await fn();
+    }
 }));
 
 import { DrupalDetector } from '../../detectors/drupal.js';
@@ -34,6 +36,57 @@ describe('Drupal Detector', () => {
     beforeEach(() => {
         detector = new DrupalDetector();
         mockPage = createMockPage();
+        
+        // Set up comprehensive page mocks for ALL Drupal strategies
+        
+        // Default evaluate mock covering all strategy patterns
+        mockPage.evaluate.mockImplementation((fn: Function) => {
+            const fnStr = fn.toString();
+            
+            // MetaTagStrategy pattern
+            if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                return ''; // Default: no meta tag (can be overridden in tests)
+            }
+            
+            // DrupalFileStrategy pattern
+            if (fnStr.includes('document.body.textContent')) {
+                return ''; // Default: empty response
+            }
+            
+            return '';
+        });
+        
+        // Default content mock for HtmlContentStrategy
+        mockPage.content.mockResolvedValue('<html><head></head><body></body></html>');
+        
+        // Default goto mock for DrupalFileStrategy
+        mockPage.goto.mockImplementation(async (url: string, options?: any) => {
+            return Promise.resolve({
+                status: () => 404,
+                ok: () => false,
+                headers: () => ({})
+            });
+        });
+        
+        // Browser context for HttpHeaderStrategy and navigation info
+        mockPage._browserManagerContext = {
+            purpose: 'detection' as const,
+            createdAt: Date.now(),
+            navigationCount: 1,
+            lastNavigation: {
+                originalUrl: 'https://example.com',
+                finalUrl: 'https://example.com',
+                redirectChain: [],
+                totalRedirects: 0,
+                navigationTime: 1000,
+                protocolUpgraded: false,
+                success: true,
+                headers: {} // Default: no Drupal headers
+            }
+        };
+        
+        // Robots.txt data for RobotsTxtStrategy
+        mockPage._robotsTxtData = undefined;
     });
 
     describe('Meta Tag Detection', () => {

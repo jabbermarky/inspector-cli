@@ -13,10 +13,14 @@ vi.mock('../../../logger.js', () => ({
     }))
 }));
 
-// Use standardized retry mock pattern from test-utils
+// Simple retry mock that just executes the function
 vi.mock('../../../retry.js', () => ({
-    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
+    withRetry: async (fn: any) => {
+        return await fn();
+    }
 }));
+
+// Use real strategies - mock their dependencies properly
 
 import { WordPressDetector } from '../../detectors/wordpress.js';
 import { DetectionPage } from '../../types.js';
@@ -34,13 +38,163 @@ describe('WordPress Detector', () => {
     beforeEach(() => {
         detector = new WordPressDetector();
         mockPage = createMockPage();
+        
+        // Set up comprehensive page mocks that work for ALL strategies
+        
+        // Default evaluate mock covering all strategy patterns
+        mockPage.evaluate.mockImplementation((fn: Function) => {
+            const fnStr = fn.toString();
+            
+            // MetaTagStrategy pattern
+            if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                return ''; // Default: no meta tag (can be overridden in tests)
+            }
+            
+            // ApiEndpointStrategy and WordPressPluginStrategy pattern
+            if (fnStr.includes('document.body.textContent')) {
+                return ''; // Default: empty response
+            }
+            
+            return '';
+        });
+        
+        // Default content mock for HtmlContentStrategy and WordPressPluginStrategy
+        mockPage.content.mockResolvedValue('<html><head></head><body></body></html>');
+        
+        // Default goto mock for ApiEndpointStrategy and WordPressPluginStrategy
+        mockPage.goto.mockImplementation(async (url: string, options?: any) => {
+            return Promise.resolve({
+                status: () => 404,
+                ok: () => false,
+                headers: () => ({})
+            });
+        });
+        
+        // Browser context for HttpHeaderStrategy and navigation info
+        mockPage._browserManagerContext = {
+            purpose: 'detection' as const,
+            createdAt: Date.now(),
+            navigationCount: 1,
+            lastNavigation: {
+                originalUrl: 'https://example.com',
+                finalUrl: 'https://example.com',
+                redirectChain: [],
+                totalRedirects: 0,
+                navigationTime: 1000,
+                protocolUpgraded: false,
+                success: true,
+                headers: {} // Default: no WordPress headers
+            }
+        };
+        
+        // Robots.txt data for RobotsTxtStrategy
+        mockPage._robotsTxtData = undefined;
     });
 
-    describe('Meta Tag Detection', () => {
+    describe('Individual Strategy Testing', () => {
+        it('1. MetaTagStrategy should work', async () => {
+            const { MetaTagStrategy } = await import('../../strategies/meta-tag.js');
+            const strategy = new MetaTagStrategy('WordPress', 3000);
+            
+            mockPage.evaluate.mockImplementation((fn: Function) => {
+                const fnStr = fn.toString();
+                if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                    return 'WordPress 5.9';
+                }
+                return '';
+            });
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            console.log('1. MetaTagStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('meta-tag');
+        });
+
+        it('2. HtmlContentStrategy should work', async () => {
+            const { HtmlContentStrategy } = await import('../../strategies/html-content.js');
+            const strategy = new HtmlContentStrategy(['/wp-content/', '/wp-includes/'], 'WordPress', 4000);
+            
+            mockPage.content.mockResolvedValue('<html><script src="/wp-content/themes/theme.js"></script></html>');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            console.log('2. HtmlContentStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('html-content');
+        });
+
+        it('3. ApiEndpointStrategy should work', async () => {
+            const { ApiEndpointStrategy } = await import('../../strategies/api-endpoint.js');
+            const strategy = new ApiEndpointStrategy('/wp-json/', 'WordPress', 6000);
+            
+            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false });
+            mockPage.evaluate.mockResolvedValue('');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            console.log('3. ApiEndpointStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('api-endpoint');
+        });
+
+        it('4. HttpHeaderStrategy should work', async () => {
+            const { HttpHeaderStrategy } = await import('../../strategies/http-headers.js');
+            const strategy = new HttpHeaderStrategy([], 'WordPress', 5000);
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            console.log('4. HttpHeaderStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('http-headers');
+        });
+
+        it('5. RobotsTxtStrategy should work', async () => {
+            const { RobotsTxtStrategy } = await import('../../strategies/robots-txt.js');
+            const strategy = new RobotsTxtStrategy([], 'WordPress', 3000);
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            console.log('5. RobotsTxtStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('robots-txt');
+        });
+
+        it('6. WordPressPluginStrategy should work', async () => {
+            // Test the inline WordPressPluginStrategy by creating a detector and accessing its strategies
+            const detector = new WordPressDetector();
+            const strategies = detector.getStrategies();
+            const pluginStrategy = strategies.find(s => s.getName() === 'plugin-detection');
+            
+            expect(pluginStrategy).toBeDefined();
+            
+            mockPage.content.mockResolvedValue('<html><script src="/wp-content/plugins/yoast/script.js"></script></html>');
+            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false });
+            mockPage.evaluate.mockResolvedValue('');
+            
+            const result = await pluginStrategy!.detect(mockPage, 'https://example.com');
+            console.log('6. WordPressPluginStrategy result:', JSON.stringify(result, null, 2));
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('plugin-detection');
+        });
+
+
         it('should detect WordPress from meta generator tag', async () => {
-            mockPage.evaluate.mockResolvedValue('WordPress 5.9');
-            mockPage.content.mockResolvedValue('<html></html>');
-            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
+            // Set up mocks for MetaTagStrategy to succeed
+            mockPage.evaluate.mockImplementation((fn: Function) => {
+                const fnStr = fn.toString();
+                
+                if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                    return 'WordPress 5.9';
+                }
+                if (fnStr.includes('document.body.textContent')) {
+                    return '';
+                }
+                return '';
+            });
+            
+            mockPage.content.mockResolvedValue('<html><head><meta name="generator" content="WordPress 5.9"></head></html>');
 
             const result = await detector.detect(mockPage, 'https://example.com');
 
@@ -52,7 +206,15 @@ describe('WordPress Detector', () => {
         });
 
         it('should handle missing meta tag gracefully', async () => {
-            mockPage.evaluate.mockResolvedValue('');
+            // Mock DOM environment with no meta generator tag but WordPress content
+            mockPage.evaluate.mockImplementation((fn: Function) => {
+                const fnStr = fn.toString();
+                if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                    // No meta generator tag found
+                    return '';
+                }
+                return '';
+            });
             mockPage.content.mockResolvedValue(`
                 <html>
                     <script src="/wp-content/themes/theme/script.js"></script>

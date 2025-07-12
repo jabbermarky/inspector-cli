@@ -438,6 +438,26 @@ await storage.storeBatch(dataPoints);
 await storage.getAllDataPoints();
 ```
 
+## Test Troubleshooting
+
+**🔧 When Tests Fail: Follow the Systematic Workflow**
+
+When encountering test failures, ALWAYS follow the systematic test troubleshooting workflow documented in `/docs/test-troubleshooting-workflow.md`. This prevents random debugging approaches and ensures efficient problem resolution.
+
+**Key principles:**
+- **Maintain a problem-solving log** - Document each approach, its results, and why it failed
+- **Start with foundation verification** - Test mocks work before testing business logic  
+- **Use bottom-up debugging** - Individual components → integrations → full system
+- **Seek contradictory evidence** - Actively test assumptions that could be wrong
+- **Apply proven patterns** - Reuse solutions that worked for similar problems
+
+**Common patterns already established:**
+- **withRetry mock issue**: Mock must return function result with `return await fn()`
+- **Mock hoisting**: Use `vi.hoisted()` for Vitest variable declarations
+- **Export issues**: Re-mock modules after `vi.resetModules()` calls
+
+**Remember**: Most test failures have simple root causes. Complex symptoms usually indicate issues in foundational components (mocks, basic functions) rather than business logic.
+
 ## Architecture
 
 ### URL Handling

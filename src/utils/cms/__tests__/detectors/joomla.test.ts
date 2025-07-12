@@ -13,9 +13,11 @@ vi.mock('../../../logger.js', () => ({
     }))
 }));
 
-// Use standardized retry mock pattern from test-utils
+// Fixed retry mock - must return function result
 vi.mock('../../../retry.js', () => ({
-    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
+    withRetry: async (fn: any) => {
+        return await fn();
+    }
 }));
 
 import { JoomlaDetector } from '../../detectors/joomla.js';
@@ -55,6 +57,52 @@ describe('Joomla Detector', () => {
     beforeEach(() => {
         detector = new JoomlaDetector();
         mockPage = createMockPage();
+        
+        // Set up comprehensive page mocks for ALL Joomla strategies
+        
+        // Default evaluate mock covering all strategy patterns
+        mockPage.evaluate.mockImplementation((fn: Function) => {
+            const fnStr = fn.toString();
+            
+            // MetaTagStrategy pattern
+            if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                return ''; // Default: no meta tag (can be overridden in tests)
+            }
+            
+            return '';
+        });
+        
+        // Default content mock for HtmlContentStrategy
+        mockPage.content.mockResolvedValue('<html><head></head><body></body></html>');
+        
+        // Default goto mock (not used by Joomla strategies but needed for completeness)
+        mockPage.goto.mockImplementation(async (url: string, options?: any) => {
+            return Promise.resolve({
+                status: () => 404,
+                ok: () => false,
+                headers: () => ({})
+            });
+        });
+        
+        // Browser context for HttpHeaderStrategy and navigation info
+        mockPage._browserManagerContext = {
+            purpose: 'detection' as const,
+            createdAt: Date.now(),
+            navigationCount: 1,
+            lastNavigation: {
+                originalUrl: 'https://example.com',
+                finalUrl: 'https://example.com',
+                redirectChain: [],
+                totalRedirects: 0,
+                navigationTime: 1000,
+                protocolUpgraded: false,
+                success: true,
+                headers: {} // Default: no Joomla headers
+            }
+        };
+        
+        // Robots.txt data for RobotsTxtStrategy
+        mockPage._robotsTxtData = undefined;
     });
 
     describe('Meta Tag Detection', () => {
