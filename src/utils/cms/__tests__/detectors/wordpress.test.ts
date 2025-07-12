@@ -105,7 +105,6 @@ describe('WordPress Detector', () => {
             });
             
             const result = await strategy.detect(mockPage, 'https://example.com');
-            console.log('1. MetaTagStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('meta-tag');
@@ -118,7 +117,6 @@ describe('WordPress Detector', () => {
             mockPage.content.mockResolvedValue('<html><script src="/wp-content/themes/theme.js"></script></html>');
             
             const result = await strategy.detect(mockPage, 'https://example.com');
-            console.log('2. HtmlContentStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('html-content');
@@ -132,7 +130,6 @@ describe('WordPress Detector', () => {
             mockPage.evaluate.mockResolvedValue('');
             
             const result = await strategy.detect(mockPage, 'https://example.com');
-            console.log('3. ApiEndpointStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('api-endpoint');
@@ -143,7 +140,6 @@ describe('WordPress Detector', () => {
             const strategy = new HttpHeaderStrategy([], 'WordPress', 5000);
             
             const result = await strategy.detect(mockPage, 'https://example.com');
-            console.log('4. HttpHeaderStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('http-headers');
@@ -154,7 +150,6 @@ describe('WordPress Detector', () => {
             const strategy = new RobotsTxtStrategy([], 'WordPress', 3000);
             
             const result = await strategy.detect(mockPage, 'https://example.com');
-            console.log('5. RobotsTxtStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('robots-txt');
@@ -173,7 +168,6 @@ describe('WordPress Detector', () => {
             mockPage.evaluate.mockResolvedValue('');
             
             const result = await pluginStrategy!.detect(mockPage, 'https://example.com');
-            console.log('6. WordPressPluginStrategy result:', JSON.stringify(result, null, 2));
             expect(result).toBeDefined();
             expect(result.confidence).toBeDefined();
             expect(result.method).toBe('plugin-detection');

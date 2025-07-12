@@ -207,10 +207,8 @@ describe('Functional: PatternDiscovery', () => {
             
             if (drupalGen) {
                 expect(drupalGen.confidence).toBeCloseTo(0.333, 2); // 1 out of 3 generator tags
-            } else {
-                // If Drupal pattern was filtered out due to low frequency, that's also valid
-                console.log('Drupal generator pattern was filtered out due to low frequency/confidence');
             }
+            // If Drupal pattern was filtered out due to low frequency, that's also valid
         });
 
         it('should filter patterns by frequency and confidence thresholds', () => {
