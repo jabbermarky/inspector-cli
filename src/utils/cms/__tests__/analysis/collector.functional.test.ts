@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { setupAnalysisTests, createMockPage, createMockBrowserManager } from '@test-utils';
 
 /**
@@ -9,39 +9,39 @@ import { setupAnalysisTests, createMockPage, createMockBrowserManager } from '@t
  */
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../../browser/index.js', () => ({
-    BrowserManager: jest.fn().mockImplementation(() => ({
-        createPageInIsolatedContext: jest.fn(),
-        closeContext: jest.fn(),
-        getNavigationInfo: jest.fn()
+vi.mock('../../../browser/index.js', () => ({
+    BrowserManager: vi.fn().mockImplementation(() => ({
+        createPageInIsolatedContext: vi.fn(),
+        closeContext: vi.fn(),
+        getNavigationInfo: vi.fn()
     }))
 }));
 
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../../../url/index.js', () => ({
-    validateAndNormalizeUrl: jest.fn((url) => url),
-    createValidationContext: jest.fn(() => ({ type: 'production' }))
+vi.mock('../../../url/index.js', () => ({
+    validateAndNormalizeUrl: vi.fn((url) => url),
+    createValidationContext: vi.fn(() => ({ type: 'production' }))
 }));
 
-jest.mock('../../version-manager.js', () => ({
-    getCurrentVersion: jest.fn(() => 'v1.0.0')
+vi.mock('../../version-manager.js', () => ({
+    getCurrentVersion: vi.fn(() => 'v1.0.0')
 }));
 
 // Mock global fetch for robots.txt collection
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+global.fetch = vi.fn() as any;
 global.AbortSignal = {
-    timeout: jest.fn(() => ({} as AbortSignal))
+    timeout: vi.fn(() => ({} as AbortSignal))
 } as any;
 
 // Import the actual class we want to test
@@ -55,7 +55,7 @@ describe('Functional: DataCollector', () => {
     let mockBrowserManager: any;
     let mockPage: any;
     let mockContext: any;
-    let mockFetch: jest.MockedFunction<typeof fetch>;
+    let mockFetch: any;
 
     beforeEach(() => {
         // Create mock page using factory as base, then enhance with custom behavior
@@ -66,7 +66,7 @@ describe('Functional: DataCollector', () => {
         });
         
         // Override evaluate with complex custom behavior needed for functional tests
-        mockPage.evaluate = jest.fn().mockImplementation((fn: any, ...args: any[]) => {
+        mockPage.evaluate = vi.fn().mockImplementation((fn: any, ...args: any[]) => {
             // Mock evaluate responses based on function behavior
             const fnString = fn.toString();
                 
@@ -175,12 +175,12 @@ describe('Functional: DataCollector', () => {
         }));
 
         // Reset and setup fetch mock
-        mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+        mockFetch = global.fetch as any;
         mockFetch.mockReset();
         mockFetch.mockResolvedValue({
             ok: true,
             status: 200,
-            text: jest.fn(() => Promise.resolve('User-agent: *\nDisallow: /admin/\nSitemap: https://example.com/sitemap.xml')),
+            text: vi.fn(() => Promise.resolve('User-agent: *\nDisallow: /admin/\nSitemap: https://example.com/sitemap.xml')),
             headers: new Map([['content-type', 'text/plain']])
         } as any);
 
@@ -356,7 +356,7 @@ describe('Functional: DataCollector', () => {
             mockFetch.mockResolvedValue({
                 ok: true,
                 status: 200,
-                text: jest.fn(() => Promise.resolve(robotsContent)),
+                text: vi.fn(() => Promise.resolve(robotsContent)),
                 headers: new Map([
                     ['content-type', 'text/plain'],
                     ['content-length', '150']
@@ -385,7 +385,7 @@ describe('Functional: DataCollector', () => {
             mockFetch.mockResolvedValue({
                 ok: false,
                 status: 404,
-                text: jest.fn(() => Promise.resolve('')),
+                text: vi.fn(() => Promise.resolve('')),
                 headers: new Map()
             } as any);
 
@@ -412,7 +412,7 @@ describe('Functional: DataCollector', () => {
             mockFetch.mockResolvedValue({
                 ok: true,
                 status: 200,
-                text: jest.fn(() => Promise.resolve(complexRobots)),
+                text: vi.fn(() => Promise.resolve(complexRobots)),
                 headers: new Map()
             } as any);
 

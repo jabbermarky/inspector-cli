@@ -1,23 +1,24 @@
+import { vi } from 'vitest';
+
 // Mock logger before other imports
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-import { jest } from '@jest/globals';
 import { BaseCMSDetector } from '../../detectors/base.js';
 import { DetectionStrategy, CMSType, DetectionPage, PartialDetectionResult } from '../../types.js';
-import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Test implementation of BaseCMSDetector
 class TestCMSDetector extends BaseCMSDetector {
@@ -140,7 +141,7 @@ describe('BaseCMSDetector', () => {
             const slowStrategy = new MockStrategy('slow', { confidence: 0.8, method: 'slow' }, 1000);
             
             // Mock strategy that will timeout
-            jest.spyOn(slowStrategy, 'detect').mockImplementation(async () => {
+            vi.spyOn(slowStrategy, 'detect').mockImplementation(async () => {
                 return new Promise((resolve) => {
                     setTimeout(() => {
                         resolve({ confidence: 0.8, method: 'slow' });
@@ -300,7 +301,7 @@ describe('BaseCMSDetector', () => {
     describe('URL Normalization', () => {
         it('should normalize URLs correctly', async () => {
             const strategy = new MockStrategy('test', { confidence: 0.8, method: 'test' });
-            const detectSpy = jest.spyOn(strategy, 'detect');
+            const detectSpy = vi.spyOn(strategy, 'detect');
 
             detector = new TestCMSDetector([strategy]);
 

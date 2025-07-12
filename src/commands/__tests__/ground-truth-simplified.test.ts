@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Simplified Ground-Truth Command Tests
  * 
@@ -5,7 +6,7 @@
  * without complex TypeScript mock issues.
  */
 
-import { jest } from '@jest/globals';
+
 import { 
     createMockCMSData,
     createWordPressMockData,
@@ -16,11 +17,11 @@ import {
     mockDomainAwarePatternCount,
     createDomainValidationTestCases,
     setupGroundTruthTests,
-    setupJestExtensions
+    setupVitestExtensions
 } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom matchers
+setupVitestExtensions();
 
 describe('Ground-Truth Domain Validation Bug Analysis', () => {
     setupGroundTruthTests();

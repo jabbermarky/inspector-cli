@@ -15,21 +15,22 @@ import {
     UrlSecurityError,
     UrlFormatError
 } from '../index.js';
-import { setupUrlTests, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
+import { setupUrlTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock logger
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 

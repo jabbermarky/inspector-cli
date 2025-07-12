@@ -5,6 +5,7 @@
  * into standardized, type-safe utilities for all testing scenarios.
  */
 
+import { vi } from 'vitest';
 import { DetectionStrategy, PartialDetectionResult, DetectionPage } from '../../utils/cms/types.js';
 
 export type StrategyType = 'meta-tag' | 'http-headers' | 'robots-txt' | 'api-endpoint' | 'html-content';
@@ -65,7 +66,7 @@ export interface StrategyTestCase {
 /**
  * Creates a configurable mock strategy for testing
  */
-export function createMockStrategy(options: MockStrategyOptions = {}): jest.Mocked<DetectionStrategy> {
+export function createMockStrategy(options: MockStrategyOptions = {}): any {
     const {
         name = 'mock-strategy',
         confidence = 0.9,
@@ -78,10 +79,10 @@ export function createMockStrategy(options: MockStrategyOptions = {}): jest.Mock
     } = options;
 
     const mockStrategy = {
-        getName: jest.fn().mockReturnValue(name),
-        getTimeout: jest.fn().mockReturnValue(timeout),
-        detect: jest.fn()
-    } as jest.Mocked<DetectionStrategy>;
+        getName: vi.fn().mockReturnValue(name),
+        getTimeout: vi.fn().mockReturnValue(timeout),
+        detect: vi.fn()
+    } as any;
 
     if (shouldFail) {
         mockStrategy.detect.mockRejectedValue(new Error(errorMessage));
@@ -103,21 +104,21 @@ export function createMockStrategy(options: MockStrategyOptions = {}): jest.Mock
  */
 export function createStrategyPageMock(strategyType: StrategyType, data: StrategyPageMockData): any {
     const basePage = {
-        url: jest.fn().mockReturnValue('https://example.com'),
-        title: jest.fn().mockResolvedValue('Test Page'),
-        content: jest.fn().mockResolvedValue('<html><body>Test content</body></html>'),
-        goto: jest.fn().mockResolvedValue(undefined),
-        evaluate: jest.fn(),
-        $eval: jest.fn(),
-        $$eval: jest.fn(),
-        setUserAgent: jest.fn(),
-        setViewport: jest.fn(),
-        waitForSelector: jest.fn(),
-        waitForFunction: jest.fn(),
-        waitForTimeout: jest.fn(),
-        screenshot: jest.fn(),
-        setDefaultNavigationTimeout: jest.fn(),
-        setDefaultTimeout: jest.fn()
+        url: vi.fn().mockReturnValue('https://example.com'),
+        title: vi.fn().mockResolvedValue('Test Page'),
+        content: vi.fn().mockResolvedValue('<html><body>Test content</body></html>'),
+        goto: vi.fn().mockResolvedValue(undefined),
+        evaluate: vi.fn(),
+        $eval: vi.fn(),
+        $$eval: vi.fn(),
+        setUserAgent: vi.fn(),
+        setViewport: vi.fn(),
+        waitForSelector: vi.fn(),
+        waitForFunction: vi.fn(),
+        waitForTimeout: vi.fn(),
+        screenshot: vi.fn(),
+        setDefaultNavigationTimeout: vi.fn(),
+        setDefaultTimeout: vi.fn()
     };
 
     // Configure strategy-specific mock data
@@ -189,7 +190,7 @@ export function createStrategyPageMock(strategyType: StrategyType, data: Strateg
 /**
  * Creates a strategy that simulates specific error conditions
  */
-export function createFailingStrategy(errorType: ErrorType, customMessage?: string): jest.Mocked<DetectionStrategy> {
+export function createFailingStrategy(errorType: ErrorType, customMessage?: string): any {
     const errorMessages = {
         timeout: 'Strategy timeout exceeded',
         network: 'Network request failed',
@@ -227,8 +228,8 @@ export function createFailingStrategy(errorType: ErrorType, customMessage?: stri
 /**
  * Creates multiple mock strategies for testing strategy aggregation
  */
-export function createMockStrategySet(count: number = 3): jest.Mocked<DetectionStrategy>[] {
-    const strategies: jest.Mocked<DetectionStrategy>[] = [];
+export function createMockStrategySet(count: number = 3): any[] {
+    const strategies: any[] = [];
     
     for (let i = 0; i < count; i++) {
         strategies.push(createMockStrategy({
@@ -245,7 +246,7 @@ export function createMockStrategySet(count: number = 3): jest.Mocked<DetectionS
 /**
  * Creates a mixed set of successful and failing strategies
  */
-export function createMixedStrategySet(): jest.Mocked<DetectionStrategy>[] {
+export function createMixedStrategySet(): any[] {
     return [
         createMockStrategy({ name: 'successful-strategy-1', confidence: 0.9 }),
         createFailingStrategy('timeout'),
@@ -393,5 +394,5 @@ export function setupStrategyMocks(): void {
  * Resets all strategy mocks between tests
  */
 export function resetStrategyMocks(): void {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 }

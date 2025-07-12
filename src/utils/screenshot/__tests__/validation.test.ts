@@ -1,10 +1,10 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { ScreenshotValidator } from '../validation.js';
 import { ScreenshotValidationError } from '../types.js';
-import { setupScreenshotTests, setupJestExtensions } from '@test-utils';
+import { setupScreenshotTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom matchers
+setupVitestExtensions();
 
 // Factory functions for screenshot validation
 const createValidScreenshotOptions = (overrides: any = {}) => ({
@@ -21,15 +21,15 @@ const createInvalidScreenshotOptions = (field: string, value: any) => {
 };
 
 // Mock logger
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 

@@ -1,10 +1,11 @@
+import { vi } from 'vitest';
 // Simplified test without problematic mocks since we're testing isolated methods
 
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
+
+// Setup custom matchers
+setupVitestExtensions();
 import * as fs from 'fs';
 import * as path from 'path';
 

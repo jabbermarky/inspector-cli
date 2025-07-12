@@ -11,10 +11,11 @@ import {
     getFileStats,
     SUPPORTED_IMAGE_EXTENSIONS
 } from '../operations';
-import { setupFileTests, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
+import { setupFileTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Factory functions for file operations testing
 const createTestFileStructure = (baseDir: string = '/tmp/test-file-ops') => {
@@ -47,7 +48,7 @@ const createInvalidFilePathCases = () => [
 ];
 
 // Mock the config module
-jest.mock('../../config.js', () => ({
+vi.mock('../../config.js', () => ({
     getConfig: () => ({
         app: {
             screenshotDir: '/tmp/test-screenshots'
@@ -56,15 +57,15 @@ jest.mock('../../config.js', () => ({
 }));
 
 // Mock the logger module
-jest.mock('../../logger.js', () => ({
+vi.mock('../../logger.js', () => ({
     createModuleLogger: () => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     })
 }));
 

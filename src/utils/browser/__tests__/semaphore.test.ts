@@ -1,28 +1,28 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { Semaphore, createSemaphore } from '../semaphore.js';
-import { setupBrowserTests, setupJestExtensions } from '@test-utils';
+import { setupBrowserTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock dependencies
-jest.mock('../../config.js', () => ({
-    getConfig: jest.fn(() => ({
+vi.mock('../../config.js', () => ({
+    getConfig: vi.fn(() => ({
         puppeteer: {
             maxConcurrency: 2
         }
     }))
 }));
 
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 

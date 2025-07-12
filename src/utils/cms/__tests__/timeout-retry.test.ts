@@ -1,30 +1,30 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { MetaTagStrategy } from '../strategies/meta-tag.js';
 import { HtmlContentStrategy } from '../strategies/html-content.js';
 import { ApiEndpointStrategy } from '../strategies/api-endpoint.js';
 import { WordPressDetector } from '../detectors/wordpress.js';
 import { CMSTimeoutError, CMSNetworkError } from '../types.js';
-import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock logger
-jest.mock('../../logger.js', () => ({
+vi.mock('../../logger.js', () => ({
     createModuleLogger: () => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     })
 }));
 
 // Use standardized retry mock pattern from test-utils
-jest.mock('../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
 describe('CMS Detection Timeout and Retry Behavior', () => {

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 
 /**
@@ -12,12 +12,12 @@ import { setupCommandTests } from '@test-utils';
 import { processChatRequest } from '../chat.js';
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../genai.js', () => ({
-    callChat: jest.fn()
+vi.mock('../../genai.js', () => ({
+    callChat: vi.fn()
 }));
 
-jest.mock('../../utils/file/index.js', () => ({
-    validateImageFile: jest.fn((filename: string) => {
+vi.mock('../../utils/file/index.js', () => ({
+    validateImageFile: vi.fn((filename: string) => {
         // Mock file validation
         if (filename.includes('nonexistent')) {
             throw new Error('File does not exist');
@@ -33,20 +33,20 @@ jest.mock('../../utils/file/index.js', () => ({
     })
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 import { callChat } from '../../genai.js';
-const mockCallChat = callChat as jest.MockedFunction<typeof callChat>;
+const mockCallChat = callChat as vi.MockedFunction<typeof callChat>;
 
 describe('Functional: chat.ts', () => {
     setupCommandTests();
@@ -57,7 +57,7 @@ describe('Functional: chat.ts', () => {
 
     beforeEach(() => {
         // Reset all mocks before each test
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Set default successful chat response
         mockCallChat.mockResolvedValue({
@@ -65,9 +65,9 @@ describe('Functional: chat.ts', () => {
         });
         
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {

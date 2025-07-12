@@ -91,10 +91,10 @@ describe('Config Mock Factory', () => {
     });
 
     describe('createMockGetConfig', () => {
-        it('should create a jest mock function with default config', () => {
+        it('should create a mock function with default config', () => {
             const mockGetConfig = createMockGetConfig();
             
-            expect(jest.isMockFunction(mockGetConfig)).toBe(true);
+            expect(vi.isMockFunction(mockGetConfig)).toBe(true);
             
             const config = mockGetConfig();
             expect(config.app.logLevel).toBe('ERROR');
@@ -103,7 +103,7 @@ describe('Config Mock Factory', () => {
             expect(mockGetConfig).toHaveBeenCalledTimes(1);
         });
 
-        it('should create a jest mock function with custom config', () => {
+        it('should create a mock function with custom config', () => {
             const customConfig = createMockConfig({ logLevel: 'DEBUG' });
             const mockGetConfig = createMockGetConfig(customConfig);
             
@@ -140,12 +140,12 @@ describe('Config Mock Factory', () => {
     });
 
     describe('Integration scenarios', () => {
-        it('should work with jest.doMock pattern', () => {
+        it('should work with vi.doMock pattern', () => {
             const mockConfig = createTestConfig();
-            const mockGetConfig = jest.fn(() => mockConfig);
+            const mockGetConfig = vi.fn(() => mockConfig);
             
             // Simulate the pattern users would use
-            jest.doMock('../../../utils/config.js', () => ({
+            vi.doMock('../../../utils/config.js', () => ({
                 getConfig: mockGetConfig
             }));
             

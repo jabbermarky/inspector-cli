@@ -4,12 +4,13 @@
  * Comprehensive test suite for bot blocking detection and evasion analysis.
  */
 
+import { vi } from 'vitest';
 import { BotBlockingAnalyzer } from '../../analysis/bot-blocking.js';
 import { DetectionDataPoint } from '../../analysis/types.js';
-import { setupJestExtensions } from '@test-utils';
+import { setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Helper function to create test data points
 function createTestDataPoint(partial: Partial<DetectionDataPoint>): DetectionDataPoint {

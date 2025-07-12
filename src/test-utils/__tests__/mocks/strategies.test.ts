@@ -5,7 +5,7 @@
  * mock creation, configuration, and type safety.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     createMockStrategy,
     createStrategyPageMock,
@@ -100,7 +100,7 @@ describe('Strategy Mock Utilities', () => {
             
             expect(mockPage.evaluate).toBeDefined();
             // Test that evaluate mock is configured for meta tags
-            expect(jest.isMockFunction(mockPage.evaluate)).toBe(true);
+            expect(vi.isMockFunction(mockPage.evaluate)).toBe(true);
         });
         
         it('should configure http-headers strategy page mock', () => {
@@ -137,7 +137,7 @@ describe('Strategy Mock Utilities', () => {
                 apiStatusCode 
             });
             
-            expect(mockPage.evaluate).toHaveBeenCalledWith = jest.fn();
+            expect(mockPage.evaluate).toHaveBeenCalledWith = vi.fn();
             expect(mockPage.goto).toBeDefined();
         });
         
@@ -148,7 +148,7 @@ describe('Strategy Mock Utilities', () => {
             
             expect(mockPage.content).toBeDefined();
             // Verify the content mock returns our HTML
-            expect(jest.isMockFunction(mockPage.content)).toBe(true);
+            expect(vi.isMockFunction(mockPage.content)).toBe(true);
         });
     });
     

@@ -1,8 +1,8 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 /**
  * Integration Test Suite for CMS Detection Workflows
@@ -18,39 +18,39 @@ setupJestExtensions();
  */
 
 // Mock all dependencies for integration testing
-jest.mock('../../utils/retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../utils/retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../../utils/utils.js', () => ({
-    detectInputType: jest.fn(),
-    extractUrlsFromCSV: jest.fn(),
-    myParseInt: jest.fn(),
-    analyzeFilePath: jest.fn(),
-    takeAScreenshotPuppeteer: jest.fn()
+vi.mock('../../utils/utils.js', () => ({
+    detectInputType: vi.fn(),
+    extractUrlsFromCSV: vi.fn(),
+    myParseInt: vi.fn(),
+    analyzeFilePath: vi.fn(),
+    takeAScreenshotPuppeteer: vi.fn()
 }));
 
-jest.mock('../../utils/cms/index.js', () => ({
-    CMSDetectionIterator: jest.fn()
+vi.mock('../../utils/cms/index.js', () => ({
+    CMSDetectionIterator: vi.fn()
 }));
 
-jest.mock('../../utils/cms/analysis/storage.js', () => ({
-    DataStorage: jest.fn()
+vi.mock('../../utils/cms/analysis/storage.js', () => ({
+    DataStorage: vi.fn()
 }));
 
-jest.mock('../../utils/cms/analysis/generator.js', () => ({
-    RuleGenerator: jest.fn()
+vi.mock('../../utils/cms/analysis/generator.js', () => ({
+    RuleGenerator: vi.fn()
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -59,10 +59,10 @@ import { detectInputType, extractUrlsFromCSV } from '../../utils/utils.js';
 import { CMSDetectionIterator } from '../../utils/cms/index.js';
 import { DataStorage } from '../../utils/cms/analysis/storage.js';
 
-const mockDetectInputType = detectInputType as jest.MockedFunction<typeof detectInputType>;
-const mockExtractUrlsFromCSV = extractUrlsFromCSV as jest.MockedFunction<typeof extractUrlsFromCSV>;
-const MockCMSDetectionIterator = CMSDetectionIterator as jest.MockedClass<typeof CMSDetectionIterator>;
-const MockDataStorage = DataStorage as jest.MockedClass<typeof DataStorage>;
+const mockDetectInputType = detectInputType as any;
+const mockExtractUrlsFromCSV = extractUrlsFromCSV as any;
+const MockCMSDetectionIterator = CMSDetectionIterator as any;
+const MockDataStorage = DataStorage as any;
 
 describe('Integration: CMS Detection Workflows', () => {
     setupCommandTests();
@@ -73,12 +73,12 @@ describe('Integration: CMS Detection Workflows', () => {
 
     beforeEach(() => {
         // Reset all mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Spy on console methods
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {
@@ -103,8 +103,8 @@ describe('Integration: CMS Detection Workflows', () => {
                 mockExtractUrlsFromCSV.mockReturnValue(testUrls);
                 
                 const mockIterator = {
-                    detect: jest.fn(),
-                    finalize: jest.fn()
+                    detect: vi.fn(),
+                    finalize: vi.fn()
                 } as any;
                 
                 MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -169,8 +169,8 @@ describe('Integration: CMS Detection Workflows', () => {
                 mockDetectInputType.mockReturnValue('url');
                 
                 const mockIterator = {
-                    detect: jest.fn(),
-                    finalize: jest.fn()
+                    detect: vi.fn(),
+                    finalize: vi.fn()
                 } as any;
                 
                 MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -203,10 +203,10 @@ describe('Integration: CMS Detection Workflows', () => {
                 const dataDir = './data/cms-analysis';
                 
                 const mockStorage = {
-                    initialize: jest.fn(),
-                    getStatistics: jest.fn(),
-                    query: jest.fn(),
-                    export: jest.fn()
+                    initialize: vi.fn(),
+                    getStatistics: vi.fn(),
+                    query: vi.fn(),
+                    export: vi.fn()
                 } as any;
                 
                 MockDataStorage.mockImplementation(() => mockStorage);
@@ -276,8 +276,8 @@ describe('Integration: CMS Detection Workflows', () => {
             const testUrl = 'https://test-site.com';
             
             const mockIterator = {
-                detect: jest.fn(),
-                finalize: jest.fn()
+                detect: vi.fn(),
+                finalize: vi.fn()
             } as any;
             
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -323,8 +323,8 @@ describe('Integration: CMS Detection Workflows', () => {
             const workingUrl = 'https://working-site.com';
             
             const mockIterator = {
-                detect: jest.fn(),
-                finalize: jest.fn()
+                detect: vi.fn(),
+                finalize: vi.fn()
             } as any;
             
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -358,8 +358,8 @@ describe('Integration: CMS Detection Workflows', () => {
             const testUrls = Array.from({ length: 10 }, (_, i) => `https://test-site-${i}.com`);
             
             const mockIterator = {
-                detect: jest.fn(),
-                finalize: jest.fn()
+                detect: vi.fn(),
+                finalize: vi.fn()
             } as any;
             
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -399,8 +399,8 @@ describe('Integration: CMS Detection Workflows', () => {
             const testUrls = Array.from({ length: 5 }, (_, i) => `https://concurrent-site-${i}.com`);
             
             const mockIterator = {
-                detect: jest.fn(),
-                finalize: jest.fn()
+                detect: vi.fn(),
+                finalize: vi.fn()
             } as any;
             
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -442,8 +442,8 @@ describe('Integration: CMS Detection Workflows', () => {
             
             // Test 1: Detection
             const mockIterator = {
-                detect: jest.fn(),
-                finalize: jest.fn()
+                detect: vi.fn(),
+                finalize: vi.fn()
             } as any;
             
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
@@ -463,8 +463,8 @@ describe('Integration: CMS Detection Workflows', () => {
             
             // Test 2: Analysis using same data
             const mockStorage = {
-                initialize: jest.fn(),
-                query: jest.fn()
+                initialize: vi.fn(),
+                query: vi.fn()
             } as any;
             
             MockDataStorage.mockImplementation(() => mockStorage);

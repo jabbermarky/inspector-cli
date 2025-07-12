@@ -3,6 +3,7 @@
  * Provides standardized config mocking to eliminate duplicate patterns across tests
  */
 
+import { vi } from 'vitest';
 import type { InspectorConfig } from '../../utils/config.js';
 
 /**
@@ -31,7 +32,7 @@ export interface ConfigMockOptions {
  * @example
  * ```typescript
  * const config = createMockConfig({ headless: false, timeout: 5000 });
- * jest.doMock('../../utils/config.js', () => ({
+ * vi.doMock('../../utils/config.js', () => ({
  *     getConfig: () => config
  * }));
  * ```
@@ -121,15 +122,15 @@ export function createProductionTestConfig(): InspectorConfig {
 
 /**
  * Mock function factory for getConfig()
- * Returns a jest mock that can be spied on and configured
+ * Returns a Vitest mock that can be spied on and configured
  * 
  * @param config - Configuration to return (defaults to createTestConfig())
- * @returns Jest mock function
+ * @returns Vitest mock function
  * 
  * @example
  * ```typescript
  * const mockGetConfig = createMockGetConfig();
- * jest.doMock('../../utils/config.js', () => ({
+ * vi.doMock('../../utils/config.js', () => ({
  *     getConfig: mockGetConfig
  * }));
  * 
@@ -137,18 +138,18 @@ export function createProductionTestConfig(): InspectorConfig {
  * expect(mockGetConfig).toHaveBeenCalledTimes(1);
  * ```
  */
-export function createMockGetConfig(config?: InspectorConfig): jest.MockedFunction<() => InspectorConfig> {
+export function createMockGetConfig(config?: InspectorConfig): vi.MockedFunction<() => InspectorConfig> {
     const mockConfig = config || createTestConfig();
-    return jest.fn(() => mockConfig);
+    return vi.fn(() => mockConfig);
 }
 
 /**
  * Utility type for easier config mocking in tests
  */
-export type MockConfig = jest.Mocked<InspectorConfig>;
+export type MockConfig = vi.Mocked<InspectorConfig>;
 
 /**
- * Utility to create a fully mocked config with jest mocks
+ * Utility to create a fully mocked config with vi mocks
  * Useful when you need to spy on config access patterns
  */
 export function createSpyableConfig(options: ConfigMockOptions = {}): MockConfig {

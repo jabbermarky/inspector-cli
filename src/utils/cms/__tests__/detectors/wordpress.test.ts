@@ -1,28 +1,29 @@
+import { vi } from 'vitest';
+
 // Mock logger and retry before other imports
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 // Use standardized retry mock pattern from test-utils
-jest.mock('../../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../../retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-import { jest } from '@jest/globals';
 import { WordPressDetector } from '../../detectors/wordpress.js';
 import { DetectionPage } from '../../types.js';
-import { setupCMSDetectionTests, createMockPage, setupJestExtensions } from '@test-utils';
+import { setupCMSDetectionTests, createMockPage, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('WordPress Detector', () => {
     let detector: WordPressDetector;

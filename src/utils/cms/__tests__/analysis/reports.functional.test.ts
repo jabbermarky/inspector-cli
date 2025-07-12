@@ -1,21 +1,21 @@
+import { vi } from 'vitest';
 // Mock external dependencies BEFORE imports
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('fs/promises', () => ({
-    writeFile: jest.fn()
+vi.mock('fs/promises', () => ({
+    writeFile: vi.fn()
 }));
 
-import { jest } from '@jest/globals';
 import { AnalysisReporter } from '../../analysis/reports.js';
 import { setupAnalysisTests } from '@test-utils';
 import { DetectionDataPoint } from '../../analysis/types.js';
@@ -91,7 +91,7 @@ function createTestDataPoint(overrides: Partial<DetectionDataPoint> = {}): Detec
     };
 }
 
-jest.mock('../../analysis/patterns.js', () => ({
+vi.mock('../../analysis/patterns.js', () => ({
     PatternDiscovery: class MockPatternDiscovery {
         constructor(private dataPoints: any[]) {}
 
@@ -177,11 +177,11 @@ jest.mock('../../analysis/patterns.js', () => ({
 describe.skip('AnalysisReporter Functional Tests', () => {
     setupAnalysisTests();
 
-    let mockWriteFile: jest.MockedFunction<typeof fs.writeFile>;
+    let mockWriteFile: any;
     let sampleDataPoints: DetectionDataPoint[];
 
     beforeEach(() => {
-        mockWriteFile = fs.writeFile as jest.MockedFunction<typeof fs.writeFile>;
+        mockWriteFile = fs.writeFile as any;
         mockWriteFile.mockResolvedValue(undefined);
 
         sampleDataPoints = [

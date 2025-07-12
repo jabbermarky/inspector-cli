@@ -1,25 +1,26 @@
+import { vi } from 'vitest';
 import { DataCollector } from '../../analysis/collector.js';
 import { CollectionConfig } from '../../analysis/types.js';
 import { BrowserManager } from '../../../browser/index.js';
 import { setupAnalysisTests, createMockPage, createMockBrowserManager } from '@test-utils';
 
 // Mock logger
-jest.mock('../../../logger.js', () => ({
+vi.mock('../../../logger.js', () => ({
     createModuleLogger: () => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     })
 }));
 
 // Mock URL validator and utilities - these are our own modules, so mocking is appropriate
-jest.mock('../../../url/index.js', () => ({
-    validateAndNormalizeUrl: jest.fn((url: string, _options?: unknown) => url),
-    createValidationContext: jest.fn(() => ({
+vi.mock('../../../url/index.js', () => ({
+    validateAndNormalizeUrl: vi.fn((url: string, _options?: unknown) => url),
+    createValidationContext: vi.fn(() => ({
         environment: 'production',
         allowLocalhost: false,
         allowPrivateIPs: false,
@@ -39,19 +40,19 @@ describe('DataCollector', () => {
     beforeEach(async () => {
         // Reset URL validation mock to default behavior using ES modules
         const urlModule = await import('../../../url/index.js');
-        (urlModule.validateAndNormalizeUrl as jest.Mock).mockImplementation((url: string, _options?: unknown) => url);
+        (urlModule.validateAndNormalizeUrl as any).mockImplementation((url: string, _options?: unknown) => url);
         
         mockBrowserManager = createMockBrowserManager();
         collector = new DataCollector(mockBrowserManager);
         mockPage = createMockPage();
         
         // Mock browser manager methods
-        (mockBrowserManager.createPageInIsolatedContext as jest.Mock).mockResolvedValue({
+        (mockBrowserManager.createPageInIsolatedContext as any).mockResolvedValue({
             page: mockPage,
             context: {} // Mock context
         });
         
-        (mockBrowserManager.getNavigationInfo as jest.Mock).mockReturnValue({
+        (mockBrowserManager.getNavigationInfo as any).mockReturnValue({
             originalUrl: 'https://example.com',
             finalUrl: 'https://example.com',
             redirectChain: [],
@@ -65,7 +66,7 @@ describe('DataCollector', () => {
             }
         });
         
-        (mockBrowserManager.closeContext as jest.Mock).mockResolvedValue(undefined);
+        (mockBrowserManager.closeContext as any).mockResolvedValue(undefined);
     });
 
     describe('Constructor and Configuration', () => {
@@ -319,7 +320,7 @@ describe('DataCollector', () => {
 
     describe('Error Handling', () => {
         test('should handle navigation errors gracefully', async () => {
-            (mockBrowserManager.createPageInIsolatedContext as jest.Mock).mockRejectedValue(new Error('Navigation failed'));
+            (mockBrowserManager.createPageInIsolatedContext as any).mockRejectedValue(new Error('Navigation failed'));
 
             const result = await collector.collect('https://example.com');
 
@@ -331,7 +332,7 @@ describe('DataCollector', () => {
         test('should handle invalid URLs', async () => {
             // Simulate a browser manager error for invalid URLs to test error handling path
             const errorBrowserManager = createMockBrowserManager();
-            (errorBrowserManager.createPageInIsolatedContext as jest.Mock).mockRejectedValue(
+            (errorBrowserManager.createPageInIsolatedContext as any).mockRejectedValue(
                 new Error('Invalid URL: malformed URL')
             );
 
@@ -346,7 +347,7 @@ describe('DataCollector', () => {
         test('should handle page evaluation errors', async () => {
             // Reset URL validation mock first using ES modules
             const urlModule = await import('../../../url/index.js');
-            (urlModule.validateAndNormalizeUrl as jest.Mock).mockReturnValue('https://example.com');
+            (urlModule.validateAndNormalizeUrl as any).mockReturnValue('https://example.com');
             
             mockPage.evaluate.mockRejectedValue(new Error('Evaluation failed'));
 

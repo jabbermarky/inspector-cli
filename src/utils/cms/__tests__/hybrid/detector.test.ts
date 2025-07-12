@@ -1,20 +1,20 @@
 import { HybridCMSDetector, StrategyConfiguration, HybridDetectionOptions } from '../../hybrid/detector.js';
 import { DetectionStrategy, DetectionPage, PartialDetectionResult, CMSType } from '../../types.js';
-import { createMockPage, setupCMSDetectionTests, setupJestExtensions } from '@test-utils';
+import { createMockPage, setupCMSDetectionTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom matchers
+setupVitestExtensions();
 
 // Mock logger
-jest.mock('../../../logger.js', () => ({
+vi.mock('../../../logger.js', () => ({
     createModuleLogger: () => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     })
 }));
 
@@ -411,7 +411,7 @@ describe('HybridCMSDetector', () => {
             // Mock page that throws an error
             const errorPage = {
                 ...mockPage,
-                url: jest.fn().mockImplementation(() => {
+                url: vi.fn().mockImplementation(() => {
                     throw new Error('Page error');
                 })
             };

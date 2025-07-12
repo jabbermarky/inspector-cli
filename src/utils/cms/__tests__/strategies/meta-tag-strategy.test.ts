@@ -1,9 +1,9 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { MetaTagStrategy } from '../../strategies/meta-tag.js';
-import { createMockPage, setupStrategyTests, setupJestExtensions } from '@test-utils';
+import { createMockPage, setupStrategyTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('MetaTagStrategy', () => {
     setupStrategyTests();

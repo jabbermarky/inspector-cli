@@ -1,45 +1,45 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, createMockDataPoint, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
+import { setupCommandTests, createMockDataPoint, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 import type { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 
 // Mock dependencies
-jest.mock('../../utils/cms/analysis/storage.js', () => ({
-    DataStorage: jest.fn()
+vi.mock('../../utils/cms/analysis/storage.js', () => ({
+    DataStorage: vi.fn()
 }));
 
-jest.mock('../../utils/cms/analysis/generator.js', () => ({
-    RuleGenerator: jest.fn()
+vi.mock('../../utils/cms/analysis/generator.js', () => ({
+    RuleGenerator: vi.fn()
 }));
 
-jest.mock('../../utils/retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../utils/retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('path', () => ({
-    resolve: jest.fn((path: string) => `/resolved/${path}`)
+vi.mock('path', () => ({
+    resolve: vi.fn((path: string) => `/resolved/${path}`)
 }));
 
 // Import mocked classes
 import { DataStorage } from '../../utils/cms/analysis/storage.js';
 import { RuleGenerator } from '../../utils/cms/analysis/generator.js';
 
-const MockDataStorage = DataStorage as jest.MockedClass<typeof DataStorage>;
-const MockRuleGenerator = RuleGenerator as jest.MockedClass<typeof RuleGenerator>;
+const MockDataStorage = DataStorage as any;
+const MockRuleGenerator = RuleGenerator as any;
 
 // Now using standardized factory from test-utils instead of custom implementation
 
@@ -72,8 +72,8 @@ function createMockGeneratedStrategy(cms: string) {
 describe('Generate Command', () => {
     setupCommandTests();
     
-    let mockStorage: jest.Mocked<DataStorage>;
-    let mockGenerator: jest.Mocked<RuleGenerator>;
+    let mockStorage: any;
+    let mockGenerator: any;
     let consoleSpy: any;
     let consoleErrorSpy: any;
     let processExitSpy: any;
@@ -81,27 +81,27 @@ describe('Generate Command', () => {
     beforeEach(() => {
         // Mock DataStorage instance
         mockStorage = {
-            initialize: jest.fn(),
-            getStatistics: jest.fn(),
-            query: jest.fn(),
-            export: jest.fn()
+            initialize: vi.fn(),
+            getStatistics: vi.fn(),
+            query: vi.fn(),
+            export: vi.fn()
         } as any;
         
         MockDataStorage.mockImplementation(() => mockStorage);
 
         // Mock RuleGenerator instance
         mockGenerator = {
-            generateAllStrategies: jest.fn(),
-            writeStrategies: jest.fn(),
-            validateStrategies: jest.fn()
+            generateAllStrategies: vi.fn(),
+            writeStrategies: vi.fn(),
+            validateStrategies: vi.fn()
         } as any;
         
         MockRuleGenerator.mockImplementation(() => mockGenerator);
 
         // Spy on console methods
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {

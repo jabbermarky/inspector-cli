@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 
 /**
@@ -12,20 +12,20 @@ import { setupCommandTests } from '@test-utils';
 import { processCsvScreenshots } from '../csv.js';
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../utils/utils.js', () => ({
-    analyzeFilePath: jest.fn((path: string, width: number) => {
+vi.mock('../../utils/utils.js', () => ({
+    analyzeFilePath: vi.fn((path: string, width: number) => {
         const parts = path.split('.');
         const extension = parts.pop() || 'png';
         const baseName = parts.join('.');
         return `${baseName}-${width}.${extension}`;
     }),
-    takeAScreenshotPuppeteer: jest.fn(async (url: string, path: string, width: number) => {
+    takeAScreenshotPuppeteer: vi.fn(async (url: string, path: string, width: number) => {
         if (url.includes('error')) {
             throw new Error('Failed to navigate to page');
         }
         return { url, path, width };
     }),
-    loadCSVFromFile: jest.fn((csvFile: string) => {
+    loadCSVFromFile: vi.fn((csvFile: string) => {
         if (csvFile.includes('nonexistent')) {
             throw new Error('ENOENT: no such file or directory');
         }
@@ -34,20 +34,20 @@ https://example.com,./screenshots/example.png
 https://test-site.com,./screenshots/test.png
 https://demo.com,./screenshots/demo.png`;
     }),
-    parseCSV: jest.fn((csvData: string) => {
+    parseCSV: vi.fn((csvData: string) => {
         return csvData.split('\n').map(line => line.split(','));
     })
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -60,12 +60,12 @@ describe('Functional: csv.ts', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
         
         // Reset all mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     afterEach(() => {
@@ -187,7 +187,7 @@ describe('Functional: csv.ts', () => {
         it('should handle individual URL errors during processing', async () => {
             // Mock CSV with error URL - this tests the error handling path
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path
 https://example.com,./screenshots/example.png
 https://error-site.com,./screenshots/error.png
@@ -206,7 +206,7 @@ https://success.com,./screenshots/success.png`);
         it('should handle empty CSV files', async () => {
             // Mock empty CSV
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path`);
 
             const csvFile = './empty-data.csv';
@@ -222,7 +222,7 @@ https://success.com,./screenshots/success.png`);
         it('should handle CSV with different URL formats', async () => {
             // Mock CSV with various URL formats
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path
 http://example.com,./screenshots/http.png
 https://secure-site.com,./screenshots/https.png
@@ -240,7 +240,7 @@ http://localhost:3000,./screenshots/local.png`);
         it('should handle CSV with different path formats', async () => {
             // Mock CSV with various path formats
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path
 https://example.com,./relative/path.png
 https://test.com,/absolute/path.png
@@ -258,7 +258,7 @@ https://special.com,unicode_测试_path.png`);
         it('should handle CSV with extra columns', async () => {
             // Mock CSV with extra columns
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path,description,category
 https://example.com,./screenshots/example.png,Example site,E-commerce
 https://test.com,./screenshots/test.png,Test site,Blog`);
@@ -278,7 +278,7 @@ https://test.com,./screenshots/test.png,Test site,Blog`);
             ).join('\n');
             
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path\n${urls}`);
 
             const csvFile = './large-data.csv';
@@ -291,7 +291,7 @@ https://test.com,./screenshots/test.png,Test site,Blog`);
         it('should handle different file extensions', async () => {
             // Mock CSV with various extensions
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path
 https://example.com,./screenshots/example.jpg
 https://test.com,./screenshots/test.jpeg
@@ -328,7 +328,7 @@ https://site.com,./screenshots/site.png`);
         it('should handle special characters in file paths', async () => {
             // Mock CSV with special characters
             const { loadCSVFromFile } = await import('../../utils/utils.js');
-            (loadCSVFromFile as jest.MockedFunction<typeof loadCSVFromFile>)
+            (loadCSVFromFile as vi.MockedFunction<typeof loadCSVFromFile>)
                 .mockReturnValue(`url,path
 https://example.com,./screenshots/test@#$%^&*().png
 https://test.com,./screenshots/测试文件.png

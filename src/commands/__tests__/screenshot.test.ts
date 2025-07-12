@@ -1,32 +1,32 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 import type { ScreenshotResult } from '../../utils/screenshot/types.js';
 
 // Mock dependencies
-jest.mock('../../utils/utils.js', () => ({
-    myParseInt: jest.fn(),
-    analyzeFilePath: jest.fn(),
-    takeAScreenshotPuppeteer: jest.fn()
+vi.mock('../../utils/utils.js', () => ({
+    myParseInt: vi.fn(),
+    analyzeFilePath: vi.fn(),
+    takeAScreenshotPuppeteer: vi.fn()
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 // Import mocked functions
 import { myParseInt, analyzeFilePath, takeAScreenshotPuppeteer } from '../../utils/utils.js';
 
-const mockMyParseInt = myParseInt as jest.MockedFunction<typeof myParseInt>;
-const mockAnalyzeFilePath = analyzeFilePath as jest.MockedFunction<typeof analyzeFilePath>;
-const mockTakeAScreenshotPuppeteer = takeAScreenshotPuppeteer as jest.MockedFunction<typeof takeAScreenshotPuppeteer>;
+const mockMyParseInt = myParseInt as any;
+const mockAnalyzeFilePath = analyzeFilePath as any;
+const mockTakeAScreenshotPuppeteer = takeAScreenshotPuppeteer as any;
 
 // Helper function to create mock screenshot results
 function createMockScreenshotResult(url: string, path: string, width: number): ScreenshotResult {
@@ -54,9 +54,9 @@ describe('Screenshot Command', () => {
         mockTakeAScreenshotPuppeteer.mockClear();
 
         // Spy on console methods
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {

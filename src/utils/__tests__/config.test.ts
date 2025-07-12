@@ -1,10 +1,10 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { ConfigManager, ConfigValidator, getConfig, reloadConfig } from '../config.js';
 import { LogLevel } from '../logger.js';
-import { setupFileTests, setupJestExtensions } from '@test-utils';
+import { setupFileTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Factory functions for test configurations
 const createBaseConfig = (overrides: any = {}) => ({
@@ -53,21 +53,21 @@ const createInvalidConfig = (field: string, value: any) => {
 };
 
 // Mock dependencies
-jest.mock('fs', () => ({
-    readFileSync: jest.fn(),
-    existsSync: jest.fn()
+vi.mock('fs', () => ({
+    readFileSync: vi.fn(),
+    existsSync: vi.fn()
 }));
 
-jest.mock('path', () => ({
-    join: jest.fn((...args) => args.join('/'))
+vi.mock('path', () => ({
+    join: vi.fn((...args) => args.join('/'))
 }));
 
 // Mock retry utility with standardized pattern
-jest.mock('../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../logger.js', () => ({
+vi.mock('../logger.js', () => ({
     LogLevel: {
         DEBUG: 0,
         INFO: 1,
@@ -75,24 +75,24 @@ jest.mock('../logger.js', () => ({
         ERROR: 3,
         SILENT: 4
     },
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     })),
-    updateLoggerConfig: jest.fn()
+    updateLoggerConfig: vi.fn()
 }));
 
 import { readFileSync, existsSync } from 'fs';
 import { updateLoggerConfig } from '../logger.js';
 
-const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
-const mockExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
-const mockUpdateLoggerConfig = updateLoggerConfig as jest.MockedFunction<typeof updateLoggerConfig>;
+const mockReadFileSync = readFileSync as any;
+const mockExistsSync = existsSync as any;
+const mockUpdateLoggerConfig = updateLoggerConfig as any;
 
 describe('ConfigValidator', () => {
     describe('validateOpenAIConfig', () => {
@@ -385,7 +385,7 @@ describe('ConfigManager', () => {
         delete process.env.NODE_ENV;
         
         // Reset mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Reset singleton instance
         (ConfigManager as any).instance = undefined;

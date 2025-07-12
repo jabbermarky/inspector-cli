@@ -4,7 +4,7 @@
  * Tests the core logger mock functionality that can be reliably tested.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { getLoggerMock } from '../../mocks/logger.js';
 
 describe('Logger Mock Basic Functionality', () => {
@@ -21,14 +21,14 @@ describe('Logger Mock Basic Functionality', () => {
             expect(logger.apiResponse).toBeDefined();
             expect(logger.performance).toBeDefined();
             
-            // All should be jest mocks
-            expect(jest.isMockFunction(logger.debug)).toBe(true);
-            expect(jest.isMockFunction(logger.info)).toBe(true);
-            expect(jest.isMockFunction(logger.warn)).toBe(true);
-            expect(jest.isMockFunction(logger.error)).toBe(true);
-            expect(jest.isMockFunction(logger.apiCall)).toBe(true);
-            expect(jest.isMockFunction(logger.apiResponse)).toBe(true);
-            expect(jest.isMockFunction(logger.performance)).toBe(true);
+            // All should be vi mocks
+            expect(vi.isMockFunction(logger.debug)).toBe(true);
+            expect(vi.isMockFunction(logger.info)).toBe(true);
+            expect(vi.isMockFunction(logger.warn)).toBe(true);
+            expect(vi.isMockFunction(logger.error)).toBe(true);
+            expect(vi.isMockFunction(logger.apiCall)).toBe(true);
+            expect(vi.isMockFunction(logger.apiResponse)).toBe(true);
+            expect(vi.isMockFunction(logger.performance)).toBe(true);
         });
         
         it('should allow logger methods to be called', () => {

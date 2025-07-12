@@ -1,26 +1,27 @@
+import { vi } from 'vitest';
+
 // 1. MOCKS FIRST (before any imports)
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../../../url/index.js', () => ({
-    validateAndNormalizeUrl: jest.fn((url) => url)
+vi.mock('../../../url/index.js', () => ({
+    validateAndNormalizeUrl: vi.fn((url) => url)
 }));
 
-jest.mock('../../version-manager.js', () => ({
-    getCurrentVersion: jest.fn(() => '1.0.0-test')
+vi.mock('../../version-manager.js', () => ({
+    getCurrentVersion: vi.fn(() => '1.0.0-test')
 }));
 
 // 2. IMPORTS
-import { jest } from '@jest/globals';
 import { setupCMSDetectionTests, createMockPage } from '@test-utils';
 
 // 3. TEST SUITE

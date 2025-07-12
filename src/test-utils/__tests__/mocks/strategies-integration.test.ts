@@ -5,7 +5,7 @@
  * exercising code paths that unit tests might miss.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     createMockStrategy,
     createStrategyPageMock,
@@ -96,7 +96,7 @@ Sitemap: https://example.com/news-sitemap.xml`,
             const mockPage = createStrategyPageMock('meta-tag', { metaTags });
             
             expect(mockPage.evaluate).toBeDefined();
-            expect(jest.isMockFunction(mockPage.evaluate)).toBe(true);
+            expect(vi.isMockFunction(mockPage.evaluate)).toBe(true);
         });
     });
     

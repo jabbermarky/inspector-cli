@@ -5,7 +5,7 @@
  * mock creation, method coverage, and behavior configuration.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     createMockBrowserManager,
     type BrowserManagerMockOptions
@@ -38,14 +38,14 @@ describe('Browser Manager Mock Utilities', () => {
             expect(mockBrowserManager.cleanup).toBeDefined();
         });
         
-        it('should have jest mock functions for all methods', () => {
+        it('should have mock functions for all methods', () => {
             const mockBrowserManager = createMockBrowserManager();
             
-            expect(jest.isMockFunction(mockBrowserManager.createPage)).toBe(true);
-            expect(jest.isMockFunction(mockBrowserManager.navigateToUrl)).toBe(true);
-            expect(jest.isMockFunction(mockBrowserManager.getNavigationInfo)).toBe(true);
-            expect(jest.isMockFunction(mockBrowserManager.captureScreenshot)).toBe(true);
-            expect(jest.isMockFunction(mockBrowserManager.cleanup)).toBe(true);
+            expect(vi.isMockFunction(mockBrowserManager.createPage)).toBe(true);
+            expect(vi.isMockFunction(mockBrowserManager.navigateToUrl)).toBe(true);
+            expect(vi.isMockFunction(mockBrowserManager.getNavigationInfo)).toBe(true);
+            expect(vi.isMockFunction(mockBrowserManager.captureScreenshot)).toBe(true);
+            expect(vi.isMockFunction(mockBrowserManager.cleanup)).toBe(true);
         });
         
         it('should configure successful page creation by default', async () => {
@@ -246,7 +246,7 @@ describe('Browser Manager Mock Utilities', () => {
             mockBrowserManager.getNavigationInfo({} as any);
             expect(mockBrowserManager.getNavigationInfo).toHaveBeenCalledTimes(1);
             
-            jest.clearAllMocks();
+            vi.clearAllMocks();
             expect(mockBrowserManager.getNavigationInfo).toHaveBeenCalledTimes(0);
         });
     });

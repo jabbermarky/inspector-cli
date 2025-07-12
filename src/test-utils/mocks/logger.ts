@@ -5,6 +5,8 @@
  * that matches the actual ModuleLogger interface.
  */
 
+import { vi } from 'vitest';
+
 /**
  * Interface matching the actual ModuleLogger class
  * Used for type-safe mocking without depending on the actual implementation
@@ -23,43 +25,43 @@ export interface MockModuleLogger {
  * Complete mock implementation of ModuleLogger
  * Includes all methods from the actual implementation
  */
-export const createMockLogger = (): jest.Mocked<MockModuleLogger> => ({
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    apiCall: jest.fn(),
-    apiResponse: jest.fn(),
-    performance: jest.fn()
+export const createMockLogger = (): any => ({
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    apiCall: vi.fn(),
+    apiResponse: vi.fn(),
+    performance: vi.fn()
 });
 
 /**
  * Mock for the createModuleLogger function
  */
-export const mockCreateModuleLogger = jest.fn(createMockLogger);
+export const mockCreateModuleLogger = vi.fn(createMockLogger);
 
 /**
  * Setup the logger module mock
- * DEPRECATED: Use jest.mock() at the top of test files instead
+ * DEPRECATED: Use vi.mock() at the top of test files instead
  * 
  * @deprecated Use this pattern instead:
  * ```typescript
- * jest.mock('../../utils/logger.js', () => ({
- *     createModuleLogger: jest.fn(() => ({
- *         debug: jest.fn(),
- *         info: jest.fn(),
- *         warn: jest.fn(),
- *         error: jest.fn(),
- *         apiCall: jest.fn(),
- *         apiResponse: jest.fn(),
- *         performance: jest.fn()
+ * vi.mock('../../utils/logger.js', () => ({
+ *     createModuleLogger: vi.fn(() => ({
+ *         debug: vi.fn(),
+ *         info: vi.fn(),
+ *         warn: vi.fn(),
+ *         error: vi.fn(),
+ *         apiCall: vi.fn(),
+ *         apiResponse: vi.fn(),
+ *         performance: vi.fn()
  *     }))
  * }));
  * ```
  */
 export function setupLoggerMock(): void {
-    console.warn('setupLoggerMock() is deprecated. Use jest.mock() at the top of test files instead.');
-    jest.doMock('../../utils/logger.js', () => ({
+    console.warn('setupLoggerMock() is deprecated. Use vi.mock() at the top of test files instead.');
+    vi.doMock('../../utils/logger.js', () => ({
         createModuleLogger: mockCreateModuleLogger
     }));
 }
@@ -75,7 +77,7 @@ export function setupLoggerMock(): void {
  * expect(logger.error).toHaveBeenCalledWith('Error message');
  * ```
  */
-export function getLoggerMock(): jest.Mocked<MockModuleLogger> {
+export function getLoggerMock(): any {
     return createMockLogger();
 }
 
@@ -101,7 +103,7 @@ export function resetLoggerMocks(): void {
  * Verify no logger errors were recorded
  * Useful assertion helper for tests
  */
-export function expectNoLoggerErrors(logger: jest.Mocked<MockModuleLogger>): void {
+export function expectNoLoggerErrors(logger: any): void {
     expect(logger.error).not.toHaveBeenCalled();
     expect(logger.warn).not.toHaveBeenCalled();
 }
@@ -121,7 +123,7 @@ export function expectNoLoggerErrors(logger: jest.Mocked<MockModuleLogger>): voi
  * ```
  */
 export function expectLoggerCalls(
-    logger: jest.Mocked<MockModuleLogger>,
+    logger: any,
     levels: Partial<Record<keyof MockModuleLogger, number>>
 ): void {
     Object.entries(levels).forEach(([level, count]) => {

@@ -1,22 +1,24 @@
+import { vi } from 'vitest';
+
 // Mock logger before other imports
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 import { HttpHeaderStrategy, HeaderPattern } from '../../strategies/http-headers.js';
 import { DetectionPage } from '../../types.js';
-import { setupStrategyTests, createMockPage, setupJestExtensions } from '@test-utils';
+import { setupStrategyTests, createMockPage, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('HttpHeaderStrategy', () => {
     let strategy: HttpHeaderStrategy;

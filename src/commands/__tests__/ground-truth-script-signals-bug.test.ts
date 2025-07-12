@@ -1,8 +1,9 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
+
+// Setup custom matchers
+setupVitestExtensions();
 
 describe('Ground Truth Script Signals Bug Fix', () => {
     setupCommandTests();

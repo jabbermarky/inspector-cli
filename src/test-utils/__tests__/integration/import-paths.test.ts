@@ -5,7 +5,7 @@
  * that real tests would use, ensuring proper code coverage.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 
 describe('Test Utils Import Path Integration', () => {
     describe('Main index imports', () => {

@@ -1,25 +1,25 @@
 // Mock external dependencies BEFORE imports
-jest.mock('../../utils/retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../utils/retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../../utils/utils.js', () => ({
-    detectInputType: jest.fn((input: string) => {
+vi.mock('../../utils/utils.js', () => ({
+    detectInputType: vi.fn((input: string) => {
         return input.endsWith('.csv') ? 'csv' : 'url';
     }),
-    extractUrlsFromCSV: jest.fn(async (csvPath: string) => {
+    extractUrlsFromCSV: vi.fn(async (csvPath: string) => {
         // Mock CSV extraction - return sample URLs
         return [
             'https://example.com',
@@ -29,7 +29,7 @@ jest.mock('../../utils/utils.js', () => ({
     })
 }));
 
-jest.mock('../../utils/cms/index.js', () => ({
+vi.mock('../../utils/cms/index.js', () => ({
     CMSDetectionIterator: class MockCMSDetectionIterator {
         constructor(private options: any) {}
         
@@ -61,7 +61,7 @@ jest.mock('../../utils/cms/index.js', () => ({
     }
 }));
 
-jest.mock('../../utils/robots-txt-analyzer.js', () => ({
+vi.mock('../../utils/robots-txt-analyzer.js', () => ({
     RobotsTxtAnalyzer: class MockRobotsTxtAnalyzer {
         async analyze(url: string) {
             // Mock robots.txt analysis
@@ -97,11 +97,11 @@ jest.mock('../../utils/robots-txt-analyzer.js', () => ({
     }
 }));
 
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 /**
  * Functional Tests for ground-truth.ts
@@ -119,8 +119,8 @@ describe('Functional: ground-truth.ts Command', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

@@ -1,22 +1,23 @@
+import { vi } from 'vitest';
+
 // Mock logger before other imports
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-import { jest } from '@jest/globals';
 import { ApiEndpointStrategy } from '../../strategies/api-endpoint.js';
-import { setupStrategyTests, createMockPage, setupJestExtensions } from '@test-utils';
+import { setupStrategyTests, createMockPage, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('ApiEndpointStrategy', () => {
     let strategy: ApiEndpointStrategy;
@@ -29,9 +30,9 @@ describe('ApiEndpointStrategy', () => {
         strategy = new ApiEndpointStrategy('/wp-json/wp/v2', 'WordPress', 5000);
         
         mockResponse = {
-            status: jest.fn().mockReturnValue(200),
-            headers: jest.fn().mockReturnValue({ 'content-type': 'application/json' }),
-            ok: jest.fn().mockReturnValue(true)
+            status: vi.fn().mockReturnValue(200),
+            headers: vi.fn().mockReturnValue({ 'content-type': 'application/json' }),
+            ok: vi.fn().mockReturnValue(true)
         } as any;
 
         mockPage = createMockPage();

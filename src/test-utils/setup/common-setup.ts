@@ -5,7 +5,9 @@
  * reused across test files to ensure consistent test environments.
  */
 
-// Note: jest.mock() calls must be at the top level of each test file
+import { vi } from 'vitest';
+
+// Note: vi.mock() calls must be at the top level of each test file
 // These setup functions only handle beforeEach/afterEach patterns
 
 export interface TestEnvironmentOptions {
@@ -49,12 +51,12 @@ export interface TestContext {
 export function setupCMSDetectionTests(): void {
     beforeEach(() => {
         // Common setup for CMS detection tests
-        // Individual mocks should be set up using jest.mock() at top level
+        // Individual mocks should be set up using vi.mock() at top level
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -65,12 +67,12 @@ export function setupCMSDetectionTests(): void {
 export function setupBrowserTests(): void {
     beforeEach(() => {
         // Additional browser-specific setup
-        jest.setTimeout(10000); // Longer timeout for browser tests
+        vi.setConfig({ testTimeout: 10000 }); // Longer timeout for browser tests
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -81,12 +83,12 @@ export function setupBrowserTests(): void {
 export function setupStrategyTests(): void {
     beforeEach(() => {
         // Common setup for strategy tests
-        // Individual mocks should be set up using jest.mock() at top level
+        // Individual mocks should be set up using vi.mock() at top level
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -97,12 +99,12 @@ export function setupStrategyTests(): void {
 export function setupAnalysisTests(): void {
     beforeEach(() => {
         // Common setup for analysis tests
-        // Individual mocks should be set up using jest.mock() at top level
+        // Individual mocks should be set up using vi.mock() at top level
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -113,12 +115,12 @@ export function setupAnalysisTests(): void {
 export function setupScreenshotTests(): void {
     beforeEach(() => {
         // Screenshot tests may need longer timeout
-        jest.setTimeout(15000);
+        vi.setConfig({ testTimeout: 15000 });
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -129,12 +131,12 @@ export function setupScreenshotTests(): void {
 export function setupFileTests(): void {
     beforeEach(() => {
         // Common setup for file operation tests
-        // Individual mocks should be set up using jest.mock() at top level
+        // Individual mocks should be set up using vi.mock() at top level
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -145,12 +147,12 @@ export function setupFileTests(): void {
 export function setupUrlTests(): void {
     beforeEach(() => {
         // Common setup for URL utility tests
-        // Individual mocks should be set up using jest.mock() at top level
+        // Individual mocks should be set up using vi.mock() at top level
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -161,12 +163,12 @@ export function setupUrlTests(): void {
 export function setupCommandTests(): void {
     beforeEach(() => {
         // Commands may need longer timeout
-        jest.setTimeout(30000);
+        vi.setConfig({ testTimeout: 30000 });
     });
 
     afterEach(() => {
-        jest.clearAllMocks();
-        jest.resetModules();
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 }
 
@@ -185,10 +187,10 @@ export function setupTestEnvironment(options: TestEnvironmentOptions = {}): Test
 
     // Apply timeout if specified
     if (env.timeout !== 30000) {
-        jest.setTimeout(env.timeout);
+        vi.setConfig({ testTimeout: env.timeout });
     }
 
-    // Note: Individual mocks should be set up using jest.mock() at top level
+    // Note: Individual mocks should be set up using vi.mock() at top level
 
     return env;
 }
@@ -199,11 +201,11 @@ export function setupTestEnvironment(options: TestEnvironmentOptions = {}): Test
 export async function teardownTestEnvironment(env: TestEnvironment): Promise<void> {
     if (!env) return;
 
-    jest.clearAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.resetModules();
     
     // Reset timeout to default
-    jest.setTimeout(5000);
+    vi.setConfig({ testTimeout: 5000 });
 }
 
 /**
@@ -228,7 +230,7 @@ export async function cleanupTestContext(context: TestContext): Promise<void> {
 
     // Context cleanup logic would go here
     // For now, just ensure mocks are cleared
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 }
 
 /**
@@ -237,7 +239,7 @@ export async function cleanupTestContext(context: TestContext): Promise<void> {
  */
 export function setupInteractiveTests(): void {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 }
 
@@ -329,6 +331,6 @@ export function createTestTempDir(testName: string): string {
  * Helper function to clean up test resources
  */
 export function cleanupTestResources(): void {
-    jest.clearAllMocks();
-    jest.resetModules();
+    vi.clearAllMocks();
+    vi.resetModules();
 }

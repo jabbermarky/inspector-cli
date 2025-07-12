@@ -1,37 +1,37 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, createMockDataPoint, setupJestExtensions } from '@test-utils';
+import { vi } from 'vitest';
+import { setupCommandTests, createMockDataPoint, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 import type { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 
 // Mock dependencies
-jest.mock('../../utils/cms/analysis/storage.js', () => ({
-    DataStorage: jest.fn()
+vi.mock('../../utils/cms/analysis/storage.js', () => ({
+    DataStorage: vi.fn()
 }));
 
-jest.mock('../../utils/cms/analysis/reports.js', () => ({
-    AnalysisReporter: jest.fn()
+vi.mock('../../utils/cms/analysis/reports.js', () => ({
+    AnalysisReporter: vi.fn()
 }));
 
-jest.mock('../../utils/cms/analysis/patterns.js', () => ({
-    PatternDiscovery: jest.fn()
+vi.mock('../../utils/cms/analysis/patterns.js', () => ({
+    PatternDiscovery: vi.fn()
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('path', () => ({
-    resolve: jest.fn((path: string) => `/resolved/${path}`)
+vi.mock('path', () => ({
+    resolve: vi.fn((path: string) => `/resolved/${path}`)
 }));
 
 // Import mocked classes
@@ -43,18 +43,18 @@ import { PatternDiscovery } from '../../utils/cms/analysis/patterns.js';
 // so we'll focus on testing the core logic functions if they were exported
 // For now, we'll test the module structure and mocking setup
 
-const MockDataStorage = DataStorage as jest.MockedClass<typeof DataStorage>;
-const MockAnalysisReporter = AnalysisReporter as jest.MockedClass<typeof AnalysisReporter>;
-const MockPatternDiscovery = PatternDiscovery as jest.MockedClass<typeof PatternDiscovery>;
+const MockDataStorage = DataStorage as any;
+const MockAnalysisReporter = AnalysisReporter as any;
+const MockPatternDiscovery = PatternDiscovery as any;
 
 // Now using standardized factory from test-utils instead of custom implementation
 
 describe('Analyze Command', () => {
     setupCommandTests();
     
-    let mockStorage: jest.Mocked<DataStorage>;
-    let mockReporter: jest.Mocked<AnalysisReporter>;
-    let mockPatternDiscovery: jest.Mocked<PatternDiscovery>;
+    let mockStorage: any;
+    let mockReporter: any;
+    let mockPatternDiscovery: any;
     let consoleSpy: any;
     let consoleErrorSpy: any;
     let processExitSpy: any;
@@ -62,36 +62,36 @@ describe('Analyze Command', () => {
     beforeEach(() => {
         // Mock DataStorage instance
         mockStorage = {
-            initialize: jest.fn(),
-            getStatistics: jest.fn(),
-            query: jest.fn(),
-            export: jest.fn()
+            initialize: vi.fn(),
+            getStatistics: vi.fn(),
+            query: vi.fn(),
+            export: vi.fn()
         } as any;
         
         MockDataStorage.mockImplementation(() => mockStorage);
 
         // Mock AnalysisReporter instance  
         mockReporter = {
-            generateReport: jest.fn(),
-            generatePatternSummary: jest.fn(),
-            generateDetectionRules: jest.fn(),
-            generateComparativeAnalysis: jest.fn(),
-            generateRecommendations: jest.fn()
+            generateReport: vi.fn(),
+            generatePatternSummary: vi.fn(),
+            generateDetectionRules: vi.fn(),
+            generateComparativeAnalysis: vi.fn(),
+            generateRecommendations: vi.fn()
         } as any;
         
         MockAnalysisReporter.mockImplementation(() => mockReporter);
 
         // Mock PatternDiscovery instance
         mockPatternDiscovery = {
-            compareDetectionPatterns: jest.fn()
+            compareDetectionPatterns: vi.fn()
         } as any;
         
         MockPatternDiscovery.mockImplementation(() => mockPatternDiscovery);
 
         // Spy on console methods
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {

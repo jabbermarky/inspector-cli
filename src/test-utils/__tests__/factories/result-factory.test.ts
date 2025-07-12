@@ -5,7 +5,7 @@
  * result creation, default values, and CMS-specific result generation.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     createDetectionResult,
     createPartialDetectionResult,
@@ -16,10 +16,10 @@ import {
     type DetectionResultOptions,
     type PartialDetectionResultOptions
 } from '../../factories/result-factory.js';
-import { setupJestExtensions } from '../../setup/jest-extensions.js';
+import { setupVitestExtensions } from '../../setup/index.js';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('Result Factory Utilities', () => {
     describe('createDetectionResult', () => {

@@ -2,6 +2,8 @@
  * Test utilities specifically for ground-truth command testing
  */
 
+import { beforeEach, afterEach, vi } from 'vitest';
+
 export interface MockGroundTruthData {
     url: string;
     htmlContent?: string;
@@ -543,7 +545,7 @@ export function createVersionValidationTestCases() {
 export function setupGroundTruthTests() {
     beforeEach(() => {
         // Clear all mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Reset any global state
         process.removeAllListeners('SIGINT');
@@ -559,7 +561,7 @@ export function setupGroundTruthTests() {
     
     afterEach(() => {
         // Cleanup any test-specific state
-        jest.restoreAllMocks();
+        vi.restoreAllMocks();
     });
 }
 

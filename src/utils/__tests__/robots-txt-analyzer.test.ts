@@ -1,30 +1,31 @@
-import { RobotsTxtAnalyzer, RobotsTxtAnalysis } from '../robots-txt-analyzer.js';
-import { setupAnalysisTests, setupJestExtensions } from '@test-utils';
-
-// Setup custom Jest matchers
-setupJestExtensions();
-
-// Mock fetch globally
-global.fetch = jest.fn();
-const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+// Mock withRetry to return the response directly
+vi.mock('../retry.js', () => ({
+    withRetry: vi.fn(async (fn) => fn())
+}));
 
 // Mock logger
-jest.mock('../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-// Use standardized retry mock pattern from test-utils
-jest.mock('../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
-}));
+import { vi } from 'vitest';
+import { RobotsTxtAnalyzer, RobotsTxtAnalysis } from '../robots-txt-analyzer.js';
+import { setupAnalysisTests, setupVitestExtensions } from '@test-utils';
+
+// Setup custom Vitest matchers
+setupVitestExtensions();
+
+// Mock fetch globally
+global.fetch = vi.fn();
+const mockFetch = global.fetch as any;
 
 describe('RobotsTxtAnalyzer', () => {
     setupAnalysisTests();
@@ -33,7 +34,7 @@ describe('RobotsTxtAnalyzer', () => {
 
     beforeEach(() => {
         analyzer = new RobotsTxtAnalyzer();
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     // Factory functions for test data
@@ -47,9 +48,9 @@ describe('RobotsTxtAnalyzer', () => {
             ok: status >= 200 && status < 300,
             status,
             statusText,
-            text: jest.fn().mockResolvedValue(content),
+            text: vi.fn().mockResolvedValue(content),
             headers: {
-                forEach: jest.fn((callback) => {
+                forEach: vi.fn((callback) => {
                     mockHeaders.forEach((value, key) => callback(value, key));
                 })
             }

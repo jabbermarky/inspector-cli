@@ -5,7 +5,7 @@
  * and provide common test utilities.
  */
 
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import {
     setupCMSDetectionTests,
     setupBrowserTests,
@@ -32,17 +32,9 @@ import {
 } from '../../setup/common-setup.js';
 
 describe('Common Setup Utilities', () => {
-    // Track original setTimeout to restore after tests
-    let originalSetTimeout: typeof jest.setTimeout;
-    
-    beforeAll(() => {
-        originalSetTimeout = jest.setTimeout;
-    });
-    
     afterEach(() => {
-        // Restore default timeout after each test
-        jest.setTimeout(5000);
-        jest.clearAllMocks();
+        // Clear all mocks after each test
+        vi.clearAllMocks();
     });
 
     describe('Setup Functions', () => {

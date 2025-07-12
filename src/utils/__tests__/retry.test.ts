@@ -1,27 +1,28 @@
 // Mock logger before other imports
-jest.mock('../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 // Note: This file tests the retry module itself, so it uses real retry functions
 // rather than mocking them. The standardized retry mock pattern would be:
-// jest.mock('../retry.js', () => ({
-//     withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+// vi.mock('../retry.js', () => ({
+//     withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 // }));
 
+import { vi } from 'vitest';
 import { withRetry, withRetryOpenAI } from '../retry';
-import { setupFileTests, setupJestExtensions } from '@test-utils';
+import { setupFileTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Factory functions for retry configurations
 const createRetryOptions = (overrides: any = {}) => ({
@@ -47,7 +48,7 @@ describe('Retry Utility', () => {
   setupFileTests();
   describe('withRetry', () => {
     it('should succeed on first try', async () => {
-      const mockOperation = jest.fn().mockResolvedValue('success');
+      const mockOperation = vi.fn().mockResolvedValue('success');
       
       const result = await withRetry(mockOperation, {}, 'test-operation');
       
@@ -56,7 +57,7 @@ describe('Retry Utility', () => {
     });
 
     it('should retry on retryable errors', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('ECONNRESET'))
         .mockResolvedValue('success');
       
@@ -71,7 +72,7 @@ describe('Retry Utility', () => {
     });
 
     it('should not retry on non-retryable errors', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValue(new Error('Invalid input'));
       
       await expect(withRetry(
@@ -84,7 +85,7 @@ describe('Retry Utility', () => {
     });
 
     it('should fail after max retries', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValue(new Error('ECONNRESET'));
       
       await expect(withRetry(
@@ -97,7 +98,7 @@ describe('Retry Utility', () => {
     });
 
     it('should detect OpenAI rate limit errors', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('rate_limit_exceeded'))
         .mockResolvedValue('success');
       
@@ -112,7 +113,7 @@ describe('Retry Utility', () => {
     });
 
     it('should detect server errors', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('server_error'))
         .mockResolvedValue('success');
       
@@ -130,7 +131,7 @@ describe('Retry Utility', () => {
       const networkErrors = ['ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'];
       
       for (const errorType of networkErrors) {
-        const mockOperation = jest.fn()
+        const mockOperation = vi.fn()
           .mockRejectedValueOnce(new Error(errorType))
           .mockResolvedValue('success');
         
@@ -143,14 +144,14 @@ describe('Retry Utility', () => {
         expect(result).toBe('success');
         expect(mockOperation).toHaveBeenCalledTimes(2);
         
-        jest.clearAllMocks();
+        vi.clearAllMocks();
       }
     });
   });
 
   describe('withRetryOpenAI', () => {
     it('should use OpenAI-specific retry configuration', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(new Error('insufficient_quota'))
         .mockResolvedValue('success');
       
@@ -169,7 +170,7 @@ describe('Retry Utility', () => {
       ];
       
       for (const errorType of errors) {
-        const mockOperation = jest.fn()
+        const mockOperation = vi.fn()
           .mockRejectedValueOnce(new Error(errorType))
           .mockResolvedValue('success');
         
@@ -178,12 +179,12 @@ describe('Retry Utility', () => {
         expect(result).toBe('success');
         expect(mockOperation).toHaveBeenCalledTimes(2);
         
-        jest.clearAllMocks();
+        vi.clearAllMocks();
       }
     });
 
     it('should not exceed maximum retries', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValue(new Error('rate_limit_exceeded'));
       
       await expect(withRetryOpenAI(mockOperation, 'OpenAI max retries test'))
@@ -199,7 +200,7 @@ describe('Retry Utility', () => {
       const error = new Error('Some error');
       (error as any).code = 'ECONNRESET';
       
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(error)
         .mockResolvedValue('success');
       
@@ -217,7 +218,7 @@ describe('Retry Utility', () => {
       const error = new Error('Some error');
       (error as any).type = 'timeout';
       
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce(error)
         .mockResolvedValue('success');
       
@@ -232,7 +233,7 @@ describe('Retry Utility', () => {
     });
 
     it('should handle non-Error objects', async () => {
-      const mockOperation = jest.fn()
+      const mockOperation = vi.fn()
         .mockRejectedValueOnce('string error with ECONNRESET')
         .mockResolvedValue('success');
       

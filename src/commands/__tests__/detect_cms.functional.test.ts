@@ -1,8 +1,8 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 /**
  * Functional Tests for detect_cms.ts
@@ -15,11 +15,11 @@ setupJestExtensions();
 import { processCMSDetectionBatch } from '../detect_cms.js';
 
 // Mock only the external dependencies that would cause issues in test environment
-jest.mock('../../utils/retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../utils/retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../../utils/cms/index.js', () => ({
+vi.mock('../../utils/cms/index.js', () => ({
     CMSDetectionIterator: class MockCMSDetectionIterator {
         constructor(options: any) {
             // Mock constructor behavior
@@ -76,15 +76,15 @@ jest.mock('../../utils/cms/index.js', () => ({
 }));
 
 // Mock logger to prevent actual logging in tests
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -96,8 +96,8 @@ describe('Functional: detect_cms.ts', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

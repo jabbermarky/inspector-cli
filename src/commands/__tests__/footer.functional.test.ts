@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 
 /**
@@ -12,15 +12,15 @@ import { setupCommandTests } from '@test-utils';
 import { segmentImage } from '../footer.js';
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../utils/utils.js', () => ({
-    myParseInt: jest.fn((value: string, _dummy: any) => {
+vi.mock('../../utils/utils.js', () => ({
+    myParseInt: vi.fn((value: string, _dummy: any) => {
         const parsed = parseInt(value, 10);
         if (isNaN(parsed)) {
             throw new Error('Not a number.');
         }
         return parsed;
     }),
-    segmentImageHeaderFooter: jest.fn(async (filename: string, options: { header: number; footer: number }) => {
+    segmentImageHeaderFooter: vi.fn(async (filename: string, options: { header: number; footer: number }) => {
         // Mock image segmentation functionality
         if (filename.includes('nonexistent')) {
             throw new Error('ENOENT: no such file or directory');
@@ -49,15 +49,15 @@ jest.mock('../../utils/utils.js', () => ({
     })
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -70,12 +70,12 @@ describe('Functional: footer.ts', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
         
         // Reset all mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     afterEach(() => {

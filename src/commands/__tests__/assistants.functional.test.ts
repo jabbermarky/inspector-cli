@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 
 /**
@@ -9,19 +9,19 @@ import { setupCommandTests } from '@test-utils';
  */
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../genai.js', () => ({
-    getOpenAIAssistants: jest.fn()
+vi.mock('../../genai.js', () => ({
+    getOpenAIAssistants: vi.fn()
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -29,7 +29,7 @@ jest.mock('../../utils/logger.js', () => ({
 import { listAssistants } from '../assistants.js';
 import { getOpenAIAssistants } from '../../genai.js';
 
-const mockGetOpenAIAssistants = getOpenAIAssistants as jest.MockedFunction<typeof getOpenAIAssistants>;
+const mockGetOpenAIAssistants = getOpenAIAssistants as vi.MockedFunction<typeof getOpenAIAssistants>;
 
 describe('Functional: assistants.ts', () => {
     setupCommandTests();
@@ -40,12 +40,12 @@ describe('Functional: assistants.ts', () => {
 
     beforeEach(() => {
         // Reset all mocks before each test
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {

@@ -7,6 +7,9 @@
 
 import { BrowserManager } from '../../utils/browser/index.js';
 
+// Import vi for Vitest mocking
+import { vi } from 'vitest';
+
 export interface BrowserManagerMockOptions {
     shouldFailCreation?: boolean;
     shouldFailNavigation?: boolean;
@@ -17,29 +20,29 @@ export interface BrowserManagerMockOptions {
 /**
  * Creates a standardized BrowserManager mock with all commonly used methods
  */
-export function createMockBrowserManager(options: BrowserManagerMockOptions = {}): jest.Mocked<BrowserManager> {
+export function createMockBrowserManager(options: BrowserManagerMockOptions = {}): any {
     const mockBrowserManager = {
         // Core page management
-        createPage: jest.fn(),
-        createPageInIsolatedContext: jest.fn(),
-        createIsolatedContext: jest.fn(),
-        closePage: jest.fn(),
-        closeContext: jest.fn(),
+        createPage: vi.fn(),
+        createPageInIsolatedContext: vi.fn(),
+        createIsolatedContext: vi.fn(),
+        closePage: vi.fn(),
+        closeContext: vi.fn(),
         
         // Navigation and info
-        navigateToUrl: jest.fn(),
-        getNavigationInfo: jest.fn(),
+        navigateToUrl: vi.fn(),
+        getNavigationInfo: vi.fn(),
         
         // User agent management
-        getUserAgentStats: jest.fn(),
-        resetUserAgentRotation: jest.fn(),
+        getUserAgentStats: vi.fn(),
+        resetUserAgentRotation: vi.fn(),
         
         // Screenshot functionality
-        captureScreenshot: jest.fn(),
+        captureScreenshot: vi.fn(),
         
         // Cleanup
-        cleanup: jest.fn()
-    } as unknown as jest.Mocked<BrowserManager>;
+        cleanup: vi.fn()
+    } as unknown as vi.Mocked<BrowserManager>;
 
     // Setup default behaviors
     if (options.shouldFailCreation) {

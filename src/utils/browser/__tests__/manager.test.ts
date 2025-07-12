@@ -1,33 +1,34 @@
+import { vi } from 'vitest';
+
 // Mock dependencies before other imports
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../../config.js', () => ({
-    getConfig: jest.fn()
+vi.mock('../../config.js', () => ({
+    getConfig: vi.fn()
 }));
 
-jest.mock('../semaphore.js', () => ({
-    Semaphore: jest.fn().mockImplementation((max: any) => ({
-        acquire: jest.fn(),
-        release: jest.fn(),
-        getState: jest.fn(() => ({ current: 0, max, queueSize: 0 }))
+vi.mock('../semaphore.js', () => ({
+    Semaphore: vi.fn().mockImplementation((max: any) => ({
+        acquire: vi.fn(),
+        release: vi.fn(),
+        getState: vi.fn(() => ({ current: 0, max, queueSize: 0 }))
     })),
-    createSemaphore: jest.fn(() => ({
-        acquire: jest.fn(),
-        release: jest.fn()
+    createSemaphore: vi.fn(() => ({
+        acquire: vi.fn(),
+        release: vi.fn()
     }))
 }));
 
-import { jest } from '@jest/globals';
 import { BrowserManager } from '../manager.js';
 import {
     BrowserManagerConfig,
@@ -35,32 +36,33 @@ import {
     BrowserResourceError,
     BrowserTimeoutError
 } from '../types.js';
-import { setupBrowserTests, setupJestExtensions, createTestConfig, createMockPage, createMockBrowserManager } from '@test-utils';
+import { setupBrowserTests, setupVitestExtensions, createTestConfig, createMockPage, createMockBrowserManager } from '@test-utils';
+import { getConfig } from '../../config.js';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock puppeteer-extra - get from factory functions
 let mockPage: any;
 let mockContext: any;
 let mockBrowser: any;
 
-jest.mock('puppeteer-extra', () => ({
+vi.mock('puppeteer-extra', () => ({
     __esModule: true,
     default: {
-        use: jest.fn(),
-        launch: jest.fn(() => Promise.resolve(mockBrowser))
+        use: vi.fn(),
+        launch: vi.fn(() => Promise.resolve(mockBrowser))
     }
 }));
 
-jest.mock('puppeteer-extra-plugin-stealth', () => ({
+vi.mock('puppeteer-extra-plugin-stealth', () => ({
     __esModule: true,
-    default: jest.fn()
+    default: vi.fn()
 }));
 
-jest.mock('puppeteer-extra-plugin-adblocker', () => ({
+vi.mock('puppeteer-extra-plugin-adblocker', () => ({
     __esModule: true,
-    default: jest.fn()
+    default: vi.fn()
 }));
 
 describe('BrowserManager', () => {
@@ -74,19 +76,18 @@ describe('BrowserManager', () => {
         // Create fresh mock objects for each test
         mockPage = createMockPage();
         mockContext = {
-            newPage: jest.fn(() => Promise.resolve(mockPage)),
-            close: jest.fn()
+            newPage: vi.fn(() => Promise.resolve(mockPage)),
+            close: vi.fn()
         };
         mockBrowser = {
-            newPage: jest.fn(() => Promise.resolve(mockPage)),
-            createBrowserContext: jest.fn(() => Promise.resolve(mockContext)),
-            close: jest.fn()
+            newPage: vi.fn(() => Promise.resolve(mockPage)),
+            createBrowserContext: vi.fn(() => Promise.resolve(mockContext)),
+            close: vi.fn()
         };
         
         // Setup config mock with optimized settings for testing
         const testConfig = createTestConfig();
-        const mockGetConfig = jest.fn(() => testConfig);
-        require('../../config.js').getConfig = mockGetConfig;
+        vi.mocked(getConfig).mockReturnValue(testConfig);
         
         detectionConfig = {
             headless: true,
@@ -481,7 +482,7 @@ describe('BrowserManager', () => {
             await browserManager.createPage('https://example.com');
             
             // Should only have 'request' event listener for resource blocking
-            const consoleCalls = (mockPage.on as jest.Mock).mock.calls
+            const consoleCalls = (mockPage.on as any).mock.calls
                 .filter(call => call[0] === 'console');
             expect(consoleCalls).toHaveLength(0);
         });

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
 
 /**
@@ -12,22 +12,22 @@ import { setupCommandTests } from '@test-utils';
 import { takeScreenshot } from '../screenshot.js';
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../utils/utils.js', () => ({
-    myParseInt: jest.fn((value: string, _dummy: any) => {
+vi.mock('../../utils/utils.js', () => ({
+    myParseInt: vi.fn((value: string, _dummy: any) => {
         const parsed = parseInt(value, 10);
         if (isNaN(parsed)) {
             throw new Error('Not a number.');
         }
         return parsed;
     }),
-    analyzeFilePath: jest.fn((path: string, width: number) => {
+    analyzeFilePath: vi.fn((path: string, width: number) => {
         // Mock file path analysis - add width to filename
         const parts = path.split('.');
         const extension = parts.pop() || 'png';
         const baseName = parts.join('.');
         return `${baseName}-${width}.${extension}`;
     }),
-    takeAScreenshotPuppeteer: jest.fn(async (url: string, path: string, width: number) => {
+    takeAScreenshotPuppeteer: vi.fn(async (url: string, path: string, width: number) => {
         // Mock screenshot functionality
         if (url.includes('error')) {
             throw new Error('Failed to navigate to page');
@@ -57,15 +57,15 @@ jest.mock('../../utils/utils.js', () => ({
     })
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
@@ -77,8 +77,8 @@ describe('Functional: screenshot.ts', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

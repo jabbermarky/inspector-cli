@@ -1,22 +1,49 @@
 // Mock external dependencies BEFORE imports
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../../utils/utils.js', () => ({
-    myParseDecimal: jest.fn((value: string) => parseFloat(value))
+vi.mock('../../utils/utils.js', () => ({
+    myParseDecimal: vi.fn((value: string) => parseFloat(value))
 }));
 
-import { jest } from '@jest/globals';
+// Mock commander to prevent duplicate command registration
+let evalCommand: any;
+vi.mock('commander', async () => {
+    const actual = await vi.importActual('commander');
+    evalCommand = {
+        name: () => 'eval',
+        description: vi.fn(() => evalCommand),
+        option: vi.fn(() => evalCommand),
+        argument: vi.fn(() => evalCommand),
+        action: vi.fn(() => evalCommand)
+    };
+    const mockProgram = {
+        command: vi.fn((name: string) => {
+            if (name === 'eval') {
+                return evalCommand;
+            }
+            return mockProgram;
+        }),
+        commands: []
+    };
+    return {
+        ...actual,
+        program: mockProgram
+    };
+});
+
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { setupCommandTests } from '@test-utils';
+import { myParseDecimal } from '../../utils/utils.js';
 
 /**
  * Functional Tests for eval.ts
@@ -35,13 +62,11 @@ describe('Functional: eval.ts Command', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
         
         // Access the mock logger instance
-        const { createModuleLogger } = require('../../utils/logger.js');
-        const mockLogger = createModuleLogger('eval');
-        loggerInfoSpy = mockLogger.info;
-        loggerWarnSpy = mockLogger.warn;
+        loggerInfoSpy = vi.fn();
+        loggerWarnSpy = vi.fn();
     });
 
     afterEach(() => {
@@ -49,14 +74,13 @@ describe('Functional: eval.ts Command', () => {
     });
 
     describe('Command Registration and Structure', () => {
-        it('should have eval command registered with commander', () => {
+        it('should have eval command registered with commander', async () => {
             // Import the command module to register the command
-            require('../eval.js');
+            await import('../eval.js');
             
-            // The command should be registered with program
-            // We can't easily test the actual command structure without extensive mocking
-            // But we can verify the module loads without errors
-            expect(true).toBe(true);
+            // The command should be registered with the mocked program
+            const { program } = await import('commander');
+            expect(program.command).toHaveBeenCalledWith('eval');
         });
     });
 
@@ -64,52 +88,45 @@ describe('Functional: eval.ts Command', () => {
         it('should accept assistant and infilename arguments', async () => {
             // Import the eval command to register it
             await import('../eval.js');
-            const { program } = await import('commander');
             
-            // Find the eval command
-            const evalCommand = program.commands.find(cmd => cmd.name() === 'eval');
+            // Check that the command was created with the correct structure
             expect(evalCommand).toBeDefined();
-            
-            if (evalCommand) {
-                expect(evalCommand.name()).toBe('eval');
-                expect(evalCommand.description()).toBe('evaluate an assistant against screenshots from a json file');
-            }
+            expect(evalCommand.name()).toBe('eval');
+            expect(evalCommand.description).toHaveBeenCalledWith('evaluate an assistant against screenshots from a json file');
         });
 
         it('should support temperature option', async () => {
             await import('../eval.js');
-            const { program } = await import('commander');
             
-            const evalCommand = program.commands.find(cmd => cmd.name() === 'eval');
-            if (evalCommand) {
-                const options = evalCommand.options;
-                const temperatureOption = options.find((opt: any) => opt.long === '--temperature');
-                expect(temperatureOption).toBeDefined();
-            }
+            // Check that temperature option was added
+            expect(evalCommand).toBeDefined();
+            expect(evalCommand.option).toHaveBeenCalledWith(
+                '-t, --temperature <temperature>',
+                'Temperature to use',
+                expect.any(Function)
+            );
         });
 
         it('should support top_p option', async () => {
             await import('../eval.js');
-            const { program } = await import('commander');
             
-            const evalCommand = program.commands.find(cmd => cmd.name() === 'eval');
-            if (evalCommand) {
-                const options = evalCommand.options;
-                const topPOption = options.find((opt: any) => opt.long === '--top_p');
-                expect(topPOption).toBeDefined();
-            }
+            // Check that top_p option was added
+            expect(evalCommand).toBeDefined();
+            expect(evalCommand.option).toHaveBeenCalledWith(
+                '-p, --top_p <top_p>',
+                'Top P to use'
+            );
         });
 
         it('should support outfile option', async () => {
             await import('../eval.js');
-            const { program } = await import('commander');
             
-            const evalCommand = program.commands.find(cmd => cmd.name() === 'eval');
-            if (evalCommand) {
-                const options = evalCommand.options;
-                const outfileOption = options.find((opt: any) => opt.long === '--outfile');
-                expect(outfileOption).toBeDefined();
-            }
+            // Check that outfile option was added
+            expect(evalCommand).toBeDefined();
+            expect(evalCommand.option).toHaveBeenCalledWith(
+                '-o, --outfile <outfile>',
+                'Save the output to a file'
+            );
         });
     });
 
@@ -125,7 +142,7 @@ describe('Functional: eval.ts Command', () => {
             };
 
             // Mock the command action directly since it's a placeholder
-            const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+            const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                 loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                 console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                 loggerWarnSpy('Evaluation command not yet implemented');
@@ -145,7 +162,7 @@ describe('Functional: eval.ts Command', () => {
         });
 
         it('should handle temperature parameter parsing', () => {
-            const { myParseDecimal } = require('../../utils/utils.js');
+            // myParseDecimal is already mocked at the top level
             
             // Test temperature parsing
             const result = myParseDecimal('0.7');
@@ -158,7 +175,7 @@ describe('Functional: eval.ts Command', () => {
             const infilename = 'screenshots.json';
 
             for (const assistant of assistants) {
-                const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+                const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                     loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                     console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                     loggerWarnSpy('Evaluation command not yet implemented');
@@ -187,7 +204,7 @@ describe('Functional: eval.ts Command', () => {
             ];
 
             for (const infilename of inputFiles) {
-                const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+                const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                     loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                     console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                     loggerWarnSpy('Evaluation command not yet implemented');
@@ -217,7 +234,7 @@ describe('Functional: eval.ts Command', () => {
                 outfile: 'results.json'
             };
 
-            const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+            const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                 loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                 console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                 loggerWarnSpy('Evaluation command not yet implemented');
@@ -237,7 +254,7 @@ describe('Functional: eval.ts Command', () => {
             const infilename = 'test.json';
             const options = {}; // No optional parameters
 
-            const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+            const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                 loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                 console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                 loggerWarnSpy('Evaluation command not yet implemented');
@@ -260,7 +277,7 @@ describe('Functional: eval.ts Command', () => {
                 // Missing top_p and outfile
             };
 
-            const mockAction = jest.fn(async (assistant: string, infilename: string, _options: any) => {
+            const mockAction = vi.fn(async (assistant: string, infilename: string, _options: any) => {
                 loggerInfoSpy('Starting evaluation', { assistant, infilename, options: _options });
                 console.log(`calling assistant ${assistant} with screenshots from ${infilename}:`);
                 loggerWarnSpy('Evaluation command not yet implemented');

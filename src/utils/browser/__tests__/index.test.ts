@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import {
     BrowserManager,
     createDetectionConfig,
@@ -10,14 +10,14 @@ import {
     Semaphore,
     createSemaphore
 } from '../index.js';
-import { setupBrowserTests, setupJestExtensions } from '@test-utils';
+import { setupBrowserTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock dependencies
-jest.mock('../../config.js', () => ({
-    getConfig: jest.fn(() => ({
+vi.mock('../../config.js', () => ({
+    getConfig: vi.fn(() => ({
         puppeteer: {
             timeout: 10000,
             userAgent: 'Mozilla/5.0 (compatible; Inspector-CLI/1.0)',
@@ -27,27 +27,27 @@ jest.mock('../../config.js', () => ({
     }))
 }));
 
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('../semaphore.js', () => ({
-    Semaphore: jest.fn().mockImplementation((max: any) => ({
-        acquire: jest.fn(),
-        release: jest.fn(),
-        getState: jest.fn(() => ({ current: 0, max, queueSize: 0 }))
+vi.mock('../semaphore.js', () => ({
+    Semaphore: vi.fn().mockImplementation((max: any) => ({
+        acquire: vi.fn(),
+        release: vi.fn(),
+        getState: vi.fn(() => ({ current: 0, max, queueSize: 0 }))
     })),
-    createSemaphore: jest.fn(() => ({
-        acquire: jest.fn(),
-        release: jest.fn()
+    createSemaphore: vi.fn(() => ({
+        acquire: vi.fn(),
+        release: vi.fn()
     }))
 }));
 

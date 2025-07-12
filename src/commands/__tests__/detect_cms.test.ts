@@ -1,12 +1,12 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import * as utils from '../../utils/utils.js';
 import { CMSDetectionIterator, CMSDetectionResult } from '../../utils/cms/index.js';
 import { CMSType } from '../../utils/cms/types.js';
 import { processCMSDetectionBatch } from '../detect_cms.js';
-import { setupCommandTests, setupJestExtensions, createWordPressResult, createDrupalResult, createFailedResult } from '@test-utils';
+import { setupCommandTests, setupVitestExtensions, createWordPressResult, createDrupalResult, createFailedResult } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Factory functions for test data creation
 const createCMSDetectionResult = (overrides: any = {}) => ({
@@ -21,54 +21,54 @@ const createCMSDetectionResult = (overrides: any = {}) => ({
 const createTestUrlsWithResult = (urls: string[], result: any) => ({ urls, result });
 
 // Mock dependencies
-jest.mock('../../utils/utils.js', () => ({
-    detectInputType: jest.fn(),
-    extractUrlsFromCSV: jest.fn()
+vi.mock('../../utils/utils.js', () => ({
+    detectInputType: vi.fn(),
+    extractUrlsFromCSV: vi.fn()
 }));
 
-jest.mock('../../utils/cms/index.js', () => ({
-    CMSDetectionIterator: jest.fn()
+vi.mock('../../utils/cms/index.js', () => ({
+    CMSDetectionIterator: vi.fn()
 }));
 
-jest.mock('../../utils/retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
+vi.mock('../../utils/retry.js', () => ({
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn())
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
 // Import the function we want to test (this must be after mocking)
-const mockDetectInputType = utils.detectInputType as jest.MockedFunction<typeof utils.detectInputType>;
-const mockExtractUrlsFromCSV = utils.extractUrlsFromCSV as jest.MockedFunction<typeof utils.extractUrlsFromCSV>;
-const MockCMSDetectionIterator = CMSDetectionIterator as jest.MockedClass<typeof CMSDetectionIterator>;
+const mockDetectInputType = utils.detectInputType as any;
+const mockExtractUrlsFromCSV = utils.extractUrlsFromCSV as any;
+const MockCMSDetectionIterator = CMSDetectionIterator as any;
 
 describe('CMS Detection Command', () => {
     setupCommandTests();
-    let mockIterator: jest.Mocked<CMSDetectionIterator>;
+    let mockIterator: any;
     let consoleSpy: any;
     let consoleErrorSpy: any;
 
     beforeEach(() => {
         // Create mock iterator instance
         mockIterator = {
-            detect: jest.fn(),
-            finalize: jest.fn()
+            detect: vi.fn(),
+            finalize: vi.fn()
         } as any;
         
         MockCMSDetectionIterator.mockImplementation(() => mockIterator);
         
         // Spy on console methods
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -256,7 +256,7 @@ describe('CMS Detection Command', () => {
             const singleResults = await processCMSDetectionBatch(['http://drupal.org']);
             
             // Reset mocks for batch test
-            jest.clearAllMocks();
+            vi.clearAllMocks();
             mockIterator.detect.mockResolvedValue(mockResult);
             MockCMSDetectionIterator.mockImplementation(() => mockIterator);
             
@@ -331,8 +331,8 @@ describe('CMS Detection Command', () => {
             MockCMSDetectionIterator.mockImplementation(() => {
                 // Return an object that gets set to null somehow
                 const mockIter = {
-                    detect: jest.fn(),
-                    finalize: jest.fn()
+                    detect: vi.fn(),
+                    finalize: vi.fn()
                 } as any;
                 // Simulate the iterator becoming null after creation
                 Object.defineProperty(mockIter, 'detect', { 
@@ -551,7 +551,7 @@ describe('CMS Detection Command', () => {
                 expect(results[0].cms).toBe(cms);
                 
                 // Reset for next iteration
-                jest.clearAllMocks();
+                vi.clearAllMocks();
                 MockCMSDetectionIterator.mockImplementation(() => mockIterator);
             }
         });

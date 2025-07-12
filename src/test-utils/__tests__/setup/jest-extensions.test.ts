@@ -1,33 +1,33 @@
 /**
- * Unit tests for Jest extensions and custom matchers
+ * Unit tests for Vitest extensions and custom matchers
  * 
- * Tests the custom Jest matchers and extensions for CMS detection testing.
+ * Tests the custom matchers and extensions for CMS detection testing.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import {
-    setupJestExtensions,
-    setupAllJestExtensions,
-    verifyJestExtensions
-} from '../../setup/jest-extensions.js';
+    setupVitestExtensions,
+    setupAllVitestExtensions,
+    verifyVitestExtensions
+} from '../../setup/index.js';
 
-describe('Jest Extensions', () => {
+describe('Vitest Extensions', () => {
     beforeAll(() => {
         // Setup the custom matchers
-        setupJestExtensions();
+        setupVitestExtensions();
     });
 
     describe('Setup Functions', () => {
-        it('should setup Jest extensions without throwing', () => {
-            expect(() => setupJestExtensions()).not.toThrow();
+        it('should setup Vitest extensions without throwing', () => {
+            expect(() => setupVitestExtensions()).not.toThrow();
         });
         
-        it('should setup all Jest extensions without throwing', () => {
-            expect(() => setupAllJestExtensions()).not.toThrow();
+        it('should setup all Vitest extensions without throwing', () => {
+            expect(() => setupAllVitestExtensions()).not.toThrow();
         });
         
-        it('should verify Jest extensions are working', () => {
-            const isWorking = verifyJestExtensions();
+        it('should verify Vitest extensions are working', () => {
+            const isWorking = verifyVitestExtensions();
             expect(isWorking).toBe(true);
         });
     });

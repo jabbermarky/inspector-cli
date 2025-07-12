@@ -17,27 +17,29 @@ export {
     setupStrategyMocks 
 } from './strategies';
 
+import { vi } from 'vitest';
+
 /**
  * Standardized retry utility mock
  */
 export const mockRetry = {
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn()),
-    withRetryAndTimeout: jest.fn().mockImplementation(async (fn: any) => await fn())
+    withRetry: vi.fn().mockImplementation(async (fn: any) => await fn()),
+    withRetryAndTimeout: vi.fn().mockImplementation(async (fn: any) => await fn())
 };
 
 /**
  * Standardized URL validation mocks
  */
 export const mockUrlValidation = {
-    validateUrl: jest.fn().mockReturnValue(undefined),
-    normalizeUrl: jest.fn().mockReturnValue('https://example.com'),
-    validateAndNormalizeUrl: jest.fn().mockReturnValue('https://example.com')
+    validateUrl: vi.fn().mockReturnValue(undefined),
+    normalizeUrl: vi.fn().mockReturnValue('https://example.com'),
+    validateAndNormalizeUrl: vi.fn().mockReturnValue('https://example.com')
 };
 
 /**
  * Standardized interactive UI mocks
  */
-export const mockDisplayMessage = jest.fn();
+export const mockDisplayMessage = vi.fn();
 
 /**
  * Create mock for interactive UI functions
@@ -45,8 +47,8 @@ export const mockDisplayMessage = jest.fn();
 export function createMockInteractiveUI() {
     return {
         displayMessage: mockDisplayMessage,
-        getUserChoice: jest.fn(),
-        showHelp: jest.fn()
+        getUserChoice: vi.fn(),
+        showHelp: vi.fn()
     };
 }
 
@@ -56,17 +58,17 @@ export function createMockInteractiveUI() {
  */
 export function setupCommonMocks(): void {
     // Mock retry utility
-    jest.mock('../../utils/retry.js', () => mockRetry);
+    vi.mock('../../utils/retry.js', () => mockRetry);
 
     // Mock URL validation
-    jest.mock('../../utils/url/index.js', () => mockUrlValidation);
+    vi.mock('../../utils/url/index.js', () => mockUrlValidation);
 }
 
 /**
  * Reset all common mocks - call this in beforeEach
  */
 export function resetCommonMocks(): void {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Reset retry mocks and restore default implementations
     mockRetry.withRetry.mockClear();

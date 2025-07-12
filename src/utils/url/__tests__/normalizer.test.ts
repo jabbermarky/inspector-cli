@@ -1,9 +1,10 @@
+import { vi } from 'vitest';
 import { UrlNormalizer } from '../normalizer.js';
 import { UrlProtocolError } from '../types.js';
-import { setupUrlTests, setupJestExtensions } from '@test-utils';
+import { setupUrlTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 describe('UrlNormalizer', () => {
     setupUrlTests();

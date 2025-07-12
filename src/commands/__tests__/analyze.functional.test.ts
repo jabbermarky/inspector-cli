@@ -1,8 +1,8 @@
-import { jest } from '@jest/globals';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 /**
  * Functional Tests for analyze.ts
@@ -15,7 +15,7 @@ setupJestExtensions();
 import { analyzeCollectedData, generateInsightsSummary } from '../analyze.js';
 
 // Mock external dependencies that would cause issues in test environment
-jest.mock('../../utils/cms/analysis/storage.js', () => ({
+vi.mock('../../utils/cms/analysis/storage.js', () => ({
     DataStorage: class MockDataStorage {
         constructor(dataDir: string) {
             this.dataDir = dataDir;
@@ -104,7 +104,7 @@ jest.mock('../../utils/cms/analysis/storage.js', () => ({
     }
 }));
 
-jest.mock('../../utils/cms/analysis/reports.js', () => ({
+vi.mock('../../utils/cms/analysis/reports.js', () => ({
     AnalysisReporter: class MockAnalysisReporter {
         constructor(dataPoints: any[]) {
             this.dataPoints = dataPoints;
@@ -138,7 +138,7 @@ jest.mock('../../utils/cms/analysis/reports.js', () => ({
     }
 }));
 
-jest.mock('../../utils/cms/analysis/patterns.js', () => ({
+vi.mock('../../utils/cms/analysis/patterns.js', () => ({
     PatternDiscovery: class MockPatternDiscovery {
         constructor(dataPoints: any[]) {
             this.dataPoints = dataPoints;
@@ -171,20 +171,20 @@ jest.mock('../../utils/cms/analysis/patterns.js', () => ({
     }
 }));
 
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('path', () => ({
-    resolve: jest.fn((path: string) => `/resolved/${path}`)
+vi.mock('path', () => ({
+    resolve: vi.fn((path: string) => `/resolved/${path}`)
 }));
 
 describe('Functional: analyze.ts', () => {
@@ -196,9 +196,9 @@ describe('Functional: analyze.ts', () => {
 
     beforeEach(() => {
         // Spy on console methods to capture output
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-        processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     });
 
     afterEach(() => {
