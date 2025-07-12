@@ -93,4 +93,4 @@ export interface VerifiedResult extends SignalAnalysis {
 }
 
 
-export type GroundTruthResult = VerifiedResult
+export type GroundTruthResult = { shouldContinue: boolean }

@@ -1,8 +1,21 @@
 import { program } from 'commander';
 import { detectInputType, extractUrlsFromCSV } from '../utils/utils.js';
-import { createModuleLogger } from '../utils/logger.js';
-import { displayMessage, analyzeGroundTruth, GroundTruthOptions, GroundTruthResult } from '../ground-truth';
-const logger = createModuleLogger('ground-truth');
+import { 
+    analyzeGroundTruth, 
+    GroundTruthOptions, 
+    GroundTruthResult, 
+    cleanup, 
+    setShuttingDown, 
+    isShuttingDown,
+    displayBatchStart,
+    displayUrlProgress,
+    displayBatchComplete,
+    displayBatchInterrupted,
+    displayProcessingError,
+    displayShutdownReceived,
+    displayInputValidationError,
+    displayCommandError
+} from '../ground-truth';
 
 
 // Command registration
@@ -12,7 +25,7 @@ program
     .argument('[input]', 'URL or CSV file containing URLs to analyze')
     .option('--stats', 'Show ground truth database statistics')
     .option('--compact', 'Show compact output with less detailed analysis')
-    .action(async (input: string, options: { stats?: boolean, batch?: boolean, compact?: boolean }) => {
+    .action(async (input: string, options: { stats?: boolean, compact?: boolean }) => {
         
         const groundOptions: GroundTruthOptions = {
             interactive: true, // Always interactive for this command
@@ -20,6 +33,20 @@ program
             collectData: true, // Default to collecting data
             compact: options.compact || false // Use provided compact option            
         }
+        
+        // Set up signal handling for graceful interruption
+        const setupSignalHandling = () => {
+            const signalHandler = async (signal: string) => {
+                displayShutdownReceived(signal);
+                await cleanup();
+                process.exit(0);
+            };
+            
+            process.on('SIGINT', () => signalHandler('SIGINT'));
+            process.on('SIGTERM', () => signalHandler('SIGTERM'));
+        };
+        
+        setupSignalHandling();
         
         try {
             //TODO - Implement stats option if needed
@@ -29,7 +56,7 @@ program
             // }
             
             if (!input) {
-                displayMessage('❌ Please provide a URL or CSV file');
+                displayInputValidationError('Please provide a URL or CSV file');
                 return;
             }
             
@@ -39,70 +66,55 @@ program
             
             if (inputType === 'csv') {
                 urls = await extractUrlsFromCSV(input);
-                displayMessage(`Loaded ${urls.length} URLs from CSV`);
+                displayBatchStart(urls.length, 'CSV');
             } else {
                 urls = [input];
+                displayBatchStart(urls.length, 'single');
             }
             
             for (let i = 0; i < urls.length; i++) {
+                // Check if we're shutting down before processing each URL
+                if (isShuttingDown) {
+                    displayBatchInterrupted('user');
+                    break;
+                }
+                
                 const url = urls[i];
+                displayUrlProgress(i + 1, urls.length, url);
+                
                 try {
-                    const _result : GroundTruthResult = await analyzeGroundTruth(url, groundOptions);
+                    const result: GroundTruthResult = await analyzeGroundTruth(url, groundOptions);
+                    
+                    // Check if user wants to continue or if we're shutting down
+                    if (!result.shouldContinue || isShuttingDown) {
+                        displayBatchInterrupted('stopped');
+                        break;
+                    }
                 } catch (error) {
                     // Only log error if it's not a shutdown error
-                    const errorMessage = error instanceof Error ? error.message : String(error);
-                    displayMessage(`\n❌ Error processing ${url}: ${errorMessage}`);
+                    if (!isShuttingDown) {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        displayProcessingError(url, errorMessage);
+                    }
                     break;
                 }
             }
             
             // Show completion message
-            if (urls.length > 1) {
-                displayMessage(`\n✅ Completed processing ${urls.length} URLs`);
-            }
+            displayBatchComplete(urls.length);
             
         } catch (error) {
-            displayMessage(`❌ Error: ${(error as Error).message}`);
+            displayCommandError((error as Error).message);
         } finally {
             // Clean shutdown sequence
-            try {
-                await discovery.cleanup();
-            } catch {
-                // Ignore cleanup errors
+            if (!isShuttingDown) {
+                setShuttingDown(true);
             }
             
-            // Force exit to prevent hanging
-            process.nextTick(() => {
-                // Close stdin to prevent readline events
-                if (process.stdin.isTTY) {
-                    process.stdin.pause();
-                    process.stdin.unref();
-                }
-                
-                // Suppress specific readline errors during shutdown
-                process.removeAllListeners('uncaughtException');
-                process.removeAllListeners('unhandledRejection');
-                
-                // Add specific error handlers that suppress readline errors
-                process.on('uncaughtException', (error) => {
-                    if (error.message && error.message.includes('readline was closed')) {
-                        return; // Suppress this specific error
-                    }
-                    displayMessage(`Uncaught exception: ${error}`);
-                });
-                
-                process.on('unhandledRejection', (error) => {
-                    if (error && typeof error === 'object' && 'message' in error && 
-                        typeof error.message === 'string' && error.message.includes('readline was closed')) {
-                        return; // Suppress this specific error
-                    }
-                    displayMessage(`Unhandled rejection:${error}`);
-                });
-                
-                // Exit after a short delay to ensure all output is flushed
-                setTimeout(() => {
-                    process.exit(0);
-                }, 100);
-            });
+            try {
+                await cleanup();
+            } catch {
+                // Ignore cleanup errors during shutdown
+            }
         }
     });

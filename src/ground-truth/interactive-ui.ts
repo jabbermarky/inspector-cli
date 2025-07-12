@@ -1,215 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createInterface } from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
+import { displayMessage } from './interactive-ui-utils.js';
 
 import { createModuleLogger } from '../utils/logger.js';
+import { extractVersionInfo } from './extract-version-info.js';
+import { getVersionHints } from './get-version-hints.js';
+import { generateGroundTruthStats, getDefaultDatabasePath } from './generate-stats.js';
+import { displayGroundTruthStats } from './display-stats.js';
+import { setShuttingDown } from './index.js';
+
+// TODO: These imports need to be updated when ground truth database functions are extracted
+// import { addToGroundTruth, GroundTruthDatabase, groundTruthPath } from './ground-truth-database.js';
+
 const logger = createModuleLogger('interactive-ui');
 
-export function displayMessage(msg: string): void {
-    console.log(msg);
-}
-/*
-
-export function extractVersionInfo(
-    data: any
-): Array<{ cms: string; version: string; source: string; confidence?: string; pattern?: string }> {
-    const versions = [];
-
-    // Check generator meta tag
-    if (data.metaTags) {
-        const generator = data.metaTags.find((tag: any) => tag.name === 'generator');
-        if (generator && generator.content) {
-            const content = generator.content.toLowerCase();
-
-            // WordPress version patterns
-            if (content.includes('wordpress')) {
-                const wpMatch = content.match(/wordpress[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                if (wpMatch) {
-                    versions.push({
-                        cms: 'WordPress',
-                        version: wpMatch[1],
-                        source: 'meta-generator',
-                        confidence: 'high',
-                        pattern: generator.content,
-                    });
-                }
-            }
-
-            // Drupal version patterns
-            if (content.includes('drupal')) {
-                const drupalMatch = content.match(/drupal[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                if (drupalMatch) {
-                    versions.push({
-                        cms: 'Drupal',
-                        version: drupalMatch[1],
-                        source: 'meta-generator',
-                        confidence: 'high',
-                        pattern: generator.content,
-                    });
-                }
-            }
-
-            // Joomla version patterns
-            if (content.includes('joomla')) {
-                const joomlaMatch = content.match(/joomla[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                if (joomlaMatch) {
-                    versions.push({
-                        cms: 'Joomla',
-                        version: joomlaMatch[1],
-                        source: 'meta-generator',
-                        confidence: 'high',
-                        pattern: generator.content,
-                    });
-                }
-            }
-        }
-    }
-
-    // Check script paths for version hints (highly restrictive to avoid plugin/theme versions)
-    if (data.scripts) {
-        data.scripts.forEach((script: any) => {
-            if (script.src) {
-                const src = script.src.toLowerCase();
-
-                // WordPress core version patterns (highly restrictive)
-                // Only target specific WordPress core administrative files known to contain WordPress version
-                // Avoid wp-includes/js/jquery/* as these contain jQuery versions, not WordPress versions
-                // Avoid generic wp-includes files as these often contain plugin/theme versions
-                if (
-                    src.includes('wp-admin/js/') &&
-                    (src.includes('wp-admin/js/common') ||
-                        src.includes('wp-admin/js/wp-admin') ||
-                        src.includes('wp-admin/js/dashboard'))
-                ) {
-                    const wpVersionMatch = src.match(/[?&]ver=(\d+\.\d+(?:\.\d+)?)/);
-                    if (wpVersionMatch && isValidWordPressVersion(wpVersionMatch[1])) {
-                        versions.push({
-                            cms: 'WordPress',
-                            version: wpVersionMatch[1],
-                            source: 'script-path',
-                            confidence: 'medium',
-                            pattern: script.src,
-                        });
-                    }
-                }
-
-                // Alternative: Look for wp-includes files that are core WordPress system files
-                else if (
-                    src.includes('wp-includes/js/') &&
-                    (src.includes('wp-includes/js/wp-embed.min.js') ||
-                        src.includes('wp-includes/js/wp-util.min.js'))
-                ) {
-                    const wpVersionMatch = src.match(/[?&]ver=(\d+\.\d+(?:\.\d+)?)/);
-                    if (wpVersionMatch && isValidWordPressVersion(wpVersionMatch[1])) {
-                        versions.push({
-                            cms: 'WordPress',
-                            version: wpVersionMatch[1],
-                            source: 'script-path',
-                            confidence: 'low', // Lower confidence for wp-includes
-                            pattern: script.src,
-                        });
-                    }
-                }
-
-                // Drupal version in script paths (more specific)
-                if (src.includes('/sites/') && src.includes('drupal')) {
-                    const drupalVersionMatch = src.match(/drupal[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                    if (drupalVersionMatch && isValidDrupalVersion(drupalVersionMatch[1])) {
-                        versions.push({
-                            cms: 'Drupal',
-                            version: drupalVersionMatch[1],
-                            source: 'script-path',
-                            confidence: 'medium',
-                            pattern: script.src,
-                        });
-                    }
-                }
-
-                // Joomla version in script paths (more specific)
-                if (src.includes('/media/system/') || src.includes('/media/jui/')) {
-                    const joomlaVersionMatch = src.match(/joomla[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                    if (joomlaVersionMatch && isValidJoomlaVersion(joomlaVersionMatch[1])) {
-                        versions.push({
-                            cms: 'Joomla',
-                            version: joomlaVersionMatch[1],
-                            source: 'script-path',
-                            confidence: 'medium',
-                            pattern: script.src,
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-    // Check HTTP headers
-    if (data.httpHeaders) {
-        Object.entries(data.httpHeaders).forEach(([name, value]: [string, any]) => {
-            if (typeof value === 'string') {
-                const headerValue = value.toLowerCase();
-
-                // Check X-Powered-By header
-                if (name.toLowerCase() === 'x-powered-by') {
-                    const wpMatch = headerValue.match(/wordpress[^\d]*(\d+\.\d+(?:\.\d+)?)/);
-                    if (wpMatch) {
-                        versions.push({
-                            cms: 'WordPress',
-                            version: wpMatch[1],
-                            source: 'http-header',
-                            confidence: 'high',
-                            pattern: `${name}: ${value}`,
-                        });
-                    }
-                }
-
-                // Check other headers for version info
-                const versionMatch = headerValue.match(
-                    /(wordpress|drupal|joomla)[^\d]*(\d+(?:\.\d+)?(?:\.\d+)?)/
-                );
-                if (versionMatch) {
-                    const detectedVersion = versionMatch[2];
-                    const cms = versionMatch[1].charAt(0).toUpperCase() + versionMatch[1].slice(1);
-
-                    // Validate version based on CMS
-                    let isValid = false;
-                    if (cms === 'WordPress') {
-                        isValid = isValidWordPressVersion(detectedVersion);
-                    } else if (cms === 'Drupal') {
-                        isValid = isValidDrupalVersion(detectedVersion);
-                    } else if (cms === 'Joomla') {
-                        isValid = isValidJoomlaVersion(detectedVersion);
-                    }
-
-                    if (isValid) {
-                        versions.push({
-                            cms: cms,
-                            version: detectedVersion,
-                            source: 'http-header',
-                            confidence: 'high', // HTTP headers are more reliable than script paths
-                            pattern: `${name}: ${value}`,
-                        });
-                    }
-                }
-            }
-        });
-    }
-
-    // Remove duplicates and sort by confidence
-    const uniqueVersions = versions.filter(
-        (version, index, self) =>
-            index === self.findIndex(v => v.cms === version.cms && v.version === version.version)
-    );
-
-    return uniqueVersions.sort((a, b) => {
-        const confidenceOrder = { high: 3, medium: 2, low: 1 };
-        return (
-            (confidenceOrder[b.confidence as keyof typeof confidenceOrder] || 0) -
-            (confidenceOrder[a.confidence as keyof typeof confidenceOrder] || 0)
-        );
-    });
-}
-
-export function showVersionAnalysis(data: any): void {
+export function displayVersionAnalysis(data: any): void {
     displayMessage(`\n🔢 Version Analysis:`);
     displayMessage('─'.repeat(40));
 
@@ -239,78 +45,36 @@ export function showVersionAnalysis(data: any): void {
     }
 }
 
-export async function cleanup(): Promise<void> {
-    isShuttingDown = true;
-    if (rl) {
-        try {
-            // Remove all listeners first to prevent error events
-            rl.removeAllListeners();
-
-            // Close the readline interface
-            rl.close();
-
-            // Set to null to prevent further use
-            rl = null as any;
-        } catch {
-            // Ignore errors during cleanup - this is expected
-        }
-    }
+// DEPRECATED: Use displayVersionAnalysis instead
+export function showVersionAnalysis(data: any): void {
+    console.warn('showVersionAnalysis is deprecated. Use displayVersionAnalysis instead.');
+    displayVersionAnalysis(data);
 }
 
+/**
+ * Cleanup function for graceful shutdown
+ * Called when user interrupts with Ctrl+C or application exits
+ */
+export async function cleanup(): Promise<void> {
+    setShuttingDown(true);
+    
+    // Remove any active signal listeners to prevent duplicate handling
+    process.removeAllListeners('SIGINT');
+    process.removeAllListeners('SIGTERM');
+    
+    // Add a brief delay to allow any pending operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+export async function displayStats(): Promise<void> {
+    const stats = generateGroundTruthStats(getDefaultDatabasePath());
+    displayGroundTruthStats(stats);
+}
+
+// DEPRECATED: Use displayStats instead
 export async function showStats(): Promise<void> {
-    if (!fs.existsSync(groundTruthPath)) {
-        displayMessage('❌ No ground truth database found');
-        return;
-    }
-
-    const content = fs.readFileSync(groundTruthPath, 'utf8');
-    const database: GroundTruthDatabase = JSON.parse(content);
-
-    displayMessage(`\n📊 Ground Truth Statistics:`);
-    displayMessage('═'.repeat(50));
-    displayMessage(`   Total Sites: ${database.sites.length}`);
-    displayMessage(`   Last Updated: ${new Date(database.lastUpdated).toLocaleString()}`);
-
-    const cmsCounts: { [key: string]: number } = {};
-    database.sites.forEach(site => {
-        cmsCounts[site.cms] = (cmsCounts[site.cms] || 0) + 1;
-    });
-
-    displayMessage(`\n📈 CMS Distribution:`);
-    Object.entries(cmsCounts).forEach(([cms, count]) => {
-        displayMessage(`   ${cms.padEnd(12)} ${count} sites`);
-    });
-
-    // Version distribution
-    displayMessage(`\n🔢 Version Distribution:`);
-    const versionCounts: { [key: string]: { [version: string]: number } } = {};
-    database.sites.forEach(site => {
-        if (site.version) {
-            if (!versionCounts[site.cms]) {
-                versionCounts[site.cms] = {};
-            }
-            versionCounts[site.cms][site.version] =
-                (versionCounts[site.cms][site.version] || 0) + 1;
-        }
-    });
-
-    Object.entries(versionCounts).forEach(([cms, versions]) => {
-        displayMessage(`   ${cms}:`);
-        Object.entries(versions).forEach(([version, count]) => {
-            displayMessage(`     v${version}: ${count} sites`);
-        });
-    });
-
-    displayMessage(`\n📋 Recent Additions:`);
-    const recent = database.sites
-        .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
-        .slice(0, 5);
-
-    recent.forEach(site => {
-        const date = new Date(site.addedAt).toLocaleDateString();
-        const versionText = site.version ? ` v${site.version}` : '';
-        displayMessage(`   ${date} - ${site.url} (${site.cms}${versionText})`);
-    });
+    console.warn('showStats is deprecated. Use displayStats instead.');
+    await displayStats();
 }
 
 export async function promptForGroundTruthDecision(
@@ -341,7 +105,7 @@ export async function promptForGroundTruthDecision(
             const choice = await getUserChoice(
                 `   [Enter] ${detectedCms}${versionText}  [c] Correct  [s] Skip  [?] Help`,
                 ['enter', 'y', 'c', 's', '?'],
-                { helpValue: '?', helpFunction: showHelp, caseSensitive: false }
+                { helpValue: '?', helpFunction: displayHelp, caseSensitive: false }
             );
             if (choice === null) {
                 displayMessage('❌ Invalid input, please try again. NULL choice detected.');
@@ -349,7 +113,8 @@ export async function promptForGroundTruthDecision(
             }
 
             if (choice === '' || choice.toLowerCase() === 'y' || choice.toLowerCase() === 'enter') {
-                await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
+                // TODO: Import addToGroundTruth when ground truth database functions are extracted
+                // await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
                 displayMessage(`✅ Auto-accepted: ${detectedCms}${versionText}`);
                 return { shouldContinue: true };
             } else if (choice.toLowerCase() === 'c') {
@@ -368,7 +133,7 @@ export async function promptForGroundTruthDecision(
             const choice = await getUserChoice(
                 `   [Enter] ${detectedCms}${versionText}  [c] Correct  [s] Skip  [?] Help`,
                 ['enter', 'y', 'c', 's'],
-                {helpValue: '?', helpFunction:showHelp, caseSensitive: false}
+                { helpValue: '?', helpFunction: displayHelp, caseSensitive: false }
             );
             if (choice === null) {
                 displayMessage('❌ Invalid input, please try again. NULL choice detected.');
@@ -376,7 +141,8 @@ export async function promptForGroundTruthDecision(
             }
             // If user pressed Enter or 'y', add to ground truth
             if (choice === '' || choice.toLowerCase() === 'y' || choice.toLowerCase() === 'enter') {
-                await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
+                // TODO: Import addToGroundTruth when ground truth database functions are extracted
+                // await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
                 displayMessage(`✅ Added: ${detectedCms}${versionText}`);
                 return { shouldContinue: true };
             } else if (choice.toLowerCase() === 'c') {
@@ -385,14 +151,9 @@ export async function promptForGroundTruthDecision(
             } else if (choice.toLowerCase() === 's') {
                 displayMessage(`⏭️  Skipped`);
                 return { shouldContinue: true };
-            } else if (choice === '?') {
-                showHelp();
-                return await promptForGroundTruthDecision(
-                    url,
-                    detectedCms,
-                    confidence,
-                    detectedVersions
-                );
+            } else {
+                displayMessage('❌ Invalid input, please try again.');
+                return { shouldContinue: false };
             }
         } else {
             // Explicit choice for low confidence
@@ -418,7 +179,8 @@ export async function promptForGroundTruthDecision(
                 const selectedVersion = detectedVersions.find(
                     v => v.cms.toLowerCase() === selectedCms
                 );
-                await addToGroundTruth(url, selectedCms, confidence, '', selectedVersion?.version);
+                // TODO: Import addToGroundTruth when ground truth database functions are extracted
+                // await addToGroundTruth(url, selectedCms, confidence, '', selectedVersion?.version);
                 displayMessage(
                     `✅ Added: ${selectedCms}${selectedVersion ? ` v${selectedVersion.version}` : ''}`
                 );
@@ -439,29 +201,45 @@ export async function handleCorrection(
     confidence: number,
     detectedVersions: Array<{ cms: string; version: string; source: string; confidence?: string }>
 ): Promise<{ shouldContinue: boolean }> {
-    const actualCms = await askQuestion('Actual CMS (WordPress/drupal/Joomla/other): ');
+    try {
+        const actualCms = await getTextInput('Actual CMS (WordPress/drupal/Joomla/other):');
+        if (!actualCms) {
+            displayMessage('❌ No CMS entered, skipping correction');
+            return { shouldContinue: true };
+        }
 
-    // Suggest detected version if available for the corrected CMS
-    const suggestedVersion = detectedVersions.find(
-        v => v.cms.toLowerCase() === actualCms.toLowerCase()
-    );
-    const versionPrompt = suggestedVersion
-        ? `Version (detected: ${suggestedVersion.version}) or Enter for detected: `
-        : 'Version (e.g., 6.1.0) or Enter if unknown: ';
+        // Suggest detected version if available for the corrected CMS
+        const suggestedVersion = detectedVersions.find(
+            v => v.cms.toLowerCase() === actualCms.toLowerCase()
+        );
+        const versionPrompt = suggestedVersion
+            ? `Version (detected: ${suggestedVersion.version}) or Enter for detected:`
+            : 'Version (e.g., 6.1.0) or Enter if unknown:';
 
-    const inputVersion = await askQuestion(rl, versionPrompt);
-    const version = inputVersion || suggestedVersion?.version;
-    const notes = await askQuestion(rl, 'Notes (optional): ');
+        const inputVersion = await getTextInput(versionPrompt);
+        const version = inputVersion || suggestedVersion?.version;
+        
+        const notes = await getTextInput('Notes (optional):');
 
-    await addToGroundTruth(url, actualCms, confidence, notes, version);
-    displayMessage(`✅ Corrected to: ${actualCms}${version ? ` v${version}` : ''}`);
+        // TODO: Import addToGroundTruth when ground truth database functions are extracted
+        // await addToGroundTruth(url, actualCms, confidence, notes, version);
+        displayMessage(`✅ Corrected to: ${actualCms}${version ? ` v${version}` : ''}`);
+        displayMessage('TODO: Add to ground truth database (function not yet extracted)');
 
-    // Only prompt to continue when user made corrections (they might want to review)
-    const continueChoice = await askQuestion(rl, 'Continue to next URL? (y/n): ');
-    return { shouldContinue: continueChoice.toLowerCase() !== 'n' };
+        // Only prompt to continue when user made corrections (they might want to review)
+        const continueChoice = await getUserChoice(
+            'Continue to next URL?',
+            ['y', 'n'],
+            { caseSensitive: false }
+        );
+        return { shouldContinue: continueChoice?.toLowerCase() !== 'n' };
+    } catch (error) {
+        displayMessage(`❌ Error during correction: ${(error as Error).message}`);
+        return { shouldContinue: true };
+    }
 }
 
-export function showHelp(): void {
+export function displayHelp(): void {
     displayMessage(`\nHelp:`);
     displayMessage(`   Enter    = Accept detection as shown`);
     displayMessage(`   c        = Correct the CMS type or version`);
@@ -472,17 +250,49 @@ export function showHelp(): void {
     displayMessage(`   70-90%   = One-key accept (reliable)`);
     displayMessage(`   <70%     = Manual classification (uncertain)`);
 }
-*/
-// function askQuestion(rl: any, question: string): Promise<string> {
-//     return new Promise(resolve => {
-//         rl.question(question, (answer: any) => {
-//             resolve(answer);
-//         });
-//     });
-// }
 
 // Better type definitions
 export type HelpFunction = () => void;
+
+/**
+ * STANDARDIZED INPUT PATTERNS:
+ * 
+ * Use getUserChoice() for:
+ * - Multiple choice selections (y/n, cms types, etc.)
+ * - Menu-style options with validation
+ * - Cases where you want built-in help and error handling
+ * 
+ * Use getTextInput() for:
+ * - Free-form text entry (version numbers, notes, URLs, etc.)
+ * - Open-ended questions
+ * - Any input that can't be pre-defined as choices
+ */
+
+/**
+ * Get free-form text input from user
+ * Use this for open-ended questions like version numbers, notes, etc.
+ */
+export async function getTextInput(promptText: string): Promise<string | null> {
+    const rl = createInterface({ input, output });
+    
+    try {
+        // Handle SIGINT (Ctrl+C) gracefully
+        const sigintHandler = async () => {
+            displayMessage('\n🛑 Interrupted by user');
+            await cleanup();
+            process.exit(0);
+        };
+        process.on('SIGINT', sigintHandler);
+
+        const answer = await rl.question(promptText + ' ');
+        return answer;
+    } catch (error) {
+        displayMessage(`Error reading input: ${(error as Error).message}`);
+        return null;
+    } finally {
+        rl.close();
+    }
+}
 
 // Unified function with optional help
 export async function getUserChoice(
@@ -498,6 +308,14 @@ export async function getUserChoice(
     const { helpValue, helpFunction, caseSensitive = false } = options || {};
 
     try {
+        // Handle SIGINT (Ctrl+C) gracefully
+        const sigintHandler = async () => {
+            displayMessage('\n🛑 Interrupted by user');
+            await cleanup();
+            process.exit(0);
+        };
+        process.on('SIGINT', sigintHandler);
+
         while (true) {
             const rawChoice = await rl.question(promptText + ' ');
             const choice = caseSensitive ? rawChoice : rawChoice.toLowerCase();

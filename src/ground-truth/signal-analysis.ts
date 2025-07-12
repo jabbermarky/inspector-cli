@@ -1,13 +1,18 @@
-    export function analyzeScriptSignals(data: any): Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, examples?: string[]}> {
+import { isSameDomainScript } from './same-domain-script.js';
+import { hasSameDomainHtmlPattern, countSameDomainHtmlPatterns } from './same-domain-html-pattern.js';
+import { extractVersionInfo } from './extract-version-info.js';
+import { getVersionHints } from './get-version-hints.js';
+
+export function analyzeScriptSignals(data: any): Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, examples?: string[]}> {
         const signals: Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, examples?: string[]}> = [];
         const scripts = data.scripts || [];
         const targetUrl = data.url || '';
         
         // WordPress script patterns - only count same-domain scripts
         const wpContentScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/wp-content/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/wp-content/') && isSameDomainScript(s.src, targetUrl));
         const wpIncludesScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/wp-includes/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/wp-includes/') && isSameDomainScript(s.src, targetUrl));
         
         signals.push({
             signal: '/wp-content/ scripts (WordPress)',
@@ -27,9 +32,9 @@
         
         // Drupal script patterns - only count same-domain scripts
         const drupalSitesScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/sites/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/sites/') && isSameDomainScript(s.src, targetUrl));
         const drupalCoreScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/core/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/core/') && isSameDomainScript(s.src, targetUrl));
         
         signals.push({
             signal: '/sites/ directory (Drupal)',
@@ -49,11 +54,11 @@
         
         // Joomla script patterns - only count same-domain scripts
         const joomlaJuiScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/media/jui/js/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/media/jui/js/') && isSameDomainScript(s.src, targetUrl));
         const joomlaMediaScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/media/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/media/') && isSameDomainScript(s.src, targetUrl));
         const joomlaComponentScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('/components/') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('/components/') && isSameDomainScript(s.src, targetUrl));
         
         signals.push({
             signal: '/media/jui/js/ scripts (Joomla UI library)',
@@ -81,9 +86,9 @@
         
         // Common libraries - only count same-domain to avoid false positives from CDNs
         const jqueryScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('jquery') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('jquery') && isSameDomainScript(s.src, targetUrl));
         const bootstrapScripts = scripts.filter((s: any) => 
-            s.src && s.src.toLowerCase().includes('bootstrap') && this.isSameDomainScript(s.src, targetUrl));
+            s.src && s.src.toLowerCase().includes('bootstrap') && isSameDomainScript(s.src, targetUrl));
         
         // Only show jQuery if it's not already covered by more specific WordPress patterns
         const hasWordPressPatterns = wpContentScripts.length > 0 || wpIncludesScripts.length > 0;
@@ -112,10 +117,10 @@
         const targetUrl = data.url || '';
         
         // WordPress HTML patterns - only count same-domain references
-        const wpContentMatch = this.hasSameDomainHtmlPattern(data.htmlContent, 'wp-content', targetUrl);
-        const wpContentCount = wpContentMatch ? this.countSameDomainHtmlPatterns(data.htmlContent, 'wp-content', targetUrl) : 0;
-        const wpJsonMatch = this.hasSameDomainHtmlPattern(data.htmlContent, 'wp-json', targetUrl);
-        const wpJsonCount = wpJsonMatch ? this.countSameDomainHtmlPatterns(data.htmlContent, 'wp-json', targetUrl) : 0;
+        const wpContentMatch = hasSameDomainHtmlPattern(data.htmlContent, 'wp-content', targetUrl);
+        const wpContentCount = wpContentMatch ? countSameDomainHtmlPatterns(data.htmlContent, 'wp-content', targetUrl) : 0;
+        const wpJsonMatch = hasSameDomainHtmlPattern(data.htmlContent, 'wp-json', targetUrl);
+        const wpJsonCount = wpJsonMatch ? countSameDomainHtmlPatterns(data.htmlContent, 'wp-json', targetUrl) : 0;
         const wpBlockCount = (html.match(/wp-block-/g) || []).length;
         
         signals.push({
@@ -305,7 +310,7 @@
             }
             
             // Enhanced cookie analysis for all CMS types
-            const cookiePatterns = this.analyzeCookiePatterns(headers);
+            const cookiePatterns = analyzeCookiePatterns(headers);
             cookiePatterns.forEach(pattern => {
                 if (pattern.match) {
                     signals.push({
@@ -316,7 +321,7 @@
             });
             
             // X-Pingback alternatives for other CMSs
-            const pingbackAlternatives = this.analyzePingbackAlternatives(headers);
+            const pingbackAlternatives = analyzePingbackAlternatives(headers);
             pingbackAlternatives.forEach(alt => {
                 if (alt.match) {
                     signals.push({
@@ -518,8 +523,8 @@
     
     export function analyzeVersionSignals(data: any): Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, version?: string, hint?: string}> {
         const signals: Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, version?: string, hint?: string}> = [];
-        const versionInfo = this.extractVersionInfo(data);
-        const hints = this.getVersionHints(data);
+        const versionInfo = extractVersionInfo(data);
+        const hints = getVersionHints(data);
         
         // Add detected versions
         versionInfo.forEach(info => {
