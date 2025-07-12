@@ -217,6 +217,32 @@ vi.mock('../../../retry.js', () => ({
 **Problem**: Async mocks returning undefined
 **Solution**: Always use `return await` not just `await` in mock implementations
 
+### Pattern 4: Functional Test Over-Mocking
+**Problem**: Functional tests failing with module export errors despite mocks being correct
+**Root Cause**: Functional tests are over-mocking business logic modules, causing validation failures
+**Detection**: Error messages like "No 'createValidationContext' export is defined on mock" for internal modules
+**Solution**: Functional Test Minimal Mocking Pattern
+```typescript
+// ❌ WRONG: Mock business logic modules in functional tests
+vi.mock('../../url/index.js', () => ({ ... }));
+
+// ✅ RIGHT: Only mock external dependencies
+vi.mock('../../../browser/index.js', () => ({ ... })); // External dependency
+vi.mock('../../../logger.js', () => ({ ... }));        // External dependency
+// NO URL module mock - use real business logic
+
+describe('Functional: Component', () => {
+    beforeEach(() => {
+        vi.clearAllMocks(); // Only clear mocks, NO vi.resetModules()
+    });
+    // ... rest of test
+});
+```
+
+**Key Principle**: 
+- **Unit Tests**: Mock everything except the unit under test
+- **Functional Tests**: Only mock external dependencies (browser, network, filesystem), use real business logic
+
 ---
 
 **Remember**: Most test failures have simple root causes. Complex symptoms usually indicate issues in foundational components (mocks, basic functions) rather than business logic.
