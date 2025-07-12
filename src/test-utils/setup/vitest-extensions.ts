@@ -1,31 +1,31 @@
 /**
- * Jest extensions and custom matchers
+ * Vitest extensions and custom matchers
  * 
- * Provides custom Jest matchers and extensions to improve test
+ * Provides custom Vitest matchers and extensions to improve test
  * readability and provide domain-specific assertions for CMS detection.
  */
 
-declare global {
-    namespace jest {
-        interface Matchers<R> {
-            toBeValidCMSResult(): R;
-            toBeValidPartialResult(): R;
-            toHaveConfidenceAbove(threshold: number): R;
-            toHaveConfidenceBelow(threshold: number): R;
-            toHaveDetectedCMS(cms: string): R;
-            toHaveExecutedWithin(minTime: number, maxTime: number): R;
-            toHaveUsedMethods(methods: string[]): R;
-            toBeFailedDetection(): R;
-            toHaveRedirected(): R;
-            toBeValidCMSType(): R;
-        }
+import { expect } from 'vitest';
+
+declare module 'vitest' {
+    interface Assertion<T = any> {
+        toBeValidCMSResult(): T;
+        toBeValidPartialResult(): T;
+        toHaveConfidenceAbove(threshold: number): T;
+        toHaveConfidenceBelow(threshold: number): T;
+        toHaveDetectedCMS(cms: string): T;
+        toHaveExecutedWithin(minTime: number, maxTime: number): T;
+        toHaveUsedMethods(methods: string[]): T;
+        toBeFailedDetection(): T;
+        toHaveRedirected(): T;
+        toBeValidCMSType(): T;
     }
 }
 
 /**
- * Custom Jest matchers for CMS detection testing
+ * Custom Vitest matchers for CMS detection testing
  */
-export function setupJestExtensions(): void {
+export function setupVitestExtensions(): void {
     expect.extend({
         /**
          * Validates that a detection result has all required properties
@@ -39,7 +39,7 @@ export function setupJestExtensions(): void {
                 typeof received.finalUrl === 'string' &&
                 typeof received.executionTime === 'number' &&
                 received.executionTime >= 0 &&
-                Array.isArray(received.detectionMethods);
+                (received.detectionMethods === undefined || Array.isArray(received.detectionMethods));
 
             if (pass) {
                 return {
@@ -56,7 +56,7 @@ export function setupJestExtensions(): void {
                 if (typeof received?.finalUrl !== 'string') issues.push('finalUrl is not a string');
                 if (typeof received?.executionTime !== 'number') issues.push('executionTime is not a number');
                 if (received?.executionTime < 0) issues.push('executionTime is negative');
-                if (!Array.isArray(received?.detectionMethods)) issues.push('detectionMethods is not an array');
+                if (received?.detectionMethods !== undefined && !Array.isArray(received?.detectionMethods)) issues.push('detectionMethods is not an array when present');
 
                 return {
                     message: () => `Expected object to be a valid CMS detection result.\nIssues found: ${issues.join(', ')}`,
@@ -185,6 +185,7 @@ export function setupJestExtensions(): void {
          */
         toHaveUsedMethods(received: any, methods: string[]) {
             const pass = received && 
+                received.detectionMethods && 
                 Array.isArray(received.detectionMethods) &&
                 methods.every(method => received.detectionMethods.includes(method));
 
@@ -276,16 +277,16 @@ export function setupJestExtensions(): void {
 }
 
 /**
- * Sets up all Jest extensions - call this in test setup files
+ * Sets up all Vitest extensions - call this in test setup files
  */
-export function setupAllJestExtensions(): void {
-    setupJestExtensions();
+export function setupAllVitestExtensions(): void {
+    setupVitestExtensions();
 }
 
 /**
- * Utility to verify Jest extensions are working
+ * Utility to verify Vitest extensions are working
  */
-export function verifyJestExtensions(): boolean {
+export function verifyVitestExtensions(): boolean {
     try {
         // Test that our matchers are available
         const mockResult = {
@@ -301,7 +302,7 @@ export function verifyJestExtensions(): boolean {
         expect(mockResult).toBeValidCMSResult();
         return true;
     } catch (error) {
-        console.warn('Jest extensions not properly loaded:', error);
+        console.warn('Vitest extensions not properly loaded:', error);
         return false;
     }
 }

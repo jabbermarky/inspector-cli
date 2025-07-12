@@ -403,7 +403,7 @@ export class RuleGenerator {
     }
 
     private generateTestFileCode(strategy: GeneratedStrategy): string {
-        let code = `import { jest } from '@jest/globals';\n`;
+        let code = `import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';\n`;
         code += `import { ${strategy.className} } from './${strategy.fileName.replace('.ts', '.js')}';\n\n`;
 
         code += `describe('${strategy.className}', () => {\n`;
@@ -413,8 +413,8 @@ export class RuleGenerator {
         code += `    beforeEach(() => {\n`;
         code += `        strategy = new ${strategy.className}();\n`;
         code += `        mockPage = {\n`;
-        code += `            evaluate: jest.fn(),\n`;
-        code += `            $$: jest.fn()\n`;
+        code += `            evaluate: vi.fn(),\n`;
+        code += `            $$: vi.fn()\n`;
         code += `        };\n`;
         code += `    });\n\n`;
 

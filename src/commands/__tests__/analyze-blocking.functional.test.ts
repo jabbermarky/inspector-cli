@@ -1,31 +1,31 @@
 // Mock external dependencies BEFORE imports
-jest.mock('../../utils/logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../utils/logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
 
-jest.mock('fs/promises', () => ({
-    mkdir: jest.fn(),
-    writeFile: jest.fn()
+vi.mock('fs/promises', () => ({
+    mkdir: vi.fn(),
+    writeFile: vi.fn()
 }));
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { analyzeBlocking } from '../analyze-blocking.js';
-import { setupCommandTests, setupJestExtensions } from '@test-utils';
+import { setupCommandTests, setupVitestExtensions } from '@test-utils';
 import * as fs from 'fs/promises';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock the classes BEFORE they are used
-jest.mock('../../utils/cms/analysis/storage.js', () => ({
+vi.mock('../../utils/cms/analysis/storage.js', () => ({
     DataStorage: class MockDataStorage {
         constructor(public dataDir: string) {}
         async initialize() {}
@@ -57,7 +57,7 @@ jest.mock('../../utils/cms/analysis/storage.js', () => ({
     }
 }));
 
-jest.mock('../../utils/cms/analysis/bot-blocking.js', () => ({
+vi.mock('../../utils/cms/analysis/bot-blocking.js', () => ({
     BotBlockingAnalyzer: class MockBotBlockingAnalyzer {
         generateBlockingReport(dataPoints: any[]) {
             return {
@@ -130,19 +130,19 @@ jest.mock('../../utils/cms/analysis/bot-blocking.js', () => ({
 describe('analyze-blocking.ts Functional Tests', () => {
     setupCommandTests();
 
-    let mockMkdir: jest.MockedFunction<typeof fs.mkdir>;
-    let mockWriteFile: jest.MockedFunction<typeof fs.writeFile>;
+    let mockMkdir: vi.MockedFunction<typeof fs.mkdir>;
+    let mockWriteFile: vi.MockedFunction<typeof fs.writeFile>;
     let consoleSpy: any;
 
     beforeEach(() => {
-        mockMkdir = fs.mkdir as jest.MockedFunction<typeof fs.mkdir>;
-        mockWriteFile = fs.writeFile as jest.MockedFunction<typeof fs.writeFile>;
+        mockMkdir = fs.mkdir as vi.MockedFunction<typeof fs.mkdir>;
+        mockWriteFile = fs.writeFile as vi.MockedFunction<typeof fs.writeFile>;
         
         mockMkdir.mockResolvedValue(undefined);
         mockWriteFile.mockResolvedValue(undefined);
         
-        consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -185,7 +185,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate JSON report by default', async () => {
             await analyzeBlocking();
             
-            const jsonWriteCalls = (mockWriteFile as jest.Mock).mock.calls.filter((call: any[]) => 
+            const jsonWriteCalls = (mockWriteFile as any).mock.calls.filter((call: any[]) => 
                 (call[0] as string).includes('.json')
             );
             expect(jsonWriteCalls).toHaveLength(1);
@@ -194,7 +194,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate CSV report when format is csv', async () => {
             await analyzeBlocking({ format: 'csv' });
             
-            const csvWriteCalls = (mockWriteFile as jest.Mock).mock.calls.filter((call: any[]) => 
+            const csvWriteCalls = (mockWriteFile as any).mock.calls.filter((call: any[]) => 
                 (call[0] as string).includes('.csv')
             );
             expect(csvWriteCalls).toHaveLength(1);
@@ -203,7 +203,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate markdown report when format is markdown', async () => {
             await analyzeBlocking({ format: 'markdown' });
             
-            const mdWriteCalls = (mockWriteFile as jest.Mock).mock.calls.filter((call: any[]) => 
+            const mdWriteCalls = (mockWriteFile as any).mock.calls.filter((call: any[]) => 
                 (call[0] as string).includes('.md')
             );
             expect(mdWriteCalls).toHaveLength(1);
@@ -283,7 +283,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should handle file write errors', async () => {
             mockWriteFile.mockRejectedValueOnce(new Error('Permission denied'));
             
-            const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {
+            const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
                 throw new Error('process.exit called');
             }) as any);
 
@@ -298,7 +298,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate valid JSON report content', async () => {
             await analyzeBlocking({ format: 'json' });
             
-            const jsonCall = (mockWriteFile as jest.Mock).mock.calls.find((call: any[]) => 
+            const jsonCall = (mockWriteFile as any).mock.calls.find((call: any[]) => 
                 (call[0] as string).includes('.json')
             );
             expect(jsonCall).toBeDefined();
@@ -312,7 +312,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate valid CSV report content', async () => {
             await analyzeBlocking({ format: 'csv' });
             
-            const csvCall = (mockWriteFile as jest.Mock).mock.calls.find((call: any[]) => 
+            const csvCall = (mockWriteFile as any).mock.calls.find((call: any[]) => 
                 (call[0] as string).includes('.csv')
             );
             expect(csvCall).toBeDefined();
@@ -325,7 +325,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate valid Markdown report content', async () => {
             await analyzeBlocking({ format: 'markdown' });
             
-            const mdCall = (mockWriteFile as jest.Mock).mock.calls.find((call: any[]) => 
+            const mdCall = (mockWriteFile as any).mock.calls.find((call: any[]) => 
                 (call[0] as string).includes('.md')
             );
             expect(mdCall).toBeDefined();
@@ -342,7 +342,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
         it('should generate timestamped report files', async () => {
             await analyzeBlocking({ format: 'json' });
             
-            const jsonCall = (mockWriteFile as jest.Mock).mock.calls.find((call: any[]) => 
+            const jsonCall = (mockWriteFile as any).mock.calls.find((call: any[]) => 
                 (call[0] as string).includes('.json')
             );
             
@@ -355,7 +355,7 @@ describe('analyze-blocking.ts Functional Tests', () => {
                 format: 'json'
             });
             
-            const jsonCall = (mockWriteFile as jest.Mock).mock.calls.find((call: any[]) => 
+            const jsonCall = (mockWriteFile as any).mock.calls.find((call: any[]) => 
                 (call[0] as string).includes('.json')
             );
             

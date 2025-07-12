@@ -5,6 +5,7 @@
  * test files with a single configurable factory function.
  */
 
+import { vi } from 'vitest';
 import { BrowserManagerConfig, NavigationResult } from '../../utils/browser/types.js';
 
 export interface RobotsTxtMockData {
@@ -62,44 +63,44 @@ export function createMockPage(options: PageMockOptions = {}): any {
 
     const mockPage: any = {
         // Core Puppeteer page methods
-        url: jest.fn().mockReturnValue(url),
-        title: jest.fn().mockResolvedValue(title),
-        content: jest.fn().mockResolvedValue(content),
+        url: vi.fn().mockReturnValue(url),
+        title: vi.fn().mockResolvedValue(title),
+        content: vi.fn().mockResolvedValue(content),
         goto: shouldFailNavigation ? 
-            jest.fn().mockRejectedValue(new Error('Navigation failed')) :
-            jest.fn().mockResolvedValue(undefined),
+            vi.fn().mockRejectedValue(new Error('Navigation failed')) :
+            vi.fn().mockResolvedValue(undefined),
         
         // Evaluation methods
-        evaluate: jest.fn(),
-        $eval: jest.fn(),
-        $$eval: jest.fn(),
+        evaluate: vi.fn(),
+        $eval: vi.fn(),
+        $$eval: vi.fn(),
         
         // User agent and viewport
-        setUserAgent: jest.fn(),
-        setViewport: jest.fn(),
+        setUserAgent: vi.fn(),
+        setViewport: vi.fn(),
         
         // Wait methods
-        waitForSelector: jest.fn(),
-        waitForFunction: jest.fn(),
-        waitForTimeout: jest.fn(),
+        waitForSelector: vi.fn(),
+        waitForFunction: vi.fn(),
+        waitForTimeout: vi.fn(),
         
         // Screenshot
-        screenshot: jest.fn(),
+        screenshot: vi.fn(),
         
         // Timeouts
-        setDefaultNavigationTimeout: jest.fn(),
-        setDefaultTimeout: jest.fn(),
+        setDefaultNavigationTimeout: vi.fn(),
+        setDefaultTimeout: vi.fn(),
         
         // Event handling
-        on: jest.fn(),
-        off: jest.fn(),
-        once: jest.fn(),
+        on: vi.fn(),
+        off: vi.fn(),
+        once: vi.fn(),
         
         // Request interception
-        setRequestInterception: jest.fn(),
+        setRequestInterception: vi.fn(),
         
         // Lifecycle events
-        close: jest.fn()
+        close: vi.fn()
     };
 
     // Setup evaluation behavior
@@ -195,6 +196,31 @@ export function createMetaTagMockPage(metaTags: Array<{name?: string; property?:
                 return metaTags;
             }
             return [];
+        }
+    });
+}
+
+/**
+ * Creates a mock page for CMS detector testing with generator meta tag
+ */
+export function createCMSMockPage(cmsName: string, version?: string, additionalHtml?: string): any {
+    const generatorContent = version ? `${cmsName} ${version}` : cmsName;
+    
+    return createMockPage({
+        content: additionalHtml || `<html><head><meta name="generator" content="${generatorContent}"></head><body></body></html>`,
+        evaluateImplementation: (fn: Function) => {
+            const fnStr = fn.toString();
+            // Handle MetaTagStrategy pattern: returns content string directly
+            if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta') && fnStr.includes('getAttribute')) {
+                return generatorContent;
+            }
+            // Handle other meta query patterns: returns array of objects
+            if (fnStr.includes('querySelectorAll') && fnStr.includes('meta')) {
+                return [
+                    { name: 'generator', content: generatorContent }
+                ];
+            }
+            return '';
         }
     });
 }

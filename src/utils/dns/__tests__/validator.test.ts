@@ -1,58 +1,50 @@
+import { vi } from 'vitest';
 import { validateDNS, extractDomain, DNSSkipReason, validateDNSBatch, DNSValidationResult } from '../validator.js';
-import { setupAnalysisTests, setupJestExtensions } from '@test-utils';
+import { setupAnalysisTests, setupVitestExtensions } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom Vitest matchers
+setupVitestExtensions();
 
 // Mock DNS module before other imports
-jest.mock('dns', () => ({
-    resolve4: jest.fn(),
-    resolve6: jest.fn()
+vi.mock('dns', () => ({
+    default: {
+        resolve4: vi.fn(),
+        resolve6: vi.fn()
+    },
+    resolve4: vi.fn(),
+    resolve6: vi.fn()
 }));
 
 // Mock util module
-jest.mock('util', () => ({
-    promisify: jest.fn((fn) => fn)
+vi.mock('util', () => ({
+    promisify: vi.fn((fn) => fn)
 }));
 
 // Mock logger
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn(),
+        performance: vi.fn()
     }))
 }));
-
-// Mock the resolve functions
-let mockResolve4: jest.MockedFunction<any>;
-let mockResolve6: jest.MockedFunction<any>;
-
-// Get the mocked functions after module import
-const dns = require('dns');
-mockResolve4 = dns.resolve4 as jest.MockedFunction<any>;
-mockResolve6 = dns.resolve6 as jest.MockedFunction<any>;
 
 describe('DNS Validator', () => {
     setupAnalysisTests();
     
     beforeEach(() => {
-        // Reset all mocks before each test
-        jest.clearAllMocks();
-        
-        // Set default mock implementations
-        mockResolve4.mockReset();
-        mockResolve6.mockReset();
+        // Reset all mocks before each test - this handles all mock functions
+        vi.clearAllMocks();
     });
     
     afterAll(() => {
         // Clean up any remaining timers/promises
-        jest.clearAllTimers();
-        jest.useRealTimers();
+        vi.clearAllTimers();
+        vi.useRealTimers();
     });
     
     describe('extractDomain', () => {

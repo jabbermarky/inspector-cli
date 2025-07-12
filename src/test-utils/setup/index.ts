@@ -6,7 +6,7 @@
  */
 
 export * from './common-setup.js';
-export * from './jest-extensions.js';
+export * from './vitest-extensions.js';
 
 // Re-export commonly used setup functions for convenience
 export {
@@ -34,7 +34,7 @@ export {
 } from './common-setup.js';
 
 export {
-    setupJestExtensions,
-    setupAllJestExtensions,
-    verifyJestExtensions
-} from './jest-extensions.js';
+    setupVitestExtensions,
+    setupAllVitestExtensions,
+    verifyVitestExtensions
+} from './vitest-extensions.js';

@@ -12,7 +12,8 @@ export * from './result-factory.js';
 export {
     createMockPage,
     createMetaTagMockPage,
-    createHttpHeaderMockPage
+    createHttpHeaderMockPage,
+    createCMSMockPage
 } from './page-factory.js';
 
 export {

@@ -1,34 +1,53 @@
 import { ScreenshotService } from '../service.js';
 import { ScreenshotValidationError } from '../types';
-import { setupScreenshotTests, setupJestExtensions, createMockPage, createMockBrowserManager } from '@test-utils';
+import { setupScreenshotTests, setupVitestExtensions, createMockPage, createMockBrowserManager } from '@test-utils';
 
-// Setup custom Jest matchers
-setupJestExtensions();
+// Setup custom matchers
+setupVitestExtensions();
 
 // Mock logger
-jest.mock('../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
+vi.mock('../../logger.js', () => ({
+    createModuleLogger: vi.fn(() => ({
         //debug: console.debug, // <-- This will call console.debug when invoked
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        screenshot: jest.fn(),
-        performance: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn()
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        screenshot: vi.fn(),
+        performance: vi.fn(),
+        apiCall: vi.fn(),
+        apiResponse: vi.fn()
     }))
 }));
 
-jest.mock('../../browser/index.js', () => ({
-    BrowserManager: jest.fn(() => createMockBrowserManager()),
-    createCaptureConfig: jest.fn(() => ({})),
+vi.mock('../../browser/index.js', () => ({
+    BrowserManager: vi.fn(() => createMockBrowserManager()),
+    createCaptureConfig: vi.fn(() => ({})),
     BrowserNetworkError: class BrowserNetworkError extends Error {
         constructor(message: string) { super(message); }
     },
     BrowserTimeoutError: class BrowserTimeoutError extends Error {
         constructor(message: string) { super(message); }
     }
+}));
+
+// Mock URL module to provide UrlValidationError
+vi.mock('../../url/index.js', () => ({
+    validateUrl: vi.fn((url: string) => {
+        // Realistic validation: reject empty, invalid protocol, etc.
+        if (!url || url.trim() === '') {
+            throw new Error('URL is required');
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            throw new Error('URL must use http or https protocol');
+        }
+        return true;
+    }),
+    normalizeUrl: vi.fn((url: string) => url),
+    UrlValidationError: class UrlValidationError extends Error {
+        constructor(message: string) { super(message); }
+    },
+    createValidationContext: vi.fn(() => ({ type: 'test' }))
 }));
 
 // Set a valid log level for tests to prevent logger/config errors
@@ -43,10 +62,10 @@ describe('ScreenshotService', () => {
 
     beforeEach(() => {
         service = new ScreenshotService();
-        jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+        vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
         
         // Reset mocks
-        jest.clearAllMocks();
+        vi.clearAllMocks();
     });
 
     describe('constructor', () => {
@@ -84,7 +103,7 @@ describe('ScreenshotService - Input Validation', () => {
   
     beforeEach(() => {
       service = new ScreenshotService();
-      jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+      vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
     });
   
     it('throws ScreenshotValidationError for missing URL', async () => {
@@ -158,9 +177,9 @@ describe('ScreenshotService - Successful Screenshot', () => {
     let service: ScreenshotService;
 
     beforeEach(async () => {
-        jest.resetModules();
-        jest.doMock('../../config.js', () => ({
-            getConfig: jest.fn(() => ({
+        vi.resetModules();
+        vi.doMock('../../config.js', () => ({
+            getConfig: vi.fn(() => ({
                 puppeteer: {
                     headless: true,
                     timeout: 30000,
@@ -189,27 +208,27 @@ describe('ScreenshotService - Successful Screenshot', () => {
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
-        jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+        vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
     });
 
     it('returns ScreenshotResult for valid input', async () => {
         // Mock Puppeteer before importing ScreenshotService
-        jest.resetModules();
-        jest.doMock('puppeteer', () => ({
-            launch: jest.fn().mockResolvedValue({
+        vi.resetModules();
+        vi.doMock('puppeteer', () => ({
+            launch: vi.fn().mockResolvedValue({
                 // Add a mock 'on' method to the browser mock to satisfy browser.on usage
-                on: jest.fn(),
-                newPage: jest.fn().mockResolvedValue({
-                    setViewport: jest.fn(),
-                    setUserAgent: jest.fn(),
-                    goto: jest.fn().mockResolvedValue({}),
-                    screenshot: jest.fn().mockResolvedValue(Buffer.from('mock-image')),
-                    evaluate: jest.fn().mockResolvedValue([1024, 768]),
-                    close: jest.fn(),
-                    setDefaultTimeout: jest.fn(),
-                    setExtraHTTPHeaders: jest.fn()
+                on: vi.fn(),
+                newPage: vi.fn().mockResolvedValue({
+                    setViewport: vi.fn(),
+                    setUserAgent: vi.fn(),
+                    goto: vi.fn().mockResolvedValue({}),
+                    screenshot: vi.fn().mockResolvedValue(Buffer.from('mock-image')),
+                    evaluate: vi.fn().mockResolvedValue([1024, 768]),
+                    close: vi.fn(),
+                    setDefaultTimeout: vi.fn(),
+                    setExtraHTTPHeaders: vi.fn()
                 }),
-                close: jest.fn()
+                close: vi.fn()
             })
         }));
 
@@ -217,7 +236,7 @@ describe('ScreenshotService - Successful Screenshot', () => {
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
-        jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+        vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
 
         const result = await service.captureScreenshot({
             url: 'https://example.com',
@@ -244,9 +263,9 @@ describe('ScreenshotService - Error Handling', () => {
     let service: ScreenshotService;
 
     beforeEach(async () => {
-        jest.resetModules();
-        jest.doMock('../../config.js', () => ({
-            getConfig: jest.fn(() => ({
+        vi.resetModules();
+        vi.doMock('../../config.js', () => ({
+            getConfig: vi.fn(() => ({
                 puppeteer: {
                     headless: true,
                     timeout: 30000,
@@ -275,19 +294,19 @@ describe('ScreenshotService - Error Handling', () => {
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
 
-        jest.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
+        vi.spyOn(console, 'error').mockImplementation(() => {}); // suppress error logs
     });
 
     it('throws ScreenshotNetworkError for browser launch failure', async () => {
-        jest.resetModules();
+        vi.resetModules();
         
         // Mock browser manager to fail during page creation
-        jest.doMock('../../browser/index.js', () => ({
-            BrowserManager: jest.fn(() => ({
-                createPage: jest.fn().mockRejectedValue(new Error('Browser failed to launch')),
-                cleanup: jest.fn()
+        vi.doMock('../../browser/index.js', () => ({
+            BrowserManager: vi.fn(() => ({
+                createPage: vi.fn().mockRejectedValue(new Error('Browser failed to launch')),
+                cleanup: vi.fn()
             })),
-            createCaptureConfig: jest.fn(() => ({})),
+            createCaptureConfig: vi.fn(() => ({})),
             BrowserNetworkError: class BrowserNetworkError extends Error {
                 constructor(message: string) { super(message); }
             },
@@ -307,7 +326,7 @@ describe('ScreenshotService - Error Handling', () => {
     });
 
     it('throws ScreenshotNetworkError for navigation timeout', async () => {
-        jest.resetModules();
+        vi.resetModules();
         
         // Create the error classes first  
         class BrowserTimeoutError extends Error {
@@ -317,12 +336,12 @@ describe('ScreenshotService - Error Handling', () => {
         const timeoutError = new BrowserTimeoutError('Navigation timeout of 30000 ms exceeded');
         
         // Mock browser manager to throw BrowserTimeoutError during page creation
-        jest.doMock('../../browser/index.js', () => ({
-            BrowserManager: jest.fn(() => ({
-                createPage: jest.fn().mockRejectedValue(timeoutError),
-                cleanup: jest.fn()
+        vi.doMock('../../browser/index.js', () => ({
+            BrowserManager: vi.fn(() => ({
+                createPage: vi.fn().mockRejectedValue(timeoutError),
+                cleanup: vi.fn()
             })),
-            createCaptureConfig: jest.fn(() => ({})),
+            createCaptureConfig: vi.fn(() => ({})),
             BrowserNetworkError: class BrowserNetworkError extends Error {
                 constructor(message: string) { super(message); }
             },
@@ -340,7 +359,7 @@ describe('ScreenshotService - Error Handling', () => {
     });
 
     it('throws ScreenshotNetworkError for network error during navigation', async () => {
-        jest.resetModules();
+        vi.resetModules();
         
         // Create the error classes first
         class BrowserNetworkError extends Error {
@@ -350,12 +369,12 @@ describe('ScreenshotService - Error Handling', () => {
         const networkError = new BrowserNetworkError('Connection refused: https://example.com');
         
         // Mock browser manager to throw BrowserNetworkError during page creation
-        jest.doMock('../../browser/index.js', () => ({
-            BrowserManager: jest.fn(() => ({
-                createPage: jest.fn().mockRejectedValue(networkError),
-                cleanup: jest.fn()
+        vi.doMock('../../browser/index.js', () => ({
+            BrowserManager: vi.fn(() => ({
+                createPage: vi.fn().mockRejectedValue(networkError),
+                cleanup: vi.fn()
             })),
-            createCaptureConfig: jest.fn(() => ({})),
+            createCaptureConfig: vi.fn(() => ({})),
             BrowserNetworkError: BrowserNetworkError,
             BrowserTimeoutError: class BrowserTimeoutError extends Error {
                 constructor(message: string) { super(message); }
@@ -378,9 +397,9 @@ describe('ScreenshotService - Resource Cleanup', () => {
     let service: ScreenshotService;
 
     beforeEach(async () => {
-        jest.resetModules();
-        jest.doMock('../../config.js', () => ({
-            getConfig: jest.fn(() => ({
+        vi.resetModules();
+        vi.doMock('../../config.js', () => ({
+            getConfig: vi.fn(() => ({
                 puppeteer: {
                     headless: true,
                     timeout: 30000,
@@ -406,22 +425,22 @@ describe('ScreenshotService - Resource Cleanup', () => {
         }));
         const mod = await import('../service.js');
         service = new mod.ScreenshotService();
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     it('closes browser and page on success', async () => {
-        const cleanupMock = jest.fn();
+        const cleanupMock = vi.fn();
 
-        jest.resetModules();
+        vi.resetModules();
         
         // Mock browser manager to succeed and track cleanup calls
-        jest.doMock('../../browser/index.js', () => ({
-            BrowserManager: jest.fn(() => ({
-                createPage: jest.fn().mockResolvedValue({}),
-                captureScreenshot: jest.fn().mockResolvedValue([1024, 768]),
+        vi.doMock('../../browser/index.js', () => ({
+            BrowserManager: vi.fn(() => ({
+                createPage: vi.fn().mockResolvedValue({}),
+                captureScreenshot: vi.fn().mockResolvedValue([1024, 768]),
                 cleanup: cleanupMock
             })),
-            createCaptureConfig: jest.fn(() => ({})),
+            createCaptureConfig: vi.fn(() => ({})),
             BrowserNetworkError: class BrowserNetworkError extends Error {
                 constructor(message: string) { super(message); }
             },
@@ -443,17 +462,17 @@ describe('ScreenshotService - Resource Cleanup', () => {
     });
 
     it('closes browser and page on failure', async () => {
-        const cleanupMock = jest.fn();
+        const cleanupMock = vi.fn();
 
-        jest.resetModules();
+        vi.resetModules();
         
         // Mock browser manager to fail during page creation but still track cleanup
-        jest.doMock('../../browser/index.js', () => ({
-            BrowserManager: jest.fn(() => ({
-                createPage: jest.fn().mockRejectedValue(new Error('Navigation failed')),
+        vi.doMock('../../browser/index.js', () => ({
+            BrowserManager: vi.fn(() => ({
+                createPage: vi.fn().mockRejectedValue(new Error('Navigation failed')),
                 cleanup: cleanupMock
             })),
-            createCaptureConfig: jest.fn(() => ({})),
+            createCaptureConfig: vi.fn(() => ({})),
             BrowserNetworkError: class BrowserNetworkError extends Error {
                 constructor(message: string) { super(message); }
             },
