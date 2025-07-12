@@ -179,6 +179,25 @@ describe('ScreenshotService - Successful Screenshot', () => {
 
     beforeEach(async () => {
         vi.resetModules();
+        
+        // Re-mock URL module after resetModules
+        vi.doMock('../../url/index.js', () => ({
+            validateUrl: vi.fn((url: string) => {
+                if (!url || url.trim() === '') {
+                    throw new Error('URL is required');
+                }
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    throw new Error('URL must use http or https protocol');
+                }
+                return true;
+            }),
+            normalizeUrl: vi.fn((url: string) => url),
+            UrlValidationError: class UrlValidationError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            createValidationContext: vi.fn(() => ({ type: 'test' }))
+        }));
+        
         vi.doMock('../../config.js', () => ({
             getConfig: vi.fn(() => ({
                 puppeteer: {
@@ -215,6 +234,25 @@ describe('ScreenshotService - Successful Screenshot', () => {
     it('returns ScreenshotResult for valid input', async () => {
         // Mock Puppeteer before importing ScreenshotService
         vi.resetModules();
+        
+        // Re-mock URL module after resetModules
+        vi.doMock('../../url/index.js', () => ({
+            validateUrl: vi.fn((url: string) => {
+                if (!url || url.trim() === '') {
+                    throw new Error('URL is required');
+                }
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    throw new Error('URL must use http or https protocol');
+                }
+                return true;
+            }),
+            normalizeUrl: vi.fn((url: string) => url),
+            UrlValidationError: class UrlValidationError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            createValidationContext: vi.fn(() => ({ type: 'test' }))
+        }));
+        
         vi.doMock('puppeteer', () => ({
             launch: vi.fn().mockResolvedValue({
                 // Add a mock 'on' method to the browser mock to satisfy browser.on usage
@@ -265,6 +303,25 @@ describe('ScreenshotService - Error Handling', () => {
 
     beforeEach(async () => {
         vi.resetModules();
+        
+        // Re-mock URL module after resetModules
+        vi.doMock('../../url/index.js', () => ({
+            validateUrl: vi.fn((url: string) => {
+                if (!url || url.trim() === '') {
+                    throw new Error('URL is required');
+                }
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    throw new Error('URL must use http or https protocol');
+                }
+                return true;
+            }),
+            normalizeUrl: vi.fn((url: string) => url),
+            UrlValidationError: class UrlValidationError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            createValidationContext: vi.fn(() => ({ type: 'test' }))
+        }));
+        
         vi.doMock('../../config.js', () => ({
             getConfig: vi.fn(() => ({
                 puppeteer: {
@@ -399,6 +456,25 @@ describe('ScreenshotService - Resource Cleanup', () => {
 
     beforeEach(async () => {
         vi.resetModules();
+        
+        // Re-mock URL module after resetModules
+        vi.doMock('../../url/index.js', () => ({
+            validateUrl: vi.fn((url: string) => {
+                if (!url || url.trim() === '') {
+                    throw new Error('URL is required');
+                }
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    throw new Error('URL must use http or https protocol');
+                }
+                return true;
+            }),
+            normalizeUrl: vi.fn((url: string) => url),
+            UrlValidationError: class UrlValidationError extends Error {
+                constructor(message: string) { super(message); }
+            },
+            createValidationContext: vi.fn(() => ({ type: 'test' }))
+        }));
+        
         vi.doMock('../../config.js', () => ({
             getConfig: vi.fn(() => ({
                 puppeteer: {
