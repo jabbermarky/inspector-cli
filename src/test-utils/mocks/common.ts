@@ -35,6 +35,22 @@ export const mockUrlValidation = {
 };
 
 /**
+ * Standardized interactive UI mocks
+ */
+export const mockDisplayMessage = jest.fn();
+
+/**
+ * Create mock for interactive UI functions
+ */
+export function createMockInteractiveUI() {
+    return {
+        displayMessage: mockDisplayMessage,
+        getUserChoice: jest.fn(),
+        showHelp: jest.fn()
+    };
+}
+
+/**
  * Setup function to apply common module mocks
  * Call this in beforeEach or at the top of test files
  */
@@ -69,6 +85,9 @@ export function resetCommonMocks(): void {
     mockUrlValidation.validateUrl.mockReturnValue(undefined);
     mockUrlValidation.normalizeUrl.mockReturnValue('https://example.com');
     mockUrlValidation.validateAndNormalizeUrl.mockReturnValue('https://example.com');
+    
+    // Reset interactive UI mocks
+    mockDisplayMessage.mockClear();
 }
 
 /**

@@ -18,6 +18,7 @@ export {
     setupFileTests,
     setupUrlTests,
     setupCommandTests,
+    setupInteractiveTests,
     setupTestEnvironment,
     teardownTestEnvironment,
     createTestContext,

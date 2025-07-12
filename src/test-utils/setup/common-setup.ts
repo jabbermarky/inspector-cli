@@ -232,6 +232,16 @@ export async function cleanupTestContext(context: TestContext): Promise<void> {
 }
 
 /**
+ * Standard test setup for interactive UI tests
+ * Call this in describe blocks that test interactive UI functionality
+ */
+export function setupInteractiveTests(): void {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+}
+
+/**
  * Helper assertion for successful CMS detection results
  */
 export function expectSuccessfulDetection(result: any, expectedCMS: string): void {
