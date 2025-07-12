@@ -5,7 +5,7 @@
  * mock creation, configuration, and strategy-specific data handling.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     createMockPage,
     createMetaTagMockPage,
@@ -16,7 +16,7 @@ import {
 
 describe('Page Factory Utilities', () => {
     describe('createMockPage', () => {
-        it('should create a basic page mock with defaults', () => {
+        it('should create a basic page mock with defaults', async () => {
             const mockPage = createMockPage();
             
             // Core Puppeteer methods
@@ -28,11 +28,11 @@ describe('Page Factory Utilities', () => {
             
             // Default values
             expect(mockPage.url()).toBe('https://example.com');
-            expect(mockPage.title()).resolves.toBe('Example Title');
-            expect(mockPage.content()).resolves.toContain('<html>');
+            await expect(mockPage.title()).resolves.toBe('Example Title');
+            await expect(mockPage.content()).resolves.toContain('<html>');
         });
         
-        it('should create a page mock with custom options', () => {
+        it('should create a page mock with custom options', async () => {
             const options: PageMockOptions = {
                 url: 'https://custom.com',
                 title: 'Custom Title',
@@ -43,26 +43,26 @@ describe('Page Factory Utilities', () => {
             const mockPage = createMockPage(options);
             
             expect(mockPage.url()).toBe('https://custom.com');
-            expect(mockPage.title()).resolves.toBe('Custom Title');
-            expect(mockPage.content()).resolves.toBe('<html><body>Custom content</body></html>');
+            await expect(mockPage.title()).resolves.toBe('Custom Title');
+            await expect(mockPage.content()).resolves.toBe('<html><body>Custom content</body></html>');
         });
         
-        it('should configure page mock for navigation failures', () => {
+        it('should configure page mock for navigation failures', async () => {
             const mockPage = createMockPage({ shouldFailNavigation: true });
             
-            expect(mockPage.goto).rejects.toThrow('Navigation failed');
+            await expect(mockPage.goto()).rejects.toThrow('Navigation failed');
         });
         
-        it('should configure page mock for evaluation failures', () => {
+        it('should configure page mock for evaluation failures', async () => {
             const mockPage = createMockPage({ shouldFailEvaluation: true });
             
-            expect(mockPage.evaluate).rejects.toThrow('Evaluation failed');
-            expect(mockPage.$eval).rejects.toThrow('Evaluation failed');
-            expect(mockPage.$$eval).rejects.toThrow('Evaluation failed');
+            await expect(mockPage.evaluate()).rejects.toThrow('Evaluation failed');
+            await expect(mockPage.$eval()).rejects.toThrow('Evaluation failed');
+            await expect(mockPage.$$eval()).rejects.toThrow('Evaluation failed');
         });
         
         it('should configure custom evaluation implementation', async () => {
-            const customEvaluation = jest.fn().mockReturnValue('custom result');
+            const customEvaluation = vi.fn().mockReturnValue('custom result');
             const mockPage = createMockPage({ evaluateImplementation: customEvaluation });
             
             const result = await mockPage.evaluate(() => 'test');
@@ -154,7 +154,7 @@ describe('Page Factory Utilities', () => {
             const mockPage = createMetaTagMockPage(metaTags);
             
             expect(mockPage.evaluate).toBeDefined();
-            expect(jest.isMockFunction(mockPage.evaluate)).toBe(true);
+            expect(vi.isMockFunction(mockPage.evaluate)).toBe(true);
         });
         
         it('should return meta tags when meta selector is used', async () => {
@@ -282,13 +282,13 @@ describe('Page Factory Utilities', () => {
             expect(mockPage.setDefaultTimeout).toBeDefined();
         });
         
-        it('should have jest mock functions for all methods', () => {
+        it('should have mock functions for all methods', () => {
             const mockPage = createMockPage();
             
-            expect(jest.isMockFunction(mockPage.goto)).toBe(true);
-            expect(jest.isMockFunction(mockPage.evaluate)).toBe(true);
-            expect(jest.isMockFunction(mockPage.setUserAgent)).toBe(true);
-            expect(jest.isMockFunction(mockPage.screenshot)).toBe(true);
+            expect(vi.isMockFunction(mockPage.goto)).toBe(true);
+            expect(vi.isMockFunction(mockPage.evaluate)).toBe(true);
+            expect(vi.isMockFunction(mockPage.setUserAgent)).toBe(true);
+            expect(vi.isMockFunction(mockPage.screenshot)).toBe(true);
         });
         
         it('should return promises for async methods', () => {

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { ScreenshotService } from '../service.js';
 import { ScreenshotValidationError } from '../types';
 import { setupScreenshotTests, setupVitestExtensions, createMockPage, createMockBrowserManager } from '@test-utils';

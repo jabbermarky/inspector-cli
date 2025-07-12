@@ -5,14 +5,18 @@ import { setupAnalysisTests, setupVitestExtensions } from '@test-utils';
 // Setup custom Vitest matchers
 setupVitestExtensions();
 
+// Create mock functions using vi.hoisted for proper hoisting
+const mockResolve4 = vi.hoisted(() => vi.fn());
+const mockResolve6 = vi.hoisted(() => vi.fn());
+
 // Mock DNS module before other imports
 vi.mock('dns', () => ({
     default: {
-        resolve4: vi.fn(),
-        resolve6: vi.fn()
+        resolve4: mockResolve4,
+        resolve6: mockResolve6
     },
-    resolve4: vi.fn(),
-    resolve6: vi.fn()
+    resolve4: mockResolve4,
+    resolve6: mockResolve6
 }));
 
 // Mock util module

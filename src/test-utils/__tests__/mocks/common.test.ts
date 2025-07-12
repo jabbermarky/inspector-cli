@@ -5,7 +5,7 @@
  * and other frequently mocked modules.
  */
 
-import { jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import {
     mockRetry,
     mockUrlValidation,
@@ -23,12 +23,12 @@ describe('Common Mock Utilities', () => {
         it('should have all retry utility methods', () => {
             expect(mockRetry.withRetry).toBeDefined();
             expect(mockRetry.withRetryAndTimeout).toBeDefined();
-            expect(jest.isMockFunction(mockRetry.withRetry)).toBe(true);
-            expect(jest.isMockFunction(mockRetry.withRetryAndTimeout)).toBe(true);
+            expect(vi.isMockFunction(mockRetry.withRetry)).toBe(true);
+            expect(vi.isMockFunction(mockRetry.withRetryAndTimeout)).toBe(true);
         });
         
         it('should execute function directly by default', async () => {
-            const testFunction = jest.fn<() => Promise<string>>().mockResolvedValue('success');
+            const testFunction = vi.fn<() => Promise<string>>().mockResolvedValue('success');
             
             const result = await mockRetry.withRetry(testFunction);
             
@@ -37,7 +37,7 @@ describe('Common Mock Utilities', () => {
         });
         
         it('should execute function with timeout by default', async () => {
-            const testFunction = jest.fn<() => Promise<string>>().mockResolvedValue('timeout success');
+            const testFunction = vi.fn<() => Promise<string>>().mockResolvedValue('timeout success');
             
             const result = await mockRetry.withRetryAndTimeout(testFunction);
             
@@ -46,7 +46,7 @@ describe('Common Mock Utilities', () => {
         });
         
         it('should allow custom mock implementations', async () => {
-            const customRetryImpl = jest.fn().mockImplementation(async (fn: any) => {
+            const customRetryImpl = vi.fn().mockImplementation(async (fn: any) => {
                 try {
                     return await fn();
                 } catch (error) {
@@ -57,7 +57,7 @@ describe('Common Mock Utilities', () => {
             
             mockRetry.withRetry.mockImplementation(customRetryImpl);
             
-            const failingFunction = jest.fn<() => Promise<string>>()
+            const failingFunction = vi.fn<() => Promise<string>>()
                 .mockRejectedValueOnce(new Error('First attempt failed'))
                 .mockResolvedValueOnce('Second attempt succeeded');
             
@@ -74,9 +74,9 @@ describe('Common Mock Utilities', () => {
             expect(mockUrlValidation.normalizeUrl).toBeDefined();
             expect(mockUrlValidation.validateAndNormalizeUrl).toBeDefined();
             
-            expect(jest.isMockFunction(mockUrlValidation.validateUrl)).toBe(true);
-            expect(jest.isMockFunction(mockUrlValidation.normalizeUrl)).toBe(true);
-            expect(jest.isMockFunction(mockUrlValidation.validateAndNormalizeUrl)).toBe(true);
+            expect(vi.isMockFunction(mockUrlValidation.validateUrl)).toBe(true);
+            expect(vi.isMockFunction(mockUrlValidation.normalizeUrl)).toBe(true);
+            expect(vi.isMockFunction(mockUrlValidation.validateAndNormalizeUrl)).toBe(true);
         });
         
         it('should return default values by default', () => {
@@ -160,7 +160,7 @@ describe('Common Mock Utilities', () => {
     describe('resetCommonMocks', () => {
         it('should clear all mock call history', () => {
             // Make some calls
-            mockRetry.withRetry(jest.fn());
+            mockRetry.withRetry(vi.fn());
             mockUrlValidation.validateUrl('https://example.com');
             
             expect(mockRetry.withRetry).toHaveBeenCalledTimes(1);
@@ -179,13 +179,13 @@ describe('Common Mock Utilities', () => {
             mockUrlValidation.normalizeUrl.mockReturnValue('custom-url');
             
             // Verify custom behavior
-            await expect(mockRetry.withRetry(jest.fn())).resolves.toBe('custom');
+            await expect(mockRetry.withRetry(vi.fn())).resolves.toBe('custom');
             expect(mockUrlValidation.normalizeUrl('test')).toBe('custom-url');
             
             // Reset and verify default behavior restored
             resetCommonMocks();
             
-            const testFn = jest.fn().mockReturnValue('default');
+            const testFn = vi.fn().mockReturnValue('default');
             await expect(mockRetry.withRetry(testFn)).resolves.toBe('default');
             expect(mockUrlValidation.normalizeUrl('test')).toBe('https://example.com');
         });
@@ -212,7 +212,7 @@ describe('Common Mock Utilities', () => {
             mockUrlValidation.validateAndNormalizeUrl.mockReturnValue('https://validated.example.com');
             
             // Configure retry to execute once
-            const testFunction = jest.fn<() => Promise<string>>().mockResolvedValue('test result');
+            const testFunction = vi.fn<() => Promise<string>>().mockResolvedValue('test result');
             
             // Execute
             const url = mockUrlValidation.validateAndNormalizeUrl('https://example.com');
@@ -230,25 +230,25 @@ describe('Common Mock Utilities', () => {
             expect(mockRetry.withRetry).toHaveBeenCalledTimes(0);
         });
         
-        it('should handle error scenarios properly', () => {
+        it('should handle error scenarios properly', async () => {
             // Configure URL validation to fail
             makeUrlValidationFail('URL validation failed');
             
             // Configure retry to fail
-            const failingFunction = jest.fn<() => Promise<any>>().mockRejectedValue(new Error('Function failed'));
+            const failingFunction = vi.fn<() => Promise<any>>().mockRejectedValue(new Error('Function failed'));
             mockRetry.withRetry.mockRejectedValue(new Error('Retry failed'));
             
             // Test error handling
             expect(() => mockUrlValidation.validateUrl('bad-url'))
                 .toThrow('URL validation failed');
             
-            expect(mockRetry.withRetry(failingFunction))
+            await expect(mockRetry.withRetry(failingFunction))
                 .rejects.toThrow('Retry failed');
         });
     });
     
     describe('Mock State Management', () => {
-        it('should maintain independent mock states', () => {
+        it('should maintain independent mock states', async () => {
             // Configure different behaviors for different methods
             mockUrlValidation.validateUrl.mockImplementation(() => { throw new Error('validate error'); });
             mockUrlValidation.normalizeUrl.mockReturnValue('normalized');
@@ -257,13 +257,13 @@ describe('Common Mock Utilities', () => {
             // Test that each method maintains its own state
             expect(() => mockUrlValidation.validateUrl('test')).toThrow('validate error');
             expect(mockUrlValidation.normalizeUrl('test')).toBe('normalized');
-            expect(mockRetry.withRetry(jest.fn())).resolves.toBe('retry success');
+            await expect(mockRetry.withRetry(vi.fn())).resolves.toBe('retry success');
         });
         
         it('should allow method-specific resets', () => {
             // Configure and use mocks
             mockUrlValidation.validateUrl('test1');
-            mockRetry.withRetry(jest.fn());
+            mockRetry.withRetry(vi.fn());
             
             // Reset only URL validation mocks
             Object.values(mockUrlValidation).forEach(fn => fn.mockClear());
