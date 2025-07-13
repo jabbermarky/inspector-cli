@@ -1,0 +1,1 @@
+import * as fs from "fs"; import { generateCollectedDataAnalysis } from "./dist/ground-truth/generate-collected-data-analysis.js"; const analysis = generateCollectedDataAnalysis("data/cms-analysis/mcwbo1ya-aHR0cHM6Ly.json"); console.log("Discriminative features:", JSON.stringify(analysis.discriminativeFeatures, null, 2));

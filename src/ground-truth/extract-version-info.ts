@@ -7,7 +7,7 @@ export function extractVersionInfo(
 
     // Check generator meta tag
     if (data.metaTags) {
-        const generator = data.metaTags.find((tag: any) => tag.name === 'generator');
+        const generator = data.metaTags.find((tag: any) => tag.name && tag.name.toLowerCase() === 'generator');
         if (generator && generator.content) {
             const content = generator.content.toLowerCase();
 
@@ -27,7 +27,8 @@ export function extractVersionInfo(
 
             // Drupal version patterns
             if (content.includes('drupal')) {
-                const drupalMatch = content.match(/drupal[^\d]*(\d+\.\d+(?:\.\d+)?)/);
+                // Match both "Drupal 10" (major version) and "Drupal 10.1.2" (full version)
+                const drupalMatch = content.match(/drupal[^\d]*(\d+(?:\.\d+)*)/);
                 if (drupalMatch) {
                     versions.push({
                         cms: 'Drupal',

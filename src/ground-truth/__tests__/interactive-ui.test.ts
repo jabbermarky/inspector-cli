@@ -10,10 +10,40 @@ vi.mock('process', () => ({
     stdout: {},
 }));
 
-// Mock the display-message module (now in separate file)
-vi.mock('../display-message.js', () => ({
+// Mock the interactive-ui-utils module (now in separate file)
+vi.mock('../interactive-ui-utils.js', () => ({
     displayMessage: vi.fn(),
 }));
+
+// Mock DNS module to prevent import chain issues
+vi.mock('../../utils/dns/index.js', () => ({
+    extractDomain: vi.fn((url: string) => {
+        try {
+            const urlObj = new URL(url.includes('://') ? url : `https://${url}`);
+            return urlObj.hostname;
+        } catch {
+            return url;
+        }
+    }),
+    validateDomain: vi.fn(),
+    checkDNSRecords: vi.fn()
+}));
+
+// Mock URL module to prevent DNS import chain  
+vi.mock('../../utils/url/index.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        extractDomain: vi.fn((url: string) => {
+            try {
+                const urlObj = new URL(url.includes('://') ? url : `https://${url}`);
+                return urlObj.hostname;
+            } catch {
+                return url;
+            }
+        })
+    };
+});
 
 import { createInterface } from 'readline/promises';
 import { setupInteractiveTests } from '@test-utils';
@@ -27,7 +57,7 @@ describe('InteractiveUI.getUserChoice', () => {
     // Mock setup with proper typing (following standardization patterns)
     const mockQuestion = vi.fn() as any;
     const mockClose = vi.fn() as any;
-    const mockDisplayMessage = displayMessage as any;
+    const mockDisplayMessage = vi.mocked(displayMessage);
 
     beforeEach(() => {
         // Clear specific mocks to reset call counts
@@ -84,6 +114,16 @@ describe('InteractiveUI.getUserChoice', () => {
             const result = await InteractiveUI.getUserChoice('Press Enter to continue', ['', 'n']);
 
             expect(result).toBe('');
+            expect(mockQuestion).toHaveBeenCalledTimes(1);
+            expect(mockClose).toHaveBeenCalledTimes(1);
+        });
+
+        it('should handle Enter key when "enter" is in allowed values', async () => {
+            mockQuestion.mockResolvedValueOnce(''); // User presses Enter (empty string)
+
+            const result = await InteractiveUI.getUserChoice('Add to ground truth?', ['enter', 'y', 'c', 's']);
+
+            expect(result).toBe(''); // Should return empty string
             expect(mockQuestion).toHaveBeenCalledTimes(1);
             expect(mockClose).toHaveBeenCalledTimes(1);
         });

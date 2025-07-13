@@ -14,8 +14,11 @@ import {
     displayProcessingError,
     displayShutdownReceived,
     displayInputValidationError,
-    displayCommandError
-} from '../ground-truth';
+    displayCommandError,
+    generateGroundTruthStats,
+    displayGroundTruthStats,
+    getDefaultDatabasePath
+} from '../ground-truth/index.js';
 
 
 // Command registration
@@ -49,11 +52,13 @@ program
         setupSignalHandling();
         
         try {
-            //TODO - Implement stats option if needed
-            // if (options.stats) {
-            //     await discovery.showStats();
-            //     return;
-            // }
+            // Handle stats option
+            if (options.stats) {
+                const databasePath = getDefaultDatabasePath();
+                const stats = generateGroundTruthStats(databasePath);
+                displayGroundTruthStats(stats);
+                return;
+            }
             
             if (!input) {
                 displayInputValidationError('Please provide a URL or CSV file');
@@ -116,5 +121,8 @@ program
             } catch {
                 // Ignore cleanup errors during shutdown
             }
+            
+            // Force exit after cleanup to ensure process ends
+            process.exit(0);
         }
     });

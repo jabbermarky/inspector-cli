@@ -75,7 +75,14 @@ export class RobotsTxtAnalyzer {
     }
 
     private buildRobotsUrl(url: string): string {
-        return joinUrl(url, '/robots.txt');
+        try {
+            // robots.txt must be at domain root per RFC 9309
+            const urlObj = new URL(url);
+            return `${urlObj.protocol}//${urlObj.host}/robots.txt`;
+        } catch (error) {
+            // Fallback to original behavior if URL parsing fails
+            return joinUrl(url, '/robots.txt');
+        }
     }
 
     private extractHeaders(response: Response): Record<string, string> {

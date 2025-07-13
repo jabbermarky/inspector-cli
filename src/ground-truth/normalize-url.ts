@@ -1,4 +1,4 @@
-import { UrlNormalizer } from '../utils/url';
+import { UrlNormalizer } from '../utils/url/index.js';
 
     /**
      * Normalize URL for data file search to handle different URL formats

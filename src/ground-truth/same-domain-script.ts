@@ -16,9 +16,18 @@ export function isSameDomainScript(scriptUrl: string, targetUrl: string): boolea
         const scriptDomain = new URL(scriptUrl).hostname.toLowerCase();
         const targetDomain = new URL(targetUrl).hostname.toLowerCase();
 
-        // Only exact matches are considered the same domain
-        // blog.example.com and example.com are DIFFERENT domains
-        return scriptDomain === targetDomain;
+        // Check exact match first
+        if (scriptDomain === targetDomain) {
+            return true;
+        }
+
+        // Handle www vs non-www variations
+        // www.example.com and example.com should be considered the same
+        const scriptWithoutWww = scriptDomain.replace(/^www\./, '');
+        const targetWithoutWww = targetDomain.replace(/^www\./, '');
+        
+        // Both domains without www should match
+        return scriptWithoutWww === targetWithoutWww;
     } catch {
         // If URL parsing fails, assume it's not same domain
         return false;

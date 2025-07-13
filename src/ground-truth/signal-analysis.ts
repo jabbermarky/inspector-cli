@@ -6,7 +6,7 @@ import { getVersionHints } from './get-version-hints.js';
 export function analyzeScriptSignals(data: any): Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, examples?: string[]}> {
         const signals: Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, examples?: string[]}> = [];
         const scripts = data.scripts || [];
-        const targetUrl = data.url || '';
+        const targetUrl = data.finalUrl || data.url || '';
         
         // WordPress script patterns - only count same-domain scripts
         const wpContentScripts = scripts.filter((s: any) => 
@@ -35,12 +35,14 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             s.src && s.src.toLowerCase().includes('/sites/') && isSameDomainScript(s.src, targetUrl));
         const drupalCoreScripts = scripts.filter((s: any) => 
             s.src && s.src.toLowerCase().includes('/core/') && isSameDomainScript(s.src, targetUrl));
+        const drupalModulesScripts = scripts.filter((s: any) => 
+            s.src && s.src.toLowerCase().includes('/modules/') && isSameDomainScript(s.src, targetUrl));
         
         signals.push({
             signal: '/sites/ directory (Drupal)',
             confidence: 'high' as const,
             match: drupalSitesScripts.length > 0,
-            cms: 'drupal',
+            cms: 'Drupal',
             examples: drupalSitesScripts.slice(0, 2).map((s: any) => s.src)
         });
         
@@ -48,8 +50,77 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             signal: '/core/ directory (Drupal 8+)',
             confidence: 'medium' as const,
             match: drupalCoreScripts.length > 0,
-            cms: 'drupal',
+            cms: 'Drupal',
             examples: drupalCoreScripts.slice(0, 1).map((s: any) => s.src)
+        });
+        
+        signals.push({
+            signal: '/modules/ directory (Drupal)',
+            confidence: 'high' as const,
+            match: drupalModulesScripts.length > 0,
+            cms: 'Drupal',
+            examples: drupalModulesScripts.slice(0, 2).map((s: any) => s.src)
+        });
+        
+        // Drupal settings JSON pattern (very reliable Drupal indicator)
+        const hasDrupalSettingsJson = 
+            scripts.some((s: any) => s.content && s.content.includes('data-drupal-selector="drupal-settings-json"')) ||
+            (data.htmlContent && data.htmlContent.includes('data-drupal-selector="drupal-settings-json"'));
+        
+        signals.push({
+            signal: 'drupal-settings-json script tag (Drupal)',
+            confidence: 'high' as const,
+            match: hasDrupalSettingsJson,
+            cms: 'Drupal',
+            examples: hasDrupalSettingsJson ? ['data-drupal-selector="drupal-settings-json"'] : []
+        });
+        
+        // Drupal messages fallback pattern (Drupal 8.7+ indicator)
+        const hasDrupalMessagesFallback = data.htmlContent && 
+            data.htmlContent.includes('data-drupal-messages-fallback');
+        
+        signals.push({
+            signal: 'data-drupal-messages-fallback div (Drupal 8.7+)',
+            confidence: 'high' as const,
+            match: hasDrupalMessagesFallback,
+            cms: 'Drupal',
+            examples: hasDrupalMessagesFallback ? ['data-drupal-messages-fallback'] : []
+        });
+        
+        // Drupal settings extend pattern (Drupal 7 indicator)
+        const hasDrupalSettingsExtend = 
+            scripts.some((s: any) => s.content && s.content.includes('jQuery.extend(Drupal.settings')) ||
+            (data.htmlContent && data.htmlContent.includes('jQuery.extend(Drupal.settings'));
+        
+        signals.push({
+            signal: 'jQuery.extend(Drupal.settings (Drupal 7)',
+            confidence: 'high' as const,
+            match: hasDrupalSettingsExtend,
+            cms: 'Drupal',
+            examples: hasDrupalSettingsExtend ? ['jQuery.extend(Drupal.settings'] : []
+        });
+        
+        // Drupal JavaScript namespace and HTML attribute patterns
+        const drupalJsPatterns = ['Drupal.behaviors', 'Drupal.toolbar', 'typeof Drupal', 'if (Drupal', 'window.Drupal', 'Drupal &&', 'init_drupal_core_settings', 'jQuery.holdReady', 'window.Drupal){', 'Drupal.settings,'];
+        const drupalHtmlPatterns = ['data-drupal-link-system-path', 'data-drupal-link-query', 'data-off-canvas', 'data-responsive-menu'];
+        
+        const foundDrupalJs = drupalJsPatterns.filter(pattern =>
+            scripts.some((s: any) => s.content && s.content.includes(pattern)) ||
+            (data.htmlContent && data.htmlContent.includes(pattern))
+        );
+        
+        const foundDrupalHtml = drupalHtmlPatterns.filter(pattern =>
+            data.htmlContent && data.htmlContent.includes(pattern)
+        );
+        
+        const allFoundPatterns = [...foundDrupalJs, ...foundDrupalHtml];
+        
+        signals.push({
+            signal: 'Drupal JavaScript/HTML patterns',
+            confidence: 'high' as const,
+            match: allFoundPatterns.length > 0,
+            cms: 'Drupal',
+            examples: allFoundPatterns.slice(0, 3)
         });
         
         // Joomla script patterns - only count same-domain scripts
@@ -114,7 +185,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
     export function analyzeHtmlSignals(data: any): Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, details?: string}> {
         const signals: Array<{signal: string, confidence: 'high'|'medium'|'low', match: boolean, cms?: string, details?: string}> = [];
         const html = (data.htmlContent || '').toLowerCase();
-        const targetUrl = data.url || '';
+        const targetUrl = data.finalUrl || data.url || '';
         
         // WordPress HTML patterns - only count same-domain references
         const wpContentMatch = hasSameDomainHtmlPattern(data.htmlContent, 'wp-content', targetUrl);
@@ -155,14 +226,14 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             signal: 'drupal.settings object (Drupal)',
             confidence: 'high' as const,
             match: drupalSettingsMatch,
-            cms: 'drupal'
+            cms: 'Drupal'
         });
         
         signals.push({
             signal: 'drupal.js references (Drupal)',
             confidence: 'medium' as const,
             match: drupalJsMatch,
-            cms: 'drupal'
+            cms: 'Drupal'
         });
         
         // Joomla HTML patterns
@@ -199,7 +270,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
         const metaTags = data.metaTags || [];
         
         // Generator meta tag
-        const generator = metaTags.find((tag: any) => tag.name === 'generator');
+        const generator = metaTags.find((tag: any) => tag.name && tag.name.toLowerCase() === 'generator');
         const generatorContent = generator?.content || '';
         
         signals.push({
@@ -214,7 +285,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             signal: 'Drupal generator tag',
             confidence: 'high' as const,
             match: generatorContent.toLowerCase().includes('drupal'),
-            cms: 'drupal',
+            cms: 'Drupal',
             content: generatorContent.toLowerCase().includes('drupal') ? generatorContent : undefined
         });
         
@@ -272,7 +343,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
                     signal: `X-Drupal-Cache header (Drupal)${sourceLabel}`,
                     confidence: 'high' as const,
                     match: true,
-                    cms: 'drupal',
+                    cms: 'Drupal',
                     value: xDrupalCache
                 });
             }
@@ -282,7 +353,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
                     signal: `X-Drupal-Dynamic-Cache (Drupal 8+)${sourceLabel}`,
                     confidence: 'high' as const,
                     match: true,
-                    cms: 'drupal',
+                    cms: 'Drupal',
                     value: xDrupalDynamicCache
                 });
             }
@@ -369,7 +440,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
                         signal: 'Drupal session cookies',
                         confidence: 'medium' as const,
                         match: true,
-                        cms: 'drupal',
+                        cms: 'Drupal',
                         value: cookieValue
                     });
                 }
@@ -434,7 +505,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
                         signal: `${headerName} endpoint (Drupal-like)`,
                         confidence: 'medium' as const,
                         match: true,
-                        cms: 'drupal',
+                        cms: 'Drupal',
                         value: headerValue
                     });
                 }
@@ -486,7 +557,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             signal: '/themes/ directory (Drupal)',
             confidence: 'medium' as const,
             match: drupalThemes.length > 0,
-            cms: 'drupal',
+            cms: 'Drupal',
             examples: drupalThemes.slice(0, 1).map((s: any) => s.href)
         });
         
@@ -494,7 +565,7 @@ export function analyzeScriptSignals(data: any): Array<{signal: string, confiden
             signal: '/modules/ directory (Drupal)',
             confidence: 'medium' as const,
             match: drupalModules.length > 0,
-            cms: 'drupal',
+            cms: 'Drupal',
             examples: drupalModules.slice(0, 1).map((s: any) => s.href)
         });
         

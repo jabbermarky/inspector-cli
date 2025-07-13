@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { GroundTruthDatabase, GroundTruthSite } from './types';
-import { displayMessage } from './interactive-ui-utils';
+import { GroundTruthDatabase, GroundTruthSite } from './types.js';
+import { displayMessage } from './interactive-ui-utils.js';
 import { normalizeUrlForGroundTruth, normalizeUrlForDataFileSearch } from './normalize-url.js';
 import { extractVersionInfo } from './extract-version-info.js';
 

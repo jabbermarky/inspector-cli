@@ -1,0 +1,1 @@
+import * as fs from "fs"; import { analyzeScriptSignals } from "./dist/ground-truth/signal-analysis.js"; const data = JSON.parse(fs.readFileSync("data/cms-analysis/mcsk7ejv-bGFtYWlzb2.json", "utf8")); const signals = analyzeScriptSignals(data); console.log("Script signals:", JSON.stringify(signals.filter(s => s.signal.includes("wp-content")), null, 2));

@@ -1,0 +1,1 @@
+import * as fs from "fs"; const data = JSON.parse(fs.readFileSync("data/cms-analysis/mcsk6ly3-cmVkaGF0Lm.json", "utf8")); const metaTags = data.metaTags || []; console.log("All meta tags with name field:"); metaTags.filter(tag => tag.name).forEach((tag, i) => console.log(`${i+1}. name="${tag.name}" content="${tag.content}"`));

@@ -15,7 +15,6 @@ export default defineConfig({
             '**/dist/**',
             '**/cypress/**',
             '**/.{idea,git,cache,output,temp}/**',
-            '**/ground-truth/**',
         ],
 
         // Coverage configuration

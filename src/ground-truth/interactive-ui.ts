@@ -275,13 +275,15 @@ export type HelpFunction = () => void;
 export async function getTextInput(promptText: string): Promise<string | null> {
     const rl = createInterface({ input, output });
     
+    // Define handler outside try block for access in finally
+    const sigintHandler = async () => {
+        displayMessage('\n🛑 Interrupted by user');
+        await cleanup();
+        process.exit(0);
+    };
+    
     try {
         // Handle SIGINT (Ctrl+C) gracefully
-        const sigintHandler = async () => {
-            displayMessage('\n🛑 Interrupted by user');
-            await cleanup();
-            process.exit(0);
-        };
         process.on('SIGINT', sigintHandler);
 
         const answer = await rl.question(promptText + ' ');
@@ -290,6 +292,8 @@ export async function getTextInput(promptText: string): Promise<string | null> {
         displayMessage(`Error reading input: ${(error as Error).message}`);
         return null;
     } finally {
+        // Remove the SIGINT handler to prevent listener accumulation
+        process.removeListener('SIGINT', sigintHandler);
         rl.close();
     }
 }
@@ -307,13 +311,15 @@ export async function getUserChoice(
     const rl = createInterface({ input, output });
     const { helpValue, helpFunction, caseSensitive = false } = options || {};
 
+    // Define handler outside try block for access in finally
+    const sigintHandler = async () => {
+        displayMessage('\n🛑 Interrupted by user');
+        await cleanup();
+        process.exit(0);
+    };
+
     try {
         // Handle SIGINT (Ctrl+C) gracefully
-        const sigintHandler = async () => {
-            displayMessage('\n🛑 Interrupted by user');
-            await cleanup();
-            process.exit(0);
-        };
         process.on('SIGINT', sigintHandler);
 
         while (true) {
@@ -330,7 +336,11 @@ export async function getUserChoice(
             const validValues = caseSensitive
                 ? allowedValues
                 : allowedValues.map(v => v.toLowerCase());
-            if (validValues.includes(choice)) {
+            
+            // Special handling: if 'enter' is in allowed values, empty string should be valid
+            const isEmptyStringValid = validValues.includes('enter') && choice === '';
+            
+            if (validValues.includes(choice) || isEmptyStringValid) {
                 return rawChoice; // Return original case
             }
 
@@ -340,6 +350,8 @@ export async function getUserChoice(
         displayMessage(`Error reading input: ${(error as Error).message}`);
         return null; // Return null on error
     } finally {
+        // Remove the SIGINT handler to prevent listener accumulation
+        process.removeListener('SIGINT', sigintHandler);
         rl.close();
     }
 }

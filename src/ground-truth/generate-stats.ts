@@ -94,5 +94,5 @@ export function generateGroundTruthStats(databasePath: string): GroundTruthStats
  * TODO: Move to configuration file
  */
 export function getDefaultDatabasePath(): string {
-    return './ground-truth-database.json';
+    return './data/ground-truth-sites.json';
 }
