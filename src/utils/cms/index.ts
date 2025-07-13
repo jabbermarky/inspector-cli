@@ -8,8 +8,9 @@ import { validateAndNormalizeUrl, createValidationContext } from '../url/index.j
 import { DataCollector } from './analysis/collector.js';
 import { DataStorage } from './analysis/storage.js';
 import { CollectionConfig, DetectionDataPoint } from './analysis/types.js';
-import { getVersionManager } from './version-manager.js';
+import { getVersionManager, getCurrentVersion } from './version-manager.js';
 import { validateDNS, DNSSkipReason, DNSValidationResult } from '../dns/index.js';
+import { RobotsTxtAnalyzer, RobotsTxtAnalysis } from '../robots-txt-analyzer.js';
 
 const logger = createModuleLogger('cms-detection');
 
@@ -134,11 +135,52 @@ class CMSDetectionIterator {
                 };
             }
             
-            // DNS is valid, proceed with normal detection
+            // Phase 1: Analyze robots.txt FIRST (before page load)
+            const robotsAnalyzer = new RobotsTxtAnalyzer();
+            const robotsAnalysis = await robotsAnalyzer.analyze(url);
+            
+            logger.info('Robots.txt pre-analysis completed', {
+                url,
+                cms: robotsAnalysis.cms,
+                confidence: robotsAnalysis.confidence,
+                error: robotsAnalysis.error
+            });
+            
+            // Check for early exit opportunity - BUT ONLY if NOT collecting comprehensive data
+            if (robotsAnalysis.confidence >= 0.9 && robotsAnalysis.cms !== 'Unknown' && !this.collectData) {
+                logger.info('High confidence detection from robots.txt - using early exit (no data collection)', {
+                    url,
+                    cms: robotsAnalysis.cms,
+                    confidence: robotsAnalysis.confidence
+                });
+                
+                // Return early result without page load only when NOT collecting data
+                return {
+                    cms: robotsAnalysis.cms,
+                    confidence: robotsAnalysis.confidence,
+                    version: robotsAnalysis.version,
+                    originalUrl: url,
+                    finalUrl: url,
+                    detectionMethods: ['robots.txt'],
+                    executionTime: 0 // Will be calculated
+                };
+            }
+            
+            // Log when we have high confidence but still proceeding with full collection
+            if (robotsAnalysis.confidence >= 0.9 && robotsAnalysis.cms !== 'Unknown' && this.collectData) {
+                logger.info('High confidence robots.txt detection - proceeding with full data collection', {
+                    url,
+                    cms: robotsAnalysis.cms,
+                    confidence: robotsAnalysis.confidence,
+                    reason: 'comprehensive-data-requested'
+                });
+            }
+            
+            // Phase 2: Proceed with normal detection (including page load)
             let result: CMSDetectionResult;
             
             if (this.collectData && this.dataCollector && this.dataStorage) {
-                result = await this.detectWithDataCollection(url);
+                result = await this.detectWithDataCollection(url, robotsAnalysis);
             } else {
                 result = await detectCMSWithIsolation(url, this.browserManager);
             }
@@ -166,7 +208,7 @@ class CMSDetectionIterator {
     /**
      * Detection with comprehensive data collection for analysis
      */
-    private async detectWithDataCollection(url: string): Promise<CMSDetectionResult> {
+    private async detectWithDataCollection(url: string, robotsAnalysis?: RobotsTxtAnalysis): Promise<CMSDetectionResult> {
         if (!this.dataCollector || !this.dataStorage) {
             throw new Error('Data collection not initialized');
         }
@@ -176,8 +218,26 @@ class CMSDetectionIterator {
         try {
             logger.info('Starting detection with data collection', { url });
 
+            // Prepare pre-fetched data if we have robots analysis
+            const preFetchedData = robotsAnalysis ? {
+                robotsTxt: {
+                    content: robotsAnalysis.content || '',
+                    accessible: !robotsAnalysis.error,
+                    size: robotsAnalysis.content?.length || 0,
+                    statusCode: robotsAnalysis.error ? 404 : 200,
+                    httpHeaders: robotsAnalysis.headers || {},
+                    responseTime: 0, // Not tracked by RobotsTxtAnalyzer yet
+                    error: robotsAnalysis.error,
+                    patterns: {
+                        disallowedPaths: [],
+                        sitemapUrls: [],
+                        userAgents: []
+                    }
+                }
+            } : undefined;
+            
             // Collect comprehensive data
-            const collectionResult = await this.dataCollector.collect(url);
+            const collectionResult = await this.dataCollector.collect(url, preFetchedData);
             
             if (!collectionResult.success || !collectionResult.dataPoint) {
                 // Fall back to regular detection if data collection fails
@@ -230,6 +290,7 @@ class CMSDetectionIterator {
             return detectCMSWithIsolation(url, this.browserManager);
         }
     }
+
 
     /**
      * Run CMS detection on collected data point

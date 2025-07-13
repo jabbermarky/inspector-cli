@@ -33,8 +33,12 @@ export class DataCollector {
 
     /**
      * Collect comprehensive data for a single URL
+     * @param url - URL to collect data from
+     * @param preFetchedData - Optional pre-fetched data like robots.txt
      */
-    async collect(url: string): Promise<DataCollectionResult> {
+    async collect(url: string, preFetchedData?: {
+        robotsTxt?: DetectionDataPoint['robotsTxt'];
+    }): Promise<DataCollectionResult> {
         const startTime = Date.now();
         
         try {
@@ -50,7 +54,7 @@ export class DataCollector {
             
             try {
                 // Collect all data points
-                const dataPoint = await this.collectDataPoint(page, url, normalizedUrl);
+                const dataPoint = await this.collectDataPoint(page, url, normalizedUrl, preFetchedData);
                 
                 const executionTime = Date.now() - startTime;
                 logger.info('Data collection completed', {
@@ -89,7 +93,14 @@ export class DataCollector {
     /**
      * Collect comprehensive data point from page
      */
-    private async collectDataPoint(page: ManagedPage, originalUrl: string, finalUrl: string): Promise<DetectionDataPoint> {
+    private async collectDataPoint(
+        page: ManagedPage, 
+        originalUrl: string, 
+        finalUrl: string,
+        preFetchedData?: {
+            robotsTxt?: DetectionDataPoint['robotsTxt'];
+        }
+    ): Promise<DetectionDataPoint> {
         const timestamp = new Date();
         
         // Collect navigation information
@@ -116,8 +127,8 @@ export class DataCollector {
         // Collect HTML content
         const htmlContent = await this.collectHtmlContent(page);
         
-        // Collect robots.txt
-        const robotsTxt = await this.collectRobotsTxt(finalUrl);
+        // Use pre-fetched robots.txt if available, otherwise collect it
+        const robotsTxt = preFetchedData?.robotsTxt || await this.collectRobotsTxt(finalUrl);
         
         // Collect meta tags
         const metaTags = await this.collectMetaTags(page);
