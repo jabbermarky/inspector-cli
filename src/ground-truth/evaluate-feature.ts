@@ -11,7 +11,7 @@ import { isSameDomainScript } from './same-domain-script.js';
  * 
  */
 export function evaluateFeature(feature: DiscriminativeFeature, data: any): boolean {
-    const targetUrl = data.url || '';
+    const targetUrl = data.finalUrl || data.url || '';
 
     switch (feature.feature) {
         case 'hasWpContent':
@@ -39,6 +39,7 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
                 ) || false
             );
 
+
         case 'hasJoomlaTemplates':
             return (
                 data.stylesheets?.some(
@@ -55,7 +56,7 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
             return (
                 data.metaTags?.some(
                     (tag: any) =>
-                        tag.name === 'generator' &&
+                        tag.name && tag.name.toLowerCase() === 'generator' &&
                         tag.content?.toLowerCase().includes('joomla')
                 ) || false
             );
@@ -78,15 +79,94 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
                 ) || false
             );
 
-        case 'hasBootstrap':
+
+
+        case 'generatorContainsDrupal':
             return (
-                data.scripts?.some((script: any) =>
-                    script.src?.toLowerCase().includes('bootstrap')
+                data.metaTags?.some((tag: any) => 
+                    tag.name && tag.name.toLowerCase() === 'generator' && 
+                    tag.content && tag.content.toLowerCase().includes('drupal')
                 ) || false
             );
 
-        case 'hasGeneratorMeta':
-            return data.metaTags?.some((tag: any) => tag.name === 'generator') || false;
+        case 'hasDrupalDynamicCacheHeader':
+            // Check both main page headers and robots.txt headers
+            const mainHeaders = data.httpHeaders || {};
+            const robotsHeaders = data.robotsTxt?.httpHeaders || {};
+            
+            const hasDrupalCacheMain = Object.keys(mainHeaders).some(key => 
+                key.toLowerCase().includes('x-drupal')
+            );
+            const hasDrupalCacheRobots = Object.keys(robotsHeaders).some(key => 
+                key.toLowerCase().includes('x-drupal')
+            );
+            
+            return hasDrupalCacheMain || hasDrupalCacheRobots;
+
+        case 'hasDrupalSettingsJson':
+            // Check for drupal-settings-json data attribute in scripts
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes('data-drupal-selector="drupal-settings-json"')
+                ) ||
+                data.htmlContent?.includes('data-drupal-selector="drupal-settings-json"') ||
+                false
+            );
+
+        case 'hasDrupalMessagesFallback':
+            // Check for data-drupal-messages-fallback div in HTML content
+            return data.htmlContent?.includes('data-drupal-messages-fallback') || false;
+
+        case 'hasDrupalSettingsExtend':
+            // Check for jQuery.extend(Drupal.settings pattern in scripts or HTML
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes('jQuery.extend(Drupal.settings')
+                ) ||
+                data.htmlContent?.includes('jQuery.extend(Drupal.settings') ||
+                false
+            );
+
+        case 'hasDrupalJavaScript':
+            // Check for Drupal JavaScript namespace usage and Drupal-specific attributes
+            const drupalJsPatterns = [
+                'Drupal.behaviors',
+                'Drupal.toolbar',
+                'typeof Drupal',
+                'if (Drupal',
+                'window.Drupal',
+                'Drupal &&',
+                'init_drupal_core_settings',
+                'jQuery.holdReady',
+                'window.Drupal){',
+                'Drupal.settings,'
+            ];
+            
+            const drupalHtmlPatterns = [
+                'data-drupal-link-system-path',
+                'data-drupal-link-query',
+                'data-drupal-selector',
+                'data-off-canvas',
+                'data-responsive-menu'
+            ];
+            
+            const hasJsPattern = (
+                data.scripts?.some((script: any) => 
+                    script.content && drupalJsPatterns.some(pattern => 
+                        script.content.includes(pattern)
+                    )
+                ) ||
+                (data.htmlContent && drupalJsPatterns.some(pattern => 
+                    data.htmlContent.includes(pattern)
+                )) ||
+                false
+            );
+            
+            const hasHtmlPattern = data.htmlContent && drupalHtmlPatterns.some(pattern => 
+                data.htmlContent.includes(pattern)
+            );
+            
+            return hasJsPattern || hasHtmlPattern;
 
         default:
             return false;

@@ -28,8 +28,50 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
             {
                 feature: 'hasDrupalSites',
                 description: 'Scripts loaded from /sites/ directory',
-                cms: 'drupal',
+                cms: 'Drupal',
                 confidence: 0.8,
+                type: 'script-src',
+            },
+            {
+                feature: 'generatorContainsDrupal',
+                description: 'Generator meta tag contains Drupal',
+                cms: 'Drupal',
+                confidence: 0.95,
+                type: 'meta-tag',
+            },
+            {
+                feature: 'hasDrupalDynamicCacheHeader',
+                description: 'X-Drupal-Dynamic-Cache HTTP header present',
+                cms: 'Drupal',
+                confidence: 0.95,
+                type: 'header',
+            },
+            {
+                feature: 'hasDrupalSettingsJson',
+                description: 'drupal-settings-json script tag present',
+                cms: 'Drupal',
+                confidence: 0.98,
+                type: 'script-src',
+            },
+            {
+                feature: 'hasDrupalMessagesFallback',
+                description: 'data-drupal-messages-fallback div present (Drupal 8.7+)',
+                cms: 'Drupal',
+                confidence: 0.97,
+                type: 'html-content',
+            },
+            {
+                feature: 'hasDrupalSettingsExtend',
+                description: 'jQuery.extend(Drupal.settings script pattern (Drupal 7)',
+                cms: 'Drupal',
+                confidence: 0.99,
+                type: 'script-src',
+            },
+            {
+                feature: 'hasDrupalJavaScript',
+                description: 'Drupal JavaScript namespace usage',
+                cms: 'Drupal',
+                confidence: 0.95,
                 type: 'script-src',
             },
             {
@@ -66,20 +108,6 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 0.6,
                 type: 'script-src',
-            },
-            {
-                feature: 'hasBootstrap',
-                description: 'Bootstrap framework detected',
-                cms: 'Joomla',
-                confidence: 0.8,
-                type: 'script-src',
-            },
-            {
-                feature: 'hasGeneratorMeta',
-                description: 'Generator meta tag present',
-                cms: 'multiple',
-                confidence: 0.7,
-                type: 'meta-tag',
             },
         ];
     }
