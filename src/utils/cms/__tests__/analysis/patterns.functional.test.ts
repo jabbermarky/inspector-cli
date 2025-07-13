@@ -1250,5 +1250,241 @@ describe('Functional: PatternDiscovery', () => {
             const testPatterns = patterns.get('TestCMS')!;
             expect(testPatterns.some((p: any) => p.pattern === 'name:valid')).toBe(true);
         });
+
+        it('should handle corrupted detection results gracefully', () => {
+            const dataPoints = [
+                // Create multiple data points to meet frequency threshold
+                createDataPoint({
+                    metaTags: [{ name: 'generator', content: 'WordPress 6.0' }],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }
+                    ]
+                }),
+                createDataPoint({
+                    metaTags: [{ name: 'generator', content: 'WordPress 6.1' }],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 },
+                        // Corrupted result with missing fields
+                        { detector: null as any, strategy: undefined as any, cms: '', confidence: NaN, executionTime: -1 },
+                        // Result with invalid confidence
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'Drupal', confidence: 1.5, executionTime: 100 }
+                    ]
+                }),
+                createDataPoint({
+                    metaTags: [{ name: 'generator', content: 'WordPress 6.2' }],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }
+                    ]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            const patterns = discovery.analyzeMetaTagPatterns();
+
+            // Should still process valid results and ignore corrupted ones
+            expect(patterns.has('WordPress')).toBe(true);
+            const wpPatterns = patterns.get('WordPress')!;
+            expect(wpPatterns.some((p: any) => p.pattern === 'name:generator')).toBe(true);
+        });
+
+        it('should handle data points with null/undefined fields', () => {
+            const dataPoints = [
+                createDataPoint({
+                    metaTags: null as any,
+                    scripts: undefined as any,
+                    domElements: [],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'TestCMS', confidence: 0.9, executionTime: 100 }]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: null, content: 'test' },
+                        { name: 'generator', content: null },
+                        { name: 'generator', content: 'Valid Content' }
+                    ],
+                    scripts: [
+                        { src: null, content: null },
+                        { src: '/valid/script.js', content: null }
+                    ],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'TestCMS', confidence: 0.9, executionTime: 100 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            const metaPatterns = discovery.analyzeMetaTagPatterns();
+            const scriptPatterns = discovery.analyzeScriptPatterns();
+
+            // Should handle null/undefined gracefully and process valid data
+            expect(metaPatterns.has('TestCMS')).toBe(true);
+            expect(scriptPatterns.has('TestCMS')).toBe(true);
+        });
+
+        it('should handle reasonably large datasets without crashing', () => {
+            // Create a moderately large dataset
+            const dataPoints = Array.from({ length: 100 }, (_, i) => 
+                createDataPoint({
+                    metaTags: [{ name: 'generator', content: `WordPress 6.${i % 10}` }],
+                    scripts: Array.from({ length: 10 }, (_, j) => ({ src: `/wp-content/script-${i}-${j}.js` })),
+                    domElements: Array.from({ length: 5 }, (_, k) => ({
+                        selector: `div[class="wp-element-${i}-${k}"]`,
+                        count: 1,
+                        sample: `<div class="wp-element-${i}-${k}">`
+                    })),
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }]
+                })
+            );
+
+            const discovery = new PatternDiscovery(dataPoints);
+            
+            // Should complete without throwing errors
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            expect(() => discovery.analyzeScriptPatterns()).not.toThrow();
+            expect(() => discovery.analyzeDOMPatterns()).not.toThrow();
+            
+            const patterns = discovery.analyzeMetaTagPatterns();
+            expect(patterns.has('WordPress')).toBe(true);
+        });
+
+        it('should handle circular references in data structures', () => {
+            const dataPoint = createDataPoint({
+                metaTags: [{ name: 'generator', content: 'WordPress 6.0' }],
+                detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }]
+            });
+            
+            // Create circular reference
+            (dataPoint as any).circular = dataPoint;
+            (dataPoint.metaTags[0] as any).parent = dataPoint;
+
+            const discovery = new PatternDiscovery([dataPoint]);
+            
+            // Should handle circular references without infinite loops
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            const patterns = discovery.analyzeMetaTagPatterns();
+            expect(patterns.has('WordPress')).toBe(true);
+        });
+
+        it('should handle deeply nested object structures', () => {
+            const dataPoints = [
+                createDataPoint({
+                    metaTags: [{ 
+                        name: 'generator', 
+                        content: 'WordPress 6.0',
+                        nested: {
+                            level1: {
+                                level2: {
+                                    level3: {
+                                        level4: {
+                                            level5: 'deep value'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } as any],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            
+            // Should handle deeply nested structures gracefully
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            const patterns = discovery.analyzeMetaTagPatterns();
+            expect(patterns.has('WordPress')).toBe(true);
+        });
+
+        it('should handle invalid date and timestamp objects', () => {
+            const dataPoints = [
+                createDataPoint({
+                    timestamp: new Date('invalid-date'),
+                    metaTags: [{ name: 'generator', content: 'WordPress 6.0' }],
+                    detectionResults: [{ 
+                        detector: 'meta-tag', 
+                        strategy: 'generator', 
+                        cms: 'WordPress', 
+                        confidence: 0.95, 
+                        executionTime: Infinity 
+                    }]
+                }),
+                createDataPoint({
+                    timestamp: null as any,
+                    metaTags: [{ name: 'generator', content: 'Drupal 10.0' }],
+                    detectionResults: [{ 
+                        detector: 'meta-tag', 
+                        strategy: 'generator', 
+                        cms: 'Drupal', 
+                        confidence: 0.95, 
+                        executionTime: -Infinity 
+                    }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            
+            // Should handle invalid dates and numbers gracefully
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            const patterns = discovery.analyzeMetaTagPatterns();
+            expect(patterns.has('WordPress')).toBe(true);
+            expect(patterns.has('Drupal')).toBe(true);
+        });
+
+        it('should handle special characters and encoding issues', () => {
+            const dataPoints = [
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'WordPress 6.0 – 特殊字符 🚀' },
+                        { name: 'description', content: 'Content with\x00null\x01bytes\x02' },
+                        { name: 'keywords', content: 'emoji 🎉 unicode ñáéíóú' }
+                    ],
+                    scripts: [
+                        { src: '/wp-content/themes/theme/js/script.js?query=value%20with%20spaces&emoji=🎯' },
+                        { content: 'var text = "String with\nnewlines\tand\rtabs";' }
+                    ],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            
+            // Should handle special characters and encoding issues
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            expect(() => discovery.analyzeScriptPatterns()).not.toThrow();
+            
+            const metaPatterns = discovery.analyzeMetaTagPatterns();
+            const scriptPatterns = discovery.analyzeScriptPatterns();
+            
+            expect(metaPatterns.has('WordPress')).toBe(true);
+            expect(scriptPatterns.has('WordPress')).toBe(true);
+        });
+
+        it('should handle empty and whitespace-only content', () => {
+            const dataPoints = [
+                createDataPoint({
+                    metaTags: [
+                        { name: '', content: '' },
+                        { name: '   ', content: '   ' },
+                        { name: 'generator', content: '\n\t\r ' },
+                        { name: 'valid', content: 'WordPress 6.0' }
+                    ],
+                    scripts: [
+                        { src: '', content: '' },
+                        { src: '   ', content: '   ' },
+                        { src: '/wp-content/script.js', content: '\n\t\r ' }
+                    ],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'WordPress', confidence: 0.95, executionTime: 100 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            
+            // Should handle empty and whitespace content gracefully
+            expect(() => discovery.analyzeMetaTagPatterns()).not.toThrow();
+            expect(() => discovery.analyzeScriptPatterns()).not.toThrow();
+            
+            const metaPatterns = discovery.analyzeMetaTagPatterns();
+            const scriptPatterns = discovery.analyzeScriptPatterns();
+            
+            expect(metaPatterns.has('WordPress')).toBe(true);
+            expect(scriptPatterns.has('WordPress')).toBe(true);
+        });
     });
 });

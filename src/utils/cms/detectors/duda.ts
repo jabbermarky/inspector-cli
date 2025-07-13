@@ -1,5 +1,6 @@
 import { BaseCMSDetector } from './base.js';
 import { DetectionStrategy, CMSType, PartialDetectionResult, DetectionPage } from '../types.js';
+import { MetaTagStrategy } from '../strategies/meta-tag.js';
 import { HtmlContentStrategy } from '../strategies/html-content.js';
 import { HttpHeaderStrategy } from '../strategies/http-headers.js';
 import { createModuleLogger } from '../../logger.js';
@@ -135,6 +136,7 @@ class DudaJavaScriptStrategy implements DetectionStrategy {
  */
 export class DudaDetector extends BaseCMSDetector {
     protected strategies: DetectionStrategy[] = [
+        new MetaTagStrategy('Duda', 3000),
         new DudaJavaScriptStrategy(),
         new HtmlContentStrategy([
             'irp.cdn-website.com',
@@ -176,6 +178,7 @@ export class DudaDetector extends BaseCMSDetector {
      */
     protected getStrategyWeight(method: string): number {
         const weights: Record<string, number> = {
+            'meta-tag': 1.0,           // Highest confidence - meta generator tag is definitive  
             'duda-javascript': 1.0,    // Highest confidence - Duda's JavaScript patterns are unique
             'html-content': 0.8,       // Good confidence for Duda signatures
             'http-headers': 0.7        // Lower confidence for header patterns

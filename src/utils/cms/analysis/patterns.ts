@@ -34,6 +34,10 @@ export class PatternDiscovery {
 
             // Analyze meta tags for this CMS
             for (const dp of dataPoints) {
+                // Add defensive check for null/undefined metaTags
+                if (!dp.metaTags || !Array.isArray(dp.metaTags)) {
+                    continue;
+                }
                 for (const metaTag of dp.metaTags) {
                     const key = this.createMetaTagKey(metaTag);
                     if (key) {
@@ -96,6 +100,10 @@ export class PatternDiscovery {
 
             // Analyze scripts for this CMS
             for (const dp of dataPoints) {
+                // Add defensive check for null/undefined scripts
+                if (!dp.scripts || !Array.isArray(dp.scripts)) {
+                    continue;
+                }
                 // Analyze script sources
                 for (const script of dp.scripts) {
                     if (script.src) {
@@ -177,6 +185,10 @@ export class PatternDiscovery {
             const domExamples = new Map<string, string[]>();
 
             for (const dp of dataPoints) {
+                // Add defensive check for null/undefined domElements
+                if (!dp.domElements || !Array.isArray(dp.domElements)) {
+                    continue;
+                }
                 for (const domElement of dp.domElements) {
                     const pattern = domElement.selector;
                     domFrequency.set(pattern, (domFrequency.get(pattern) || 0) + 1);
@@ -301,9 +313,9 @@ export class PatternDiscovery {
         for (const [cms, dataPoints] of groupedData.entries()) {
             const stats = {
                 siteCount: dataPoints.length,
-                avgMetaTags: this.calculateAverage(dataPoints.map(dp => dp.metaTags.length)),
-                avgScripts: this.calculateAverage(dataPoints.map(dp => dp.scripts.length)),
-                avgDOMElements: this.calculateAverage(dataPoints.map(dp => dp.domElements.length)),
+                avgMetaTags: this.calculateAverage(dataPoints.map(dp => dp.metaTags?.length || 0)),
+                avgScripts: this.calculateAverage(dataPoints.map(dp => dp.scripts?.length || 0)),
+                avgDOMElements: this.calculateAverage(dataPoints.map(dp => dp.domElements?.length || 0)),
                 avgHtmlSize: this.calculateAverage(dataPoints.map(dp => dp.htmlSize)),
                 avgLoadTime: this.calculateAverage(dataPoints.map(dp => dp.loadTime)),
                 protocolUpgradeRate: dataPoints.filter(dp => dp.protocolUpgraded).length / dataPoints.length,
@@ -311,7 +323,7 @@ export class PatternDiscovery {
                 statusCodes: this.groupBy(dataPoints, dp => dp.statusCode),
                 detectionConfidence: this.calculateAverage(
                     dataPoints
-                        .filter(dp => dp.detectionResults.length > 0)
+                        .filter(dp => dp.detectionResults && dp.detectionResults.length > 0)
                         .map(dp => Math.max(...dp.detectionResults.map(r => r.confidence)))
                 )
             };
@@ -343,7 +355,7 @@ export class PatternDiscovery {
     }
 
     private extractDetectedCMS(dataPoint: DetectionDataPoint): string {
-        if (dataPoint.detectionResults.length === 0) return 'Unknown';
+        if (!dataPoint.detectionResults || dataPoint.detectionResults.length === 0) return 'Unknown';
         
         const bestResult = dataPoint.detectionResults.reduce((best, current) => 
             current.confidence > best.confidence ? current : best
@@ -431,6 +443,9 @@ export class PatternDiscovery {
         for (const dp of dataPoints) {
             if (pattern.startsWith('name:') || pattern.startsWith('property:') || pattern.startsWith('http-equiv:')) {
                 // Meta tag pattern
+                if (!dp.metaTags || !Array.isArray(dp.metaTags)) {
+                    continue;
+                }
                 for (const metaTag of dp.metaTags) {
                     if (this.createMetaTagKey(metaTag) === pattern) {
                         count++;
@@ -439,6 +454,9 @@ export class PatternDiscovery {
                 }
             } else if (pattern.startsWith('script:') || pattern.startsWith('path:')) {
                 // Script pattern
+                if (!dp.scripts || !Array.isArray(dp.scripts)) {
+                    continue;
+                }
                 for (const script of dp.scripts) {
                     if (script.src && this.extractScriptPatterns(script.src).includes(pattern)) {
                         count++;
@@ -447,6 +465,9 @@ export class PatternDiscovery {
                 }
             } else if (pattern.startsWith('inline:')) {
                 // Inline script pattern
+                if (!dp.scripts || !Array.isArray(dp.scripts)) {
+                    continue;
+                }
                 for (const script of dp.scripts) {
                     if (script.content && this.extractInlineScriptPatterns(script.content).includes(pattern)) {
                         count++;
@@ -455,6 +476,9 @@ export class PatternDiscovery {
                 }
             } else {
                 // DOM pattern (selector)
+                if (!dp.domElements || !Array.isArray(dp.domElements)) {
+                    continue;
+                }
                 for (const domElement of dp.domElements) {
                     if (domElement.selector === pattern) {
                         count++;

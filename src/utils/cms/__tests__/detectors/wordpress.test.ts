@@ -496,5 +496,239 @@ describe('WordPress Detector', () => {
             expect(result.cms).toBe('WordPress');
             expect(result.confidence).toBeGreaterThan(0);
         });
+
+        it('should handle malformed HTML content gracefully', async () => {
+            mockPage.evaluate.mockResolvedValue('');
+            mockPage.content.mockResolvedValue(`
+                <html><head><title>Test</title>
+                <script src="/wp-content/themes/theme/script.js"
+                <link rel="stylesheet" href="/wp-includes/css/admin-bar.min.css"
+                <div class="wp-admin-bar"
+                <!-- malformed HTML -->
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.confidence).toBeGreaterThan(0);
+        });
+
+        it('should handle extremely large HTML content', async () => {
+            mockPage.evaluate.mockResolvedValue('');
+            // Create large HTML with WordPress patterns
+            const largeContent = '<html><head>' + 
+                '<script src="/wp-content/themes/theme/script.js"></script>'.repeat(1000) +
+                '</head><body>' + 
+                '<div class="wp-content">'.repeat(500) + 'WordPress content' + '</div>'.repeat(500) +
+                '</body></html>';
+            mockPage.content.mockResolvedValue(largeContent);
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle timeout scenarios gracefully', async () => {
+            mockPage.evaluate.mockImplementation(() => {
+                return new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout')), 100);
+                });
+            });
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <script src="/wp-content/themes/theme/script.js"></script>
+                    <div class="wp-content">WordPress content</div>
+                </html>
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.confidence).toBeGreaterThan(0);
+        });
+
+        it('should handle network connection errors', async () => {
+            const networkError = new Error('Network connection failed');
+            (networkError as any).code = 'ECONNREFUSED';
+            
+            mockPage.evaluate.mockRejectedValue(networkError);
+            mockPage.content.mockRejectedValue(networkError);
+            mockPage.goto.mockRejectedValue(networkError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle browser context corruption', async () => {
+            // Simulate corrupted browser context
+            mockPage._browserManagerContext = null;
+            mockPage.evaluate.mockResolvedValue('');
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <script src="/wp-content/themes/theme/script.js"></script>
+                    <div class="wp-content">WordPress content</div>
+                </html>
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.confidence).toBeGreaterThan(0);
+        });
+
+        it('should handle inconsistent strategy results gracefully', async () => {
+            // Mock one strategy succeeding while others fail intermittently
+            let callCount = 0;
+            mockPage.evaluate.mockImplementation(() => {
+                callCount++;
+                if (callCount % 2 === 0) {
+                    throw new Error('Intermittent failure');
+                }
+                return 'WordPress 6.3.1';
+            });
+            
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <script src="/wp-content/themes/theme/script.js"></script>
+                    <div class="wp-content">WordPress content</div>
+                </html>
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.confidence).toBeGreaterThan(0);
+        });
+    });
+
+    describe('Version Extraction', () => {
+        it('should extract version from meta generator tag', async () => {
+            mockPage.evaluate.mockResolvedValue('WordPress 6.3.1');
+            mockPage.content.mockResolvedValue('<html><meta name="generator" content="WordPress 6.3.1"></html>');
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.version).toBe('6.3.1');
+        });
+
+        it('should extract version from API response', async () => {
+            mockPage.evaluate.mockResolvedValue('WordPress 6.3.1');
+            mockPage.content.mockResolvedValue('<html></html>');
+            mockPage.goto.mockResolvedValue({
+                status: () => 200,
+                ok: () => true,
+                json: async () => ({
+                    name: 'Test Site',
+                    description: 'Test WordPress Site',
+                    namespaces: ['wp/v2'],
+                    gmt_offset: '0',
+                    timezone_string: '',
+                    home: 'https://example.com',
+                    site_logo: 0,
+                    site_icon: 0,
+                    site_icon_url: '',
+                    _links: {
+                        'wp:user': [{ href: 'https://example.com/wp-json/wp/v2/users/' }]
+                    }
+                })
+            } as any);
+
+            // Mock the specific wp-json endpoint response with version info
+            const mockApiResponse = {
+                name: 'Test Site',
+                description: 'Test WordPress Site',
+                url: 'https://example.com',
+                version: '6.3.1',
+                namespaces: ['wp/v2'],
+                gmt_offset: '0'
+            };
+
+            // Override page.goto for the API endpoint specifically
+            mockPage.goto.mockImplementation(async (url: string) => {
+                if (url.includes('wp-json')) {
+                    return {
+                        status: () => 200,
+                        ok: () => true,
+                        json: async () => mockApiResponse
+                    } as any;
+                }
+                return { status: () => 404, ok: () => false } as any;
+            });
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.version).toBe('6.3.1');
+        });
+
+        it('should handle version extraction with different formats', async () => {
+            const testVersions = [
+                { input: 'WordPress 6.3.1', expected: '6.3.1' },
+                { input: 'WordPress 6.3', expected: '6.3' },
+                { input: 'WordPress version 6.3.1', expected: '6.3.1' }
+            ];
+
+            for (const testCase of testVersions) {
+                mockPage.evaluate.mockResolvedValue(testCase.input);
+                mockPage.content.mockResolvedValue(`<html><meta name="generator" content="${testCase.input}"></html>`);
+                mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+                const result = await detector.detect(mockPage, 'https://example.com');
+
+                expect(result).toBeValidCMSResult();
+                expect(result).toHaveDetectedCMS('WordPress');
+                expect(result.version).toBe(testCase.expected);
+            }
+        });
+
+        it('should work without version when not available', async () => {
+            mockPage.evaluate.mockResolvedValue('WordPress'); // No version info
+            mockPage.content.mockResolvedValue('<html><meta name="generator" content="WordPress"></html>');
+            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            expect(result.version).toBeUndefined();
+        });
+
+        it('should detect WordPress from wp-includes script tags even without version', async () => {
+            mockPage.evaluate.mockResolvedValue(''); // No meta tag
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <script src='/wp-includes/js/wp-emoji-release.min.js?ver=6.3.1'></script>
+                    <script src='/wp-content/themes/twentytwentythree/js/script.js?ver=1.0'></script>
+                </html>
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('WordPress');
+            // Version extraction from script tags is a future enhancement
+            // For now, just ensure WordPress is detected correctly with reasonable confidence
+            expect(result.confidence).toBeGreaterThan(0.4);
+        });
     });
 });

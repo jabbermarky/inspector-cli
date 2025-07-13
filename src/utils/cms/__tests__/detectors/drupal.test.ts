@@ -554,4 +554,178 @@ describe('Drupal Detector', () => {
             expect(weights('unknown-strategy')).toBe(0.5);
         });
     });
+
+    describe('Timeout and Network Failure Scenarios', () => {
+        it('should handle file detection timeout gracefully', async () => {
+            mockPage.evaluate.mockResolvedValue('');
+            mockPage.content.mockResolvedValue('<html></html>');
+            
+            // Mock file detection timeout
+            mockPage.goto.mockImplementation((url: string) => {
+                if (url.includes('/CHANGELOG.txt')) {
+                    return new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Timeout: Operation timed out')), 50);
+                    });
+                }
+                return Promise.resolve({ status: () => 404, ok: () => false } as any);
+            });
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle meta tag strategy timeout with fallback to other strategies', async () => {
+            // Mock meta tag timeout but allow HTML content to succeed
+            mockPage.evaluate.mockImplementation(() => {
+                return new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout')), 50);
+                });
+            });
+            
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <script src="/misc/drupal.js"></script>
+                    <script>Drupal.settings = { basePath: "/" };</script>
+                    <div class="drupal-ajax-wrapper">Content</div>
+                </html>
+            `);
+            mockPage.goto.mockResolvedValue({ status: () => 404, ok: () => false } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Drupal');
+            expect(result.confidence).toBeGreaterThan(0);
+            expect(result).toHaveUsedMethods(['html-content']);
+        });
+
+        it('should handle DNS resolution failures', async () => {
+            const dnsError = new Error('getaddrinfo ENOTFOUND example.com');
+            (dnsError as any).code = 'ENOTFOUND';
+            (dnsError as any).hostname = 'example.com';
+            
+            mockPage.evaluate.mockRejectedValue(dnsError);
+            mockPage.content.mockRejectedValue(dnsError);
+            mockPage.goto.mockRejectedValue(dnsError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle SSL/TLS certificate errors', async () => {
+            const sslError = new Error('Certificate verification failed');
+            (sslError as any).code = 'CERT_UNTRUSTED';
+            
+            mockPage.evaluate.mockRejectedValue(sslError);
+            mockPage.content.mockRejectedValue(sslError);
+            mockPage.goto.mockRejectedValue(sslError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle HTTP 5xx server errors gracefully', async () => {
+            const serverError = new Error('HTTP 503 Service Unavailable');
+            (serverError as any).status = 503;
+            
+            mockPage.evaluate.mockRejectedValue(serverError);
+            mockPage.content.mockRejectedValue(serverError);
+            mockPage.goto.mockRejectedValue(serverError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle connection reset by peer', async () => {
+            const resetError = new Error('Connection reset by peer');
+            (resetError as any).code = 'ECONNRESET';
+            
+            mockPage.evaluate.mockRejectedValue(resetError);
+            mockPage.content.mockRejectedValue(resetError);
+            mockPage.goto.mockRejectedValue(resetError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+
+        it('should handle mixed timeout scenarios across strategies', async () => {
+            // Meta tag times out, file detection times out, but HTML succeeds
+            mockPage.evaluate.mockImplementation((fn: Function) => {
+                const fnStr = fn.toString();
+                if (fnStr.includes('meta') || fnStr.includes('textContent')) {
+                    return new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Timeout')), 30);
+                    });
+                }
+                return '';
+            });
+            
+            mockPage.content.mockResolvedValue(`
+                <html>
+                    <head><title>Drupal Site</title></head>
+                    <body>
+                        <script src="/core/misc/drupal.js"></script>
+                        <script>Drupal.settings = { "path": { "baseUrl": "/" } };</script>
+                        <div class="block block-system">
+                            <div class="field field-name-body">
+                                <p>Powered by Drupal</p>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+            `);
+            
+            mockPage.goto.mockImplementation((url: string) => {
+                if (url.includes('CHANGELOG.txt') || url.includes('INSTALL.txt')) {
+                    return new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Timeout')), 30);
+                    });
+                }
+                return Promise.resolve({ status: () => 404, ok: () => false } as any);
+            });
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Drupal');
+            expect(result.confidence).toBeGreaterThan(0);
+            expect(result).toHaveUsedMethods(['html-content']);
+        });
+
+        it('should handle rate limiting gracefully', async () => {
+            const rateLimitError = new Error('Too Many Requests');
+            (rateLimitError as any).status = 429;
+            
+            mockPage.evaluate.mockRejectedValue(rateLimitError);
+            mockPage.content.mockRejectedValue(rateLimitError);
+            mockPage.goto.mockRejectedValue(rateLimitError);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBe(0);
+            expect(result.executionTime).toBeDefined();
+        });
+    });
 });
