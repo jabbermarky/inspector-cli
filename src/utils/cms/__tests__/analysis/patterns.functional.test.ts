@@ -283,6 +283,55 @@ describe('Functional: PatternDiscovery', () => {
             expect(viewportPattern!.confidence).toBeGreaterThan(0.8);
         });
 
+        it('should discover Joomla meta tag patterns', () => {
+            const joomlaDataPoints = [
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'Joomla! - Open Source Content Management' },
+                        { name: 'description', content: 'Powered by Joomla!' }
+                    ],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'Joomla', confidence: 0.95, executionTime: 100 }
+                    ]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'Joomla! 4.2.5' },
+                        { name: 'robots', content: 'index, follow' }
+                    ],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'Joomla', confidence: 0.92, executionTime: 110 }
+                    ]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'Joomla' },
+                        { name: 'author', content: 'Joomla CMS' }
+                    ],
+                    detectionResults: [
+                        { detector: 'meta-tag', strategy: 'generator', cms: 'Joomla', confidence: 0.90, executionTime: 95 }
+                    ]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(joomlaDataPoints);
+            const patterns = discovery.analyzeMetaTagPatterns();
+
+            expect(patterns.has('Joomla')).toBe(true);
+            const joomlaPatterns = patterns.get('Joomla')!;
+            expect(joomlaPatterns.length).toBeGreaterThan(0);
+            
+            // Should find generator pattern (which should be 'name:generator')
+            const hasGeneratorPattern = joomlaPatterns.some((p: any) => 
+                p.pattern === 'name:generator'
+            );
+            expect(hasGeneratorPattern).toBe(true);
+            
+            // Verify at least one pattern has reasonable confidence and frequency
+            const validPatterns = joomlaPatterns.filter((p: any) => p.confidence > 0.8);
+            expect(validPatterns.length).toBeGreaterThan(0);
+        });
+
         it('should handle sites with unknown CMS', () => {
             const dataPoints = [
                 createDataPoint({
@@ -421,6 +470,71 @@ describe('Functional: PatternDiscovery', () => {
             }
         });
 
+        it('should discover Joomla script patterns', () => {
+            const joomlaDataPoints = [
+                createDataPoint({
+                    scripts: [
+                        { src: '/media/jui/js/jquery.min.js' },
+                        { src: '/administrator/components/com_admin/script.js' },
+                        { inline: true, content: 'var Joomla = {}; Joomla.JText = function(key) { return key; };' }
+                    ],
+                    detectionResults: [{ detector: 'meta-tag', strategy: 'generator', cms: 'Joomla', confidence: 0.95, executionTime: 100 }]
+                }),
+                createDataPoint({
+                    scripts: [
+                        { src: '/templates/joomla_template/js/template.js' },
+                        { src: '/modules/mod_custom/tmpl/default.js' },
+                        { inline: true, content: 'Joomla.submitform = function(task, form) { /* submit logic */ };' }
+                    ],
+                    detectionResults: [{ detector: 'html-content', strategy: 'content', cms: 'Joomla', confidence: 0.88, executionTime: 120 }]
+                }),
+                createDataPoint({
+                    scripts: [
+                        { src: '/components/com_content/views/article/js/article.js' },
+                        { inline: true, content: 'window.Joomla = window.Joomla || {}; Joomla.options = { system: { debug: false } };' }
+                    ],
+                    detectionResults: [{ detector: 'html-content', strategy: 'content', cms: 'Joomla', confidence: 0.90, executionTime: 110 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(joomlaDataPoints);
+            const patterns = discovery.analyzeScriptPatterns();
+
+            expect(patterns.has('Joomla')).toBe(true);
+            const joomlaPatterns = patterns.get('Joomla')!;
+            expect(joomlaPatterns.length).toBeGreaterThan(0);
+            
+            // Should find specific Joomla path patterns
+            const hasAdminPattern = joomlaPatterns.some((p: any) => 
+                p.pattern === 'path:administrator'
+            );
+            expect(hasAdminPattern).toBe(true);
+            
+            const hasComponentsPattern = joomlaPatterns.some((p: any) => 
+                p.pattern === 'path:components'
+            );
+            expect(hasComponentsPattern).toBe(true);
+            
+            const hasJoomlaJsPattern = joomlaPatterns.some((p: any) => 
+                p.pattern === 'inline:Joomla.'
+            );
+            expect(hasJoomlaJsPattern).toBe(true);
+            
+            // Check pattern frequencies and confidence
+            const adminPattern = joomlaPatterns.find((p: any) => 
+                p.pattern === 'path:administrator'
+            );
+            expect(adminPattern).toBeDefined();
+            expect(adminPattern!.confidence).toBeGreaterThan(0.8);
+            
+            const joomlaJsPattern = joomlaPatterns.find((p: any) => 
+                p.pattern === 'inline:Joomla.'
+            );
+            expect(joomlaJsPattern).toBeDefined();
+            expect(joomlaJsPattern!.frequency).toBe(1); // frequency = count/totalSites = 3/3 = 1
+            expect(joomlaJsPattern!.confidence).toBeGreaterThan(0.8);
+        });
+
         it('should extract inline script patterns', () => {
             const dataPoints = [
                 createDataPoint({
@@ -523,6 +637,113 @@ describe('Functional: PatternDiscovery', () => {
             const bodyPattern = wpPatterns.find((p: any) => p.pattern === 'body[class*="wp-"]');
             expect(bodyPattern).toBeDefined();
             expect(bodyPattern!.frequency).toBe(1.0);
+        });
+
+        it('should discover Drupal DOM patterns', () => {
+            const drupalDataPoints = [
+                createDataPoint({
+                    domElements: [
+                        {
+                            selector: 'div[id="block-system-main"]',
+                            count: 1,
+                            sample: '<div id="block-system-main" class="block block-system">',
+                            attributes: { id: 'block-system-main', class: 'block block-system' }
+                        },
+                        {
+                            selector: 'div[class*="region-"]',
+                            count: 4,
+                            sample: '<div class="region region-header">',
+                            attributes: { class: 'region region-header' }
+                        },
+                        {
+                            selector: 'div[class*="block-"]',
+                            count: 8,
+                            sample: '<div class="block block-menu">',
+                            attributes: { class: 'block block-menu' }
+                        }
+                    ],
+                    detectionResults: [{ detector: 'drupal-dom', strategy: 'dom', cms: 'Drupal', confidence: 0.91, executionTime: 85 }]
+                }),
+                createDataPoint({
+                    domElements: [
+                        {
+                            selector: 'div[id="block-system-main"]',
+                            count: 1,
+                            sample: '<div id="block-system-main">',
+                            attributes: { id: 'block-system-main' }
+                        },
+                        {
+                            selector: 'div[class*="view-"]',
+                            count: 3,
+                            sample: '<div class="view view-frontpage">',
+                            attributes: { class: 'view view-frontpage' }
+                        },
+                        {
+                            selector: 'div[class*="node-"]',
+                            count: 5,
+                            sample: '<div class="node node-article">',
+                            attributes: { class: 'node node-article' }
+                        }
+                    ],
+                    detectionResults: [{ detector: 'drupal-dom', strategy: 'dom', cms: 'Drupal', confidence: 0.88, executionTime: 95 }]
+                }),
+                createDataPoint({
+                    domElements: [
+                        {
+                            selector: 'div[id*="drupal"]',
+                            count: 2,
+                            sample: '<div id="drupal-ajax-wrapper">',
+                            attributes: { id: 'drupal-ajax-wrapper' }
+                        },
+                        {
+                            selector: 'div[class*="field-"]',
+                            count: 6,
+                            sample: '<div class="field field-name-body">',
+                            attributes: { class: 'field field-name-body' }
+                        },
+                        {
+                            selector: 'div[class*="region-"]',
+                            count: 3,
+                            sample: '<div class="region region-content">',
+                            attributes: { class: 'region region-content' }
+                        }
+                    ],
+                    detectionResults: [{ detector: 'drupal-dom', strategy: 'dom', cms: 'Drupal', confidence: 0.92, executionTime: 80 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(drupalDataPoints);
+            const patterns = discovery.analyzeDOMPatterns();
+
+            expect(patterns.has('Drupal')).toBe(true);
+            const drupalPatterns = patterns.get('Drupal')!;
+            expect(drupalPatterns.length).toBeGreaterThan(0);
+            
+            // Should find Drupal-specific DOM patterns
+            const hasSystemMainPattern = drupalPatterns.some((p: any) => 
+                p.pattern === 'div[id="block-system-main"]'
+            );
+            expect(hasSystemMainPattern).toBe(true);
+            
+            const hasRegionPattern = drupalPatterns.some((p: any) => 
+                p.pattern === 'div[class*="region-"]'
+            );
+            expect(hasRegionPattern).toBe(true);
+            
+            // Verify pattern confidence and frequency
+            const systemMainPattern = drupalPatterns.find((p: any) => 
+                p.pattern === 'div[id="block-system-main"]'
+            );
+            expect(systemMainPattern).toBeDefined();
+            expect(systemMainPattern!.frequency).toBe(2/3); // Appears in 2 out of 3 sites
+            expect(systemMainPattern!.confidence).toBeGreaterThan(0.8);
+            
+            const regionPattern = drupalPatterns.find((p: any) => 
+                p.pattern === 'div[class*="region-"]'
+            );
+            expect(regionPattern).toBeDefined();
+            expect(regionPattern!.frequency).toBe(2/3); // Appears in 2 out of 3 sites
+            expect(regionPattern!.confidence).toBeGreaterThan(0.8);
         });
 
         it('should discover Duda DOM patterns', () => {

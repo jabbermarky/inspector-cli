@@ -105,6 +105,87 @@ describe('Joomla Detector', () => {
         mockPage._robotsTxtData = undefined;
     });
 
+    describe('Individual Strategy Testing', () => {
+        it('1. MetaTagStrategy should work', async () => {
+            const { MetaTagStrategy } = await import('../../strategies/meta-tag.js');
+            const strategy = new MetaTagStrategy('Joomla', 3000);
+            
+            mockPage.evaluate.mockResolvedValue('Joomla! 4.2.5');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('meta-tag');
+        });
+
+        it('2. HtmlContentStrategy should work', async () => {
+            const { HtmlContentStrategy } = await import('../../strategies/html-content.js');
+            const strategy = new HtmlContentStrategy([
+                'content="Joomla!',
+                'joomla',
+                '/administrator/',
+                '/components/',
+                'Joomla.JText'
+            ], 'Joomla', 4000);
+            
+            mockPage.content.mockResolvedValue('<html><meta content="Joomla!"><script src="/administrator/index.php"></script><script>Joomla.JText = {};</script></html>');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('html-content');
+        });
+
+        it('3. HttpHeaderStrategy should work', async () => {
+            const { HttpHeaderStrategy } = await import('../../strategies/http-headers.js');
+            const strategy = new HttpHeaderStrategy([
+                {
+                    name: 'X-Content-Encoded-By',
+                    pattern: /Joomla/i,
+                    confidence: 0.95,
+                    extractVersion: false,
+                    searchIn: 'value'
+                }
+            ], 'Joomla', 5000);
+            
+            // Mock page with browser context containing headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-content-encoded-by': 'Joomla! - Open Source Content Management',
+                        'x-generator': 'Joomla! 4.2.5'
+                    }
+                }
+            };
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('http-headers');
+        });
+
+        it('4. RobotsTxtStrategy should work', async () => {
+            const { RobotsTxtStrategy, JOOMLA_ROBOTS_PATTERNS } = await import('../../strategies/robots-txt.js');
+            const strategy = new RobotsTxtStrategy(JOOMLA_ROBOTS_PATTERNS, 'Joomla', 3000);
+            
+            // Mock robots.txt data in page context
+            mockPage._robotsTxtData = {
+                content: 'User-agent: *\nDisallow: /administrator/\nDisallow: /components/\nDisallow: /modules/',
+                url: 'https://example.com/robots.txt',
+                accessible: true,
+                size: 100,
+                headers: {}
+            };
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('robots-txt');
+        });
+    });
+
     describe('Meta Tag Detection', () => {
         it('should detect Joomla from meta generator tag', async () => {
             // Mock the detector to use our test strategy

@@ -378,6 +378,12 @@ export class PatternDiscovery {
         if (scriptSrc.includes('/sites/')) patterns.push('path:sites');
         if (scriptSrc.includes('/media/')) patterns.push('path:media');
         
+        // Joomla-specific path patterns
+        if (scriptSrc.includes('/administrator/')) patterns.push('path:administrator');
+        if (scriptSrc.includes('/components/')) patterns.push('path:components');
+        if (scriptSrc.includes('/modules/')) patterns.push('path:modules');
+        if (scriptSrc.includes('/templates/')) patterns.push('path:templates');
+        
         // Extract Duda domain patterns
         if (scriptSrc.includes('irp.cdn-website.com')) patterns.push('domain:irp.cdn-website.com');
         if (scriptSrc.includes('lirp.cdn-website.com')) patterns.push('domain:lirp.cdn-website.com');

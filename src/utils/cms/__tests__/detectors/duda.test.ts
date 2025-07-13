@@ -43,6 +43,11 @@ describe('Duda Detector', () => {
         mockPage.evaluate.mockImplementation((fn: Function) => {
             const fnStr = fn.toString();
             
+            // MetaTagStrategy pattern
+            if (fnStr.includes('getElementsByTagName') && fnStr.includes('meta')) {
+                return ''; // Default: no meta generator tag (can be overridden in tests)
+            }
+            
             // DudaJavaScriptStrategy pattern
             if (fnStr.includes('querySelectorAll') && fnStr.includes('script')) {
                 return []; // Default: no scripts (can be overridden in tests)
@@ -73,7 +78,19 @@ describe('Duda Detector', () => {
     });
 
     describe('Individual Strategy Testing', () => {
-        it('1. DudaJavaScriptStrategy should work', async () => {
+        it('1. MetaTagStrategy should work', async () => {
+            const { MetaTagStrategy } = await import('../../strategies/meta-tag.js');
+            const strategy = new MetaTagStrategy('Duda', 3000);
+            
+            mockPage.evaluate.mockResolvedValue('Duda Website Builder 2.1');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('meta-tag');
+        });
+
+        it('2. DudaJavaScriptStrategy should work', async () => {
             const detector = new DudaDetector();
             const strategies = detector.getStrategies();
             const dudaJsStrategy = strategies.find(s => s.getName() === 'duda-javascript');
@@ -94,7 +111,7 @@ describe('Duda Detector', () => {
             expect(result.method).toBe('duda-javascript');
         });
 
-        it('2. HtmlContentStrategy should work', async () => {
+        it('3. HtmlContentStrategy should work', async () => {
             const { HtmlContentStrategy } = await import('../../strategies/html-content.js');
             const strategy = new HtmlContentStrategy(['irp.cdn-website.com', 'duda_website_builder'], 'Duda', 5000);
             
@@ -106,7 +123,7 @@ describe('Duda Detector', () => {
             expect(result.method).toBe('html-content');
         });
 
-        it('3. HttpHeaderStrategy should work', async () => {
+        it('4. HttpHeaderStrategy should work', async () => {
             const { HttpHeaderStrategy } = await import('../../strategies/http-headers.js');
             const strategy = new HttpHeaderStrategy([
                 {
@@ -115,13 +132,98 @@ describe('Duda Detector', () => {
                     confidence: 0.8,
                     extractVersion: false,
                     searchIn: 'both'
+                },
+                {
+                    name: 'X-Powered-By',
+                    pattern: /duda/i,
+                    confidence: 0.9,
+                    extractVersion: false,
+                    searchIn: 'value'
                 }
             ], 'Duda', 4000);
             
+            // Mock page with browser context containing Duda headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-powered-by': 'Duda Website Builder',
+                        'server': 'Duda-Server/1.0',
+                        'x-duda-version': '2.1'
+                    }
+                }
+            };
+            
             const result = await strategy.detect(mockPage, 'https://example.com');
             expect(result).toBeDefined();
-            expect(result.confidence).toBeDefined();
+            expect(result.confidence).toBeGreaterThan(0.8);
             expect(result.method).toBe('http-headers');
+        });
+    });
+
+    describe('Meta Tag Detection', () => {
+        it('should detect Duda from meta generator tag', async () => {
+            mockPage.evaluate.mockResolvedValue('Duda Website Builder 2.1');
+            mockPage.content.mockResolvedValue('<html><meta name="generator" content="Duda Website Builder 2.1"></html>');
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Duda');
+            expect(result).toHaveConfidenceAbove(0.9);
+            expect(result.version).toBe('2.1');
+            
+            // Check for meta-tag detection method if detectionResults exists
+            if (result.detectionResults) {
+                expect(result.detectionResults).toEqual(
+                    expect.arrayContaining([
+                        expect.objectContaining({ 
+                            method: 'meta-tag',
+                            version: '2.1'
+                        })
+                    ])
+                );
+            }
+        });
+
+        it('should handle missing meta tag gracefully', async () => {
+            mockPage.evaluate.mockResolvedValue(''); // No meta generator tag
+            mockPage.content.mockResolvedValue('<html><title>Generic Site</title></html>');
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            // Should still return a result but with lower confidence or different detection method
+            expect(result).toBeValidCMSResult();
+            
+            // Meta tag strategy should not contribute to detection
+            const metaTagResult = result.detectionResults?.find(r => r.method === 'meta-tag');
+            if (metaTagResult) {
+                expect(metaTagResult.confidence).toBeLessThan(0.1);
+            }
+        });
+
+        it('should detect Duda from various meta generator formats', async () => {
+            const testCases = [
+                'Duda Website Builder',
+                'Duda Website Builder 2.1', 
+                'DUDA WEBSITE BUILDER',
+                'duda website builder v2.0'
+            ];
+
+            for (const metaContent of testCases) {
+                mockPage.evaluate.mockResolvedValue(metaContent);
+                mockPage.content.mockResolvedValue(`<html><meta name="generator" content="${metaContent}"></html>`);
+                mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+
+                const result = await detector.detect(mockPage, 'https://example.com');
+
+                expect(result).toBeValidCMSResult();
+                expect(result).toHaveDetectedCMS('Duda');
+                expect(result).toHaveConfidenceAbove(0.8);
+            }
         });
     });
 
@@ -226,6 +328,106 @@ describe('Duda Detector', () => {
             expect(result).toHaveDetectedCMS('Duda');
             expect(result).toHaveConfidenceAbove(0.9);
             expect(result).toHaveUsedMethods(['duda-javascript']);
+        });
+    });
+
+    describe('HTTP Header Detection', () => {
+        it('should detect Duda from X-Powered-By header', async () => {
+            mockPage.content.mockResolvedValue('<html><head><title>Site</title></head></html>');
+            mockPage.evaluate.mockResolvedValue([]);
+            
+            // Mock page with Duda-specific headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-powered-by': 'Duda Website Builder',
+                        'content-type': 'text/html'
+                    }
+                }
+            };
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Duda');
+            expect(result).toHaveConfidenceAbove(0.7);
+            expect(result).toHaveUsedMethods(['http-headers']);
+        });
+
+        it('should detect Duda from Server header containing duda', async () => {
+            mockPage.content.mockResolvedValue('<html><head><title>Site</title></head></html>');
+            mockPage.evaluate.mockResolvedValue([]);
+            
+            // Mock page with Duda server header
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'server': 'Duda-Server/1.0',
+                        'x-duda-cache': 'HIT'
+                    }
+                }
+            };
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Duda');
+            expect(result).toHaveConfidenceAbove(0.7);
+            expect(result).toHaveUsedMethods(['http-headers']);
+        });
+
+        it('should detect Duda from multiple headers with higher confidence', async () => {
+            mockPage.content.mockResolvedValue('<html><head><title>Site</title></head></html>');
+            mockPage.evaluate.mockResolvedValue([]);
+            
+            // Mock page with multiple Duda headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-powered-by': 'Duda Website Builder',
+                        'server': 'Duda-Server/1.0',
+                        'x-duda-version': '2.1',
+                        'x-duda-cache': 'MISS'
+                    }
+                }
+            };
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Duda');
+            expect(result).toHaveConfidenceAbove(0.8);
+            expect(result).toHaveUsedMethods(['http-headers']);
+        });
+
+        it('should not detect Duda from unrelated headers', async () => {
+            mockPage.content.mockResolvedValue('<html><head><title>Site</title></head></html>');
+            mockPage.evaluate.mockResolvedValue([]);
+            
+            // Mock page with non-Duda headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-powered-by': 'PHP/8.1',
+                        'server': 'Apache/2.4',
+                        'x-generator': 'WordPress 6.0'
+                    }
+                }
+            };
+
+            const result = await detector.detect(mockPage, 'https://example.com');
+
+            expect(result).toBeValidCMSResult();
+            expect(result).toHaveDetectedCMS('Unknown');
+            expect(result.confidence).toBeLessThan(0.3);
         });
     });
 

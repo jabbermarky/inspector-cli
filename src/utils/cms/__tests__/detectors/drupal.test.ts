@@ -89,6 +89,101 @@ describe('Drupal Detector', () => {
         mockPage._robotsTxtData = undefined;
     });
 
+    describe('Individual Strategy Testing', () => {
+        it('1. HttpHeaderStrategy should work', async () => {
+            const { HttpHeaderStrategy } = await import('../../strategies/http-headers.js');
+            const strategy = new HttpHeaderStrategy([
+                {
+                    name: 'X-Generator',
+                    pattern: /Drupal\s+(\d+(?:\.\d+)*)/i,
+                    confidence: 0.95,
+                    extractVersion: true
+                }
+            ], 'Drupal', 5000);
+            
+            // Mock page with browser context containing headers
+            mockPage._browserManagerContext = {
+                ...mockPage._browserManagerContext,
+                lastNavigation: {
+                    ...mockPage._browserManagerContext.lastNavigation,
+                    headers: {
+                        'x-generator': 'Drupal 10.1.5',
+                        'x-drupal-cache': 'HIT'
+                    }
+                }
+            };
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('http-headers');
+        });
+
+        it('2. MetaTagStrategy should work', async () => {
+            const { MetaTagStrategy } = await import('../../strategies/meta-tag.js');
+            const strategy = new MetaTagStrategy('Drupal', 6000);
+            
+            mockPage.evaluate.mockResolvedValue('Drupal 10.1.5 (https://www.drupal.org)');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('meta-tag');
+        });
+
+        it('3. HtmlContentStrategy should work', async () => {
+            const { HtmlContentStrategy } = await import('../../strategies/html-content.js');
+            const strategy = new HtmlContentStrategy([
+                '/sites/all/',
+                '/misc/drupal.js',
+                'Drupal.settings'
+            ], 'Drupal', 4000);
+            
+            mockPage.content.mockResolvedValue('<html><script src="/misc/drupal.js"></script><script>Drupal.settings = {};</script></html>');
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('html-content');
+        });
+
+        it('4. RobotsTxtStrategy should work', async () => {
+            const { RobotsTxtStrategy, DRUPAL_ROBOTS_PATTERNS } = await import('../../strategies/robots-txt.js');
+            const strategy = new RobotsTxtStrategy(DRUPAL_ROBOTS_PATTERNS, 'Drupal', 3000);
+            
+            // Mock robots.txt data in page context
+            mockPage._robotsTxtData = {
+                content: 'User-agent: *\nDisallow: /admin/\nDisallow: /sites/all/',
+                url: 'https://example.com/robots.txt',
+                accessible: true,
+                size: 100,
+                headers: {}
+            };
+            
+            const result = await strategy.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('robots-txt');
+        });
+
+        it('5. DrupalFileStrategy should work', async () => {
+            const detector = new DrupalDetector();
+            const strategies = detector.getStrategies();
+            const fileStrategy = strategies.find(s => s.getName() === 'file-detection');
+            
+            expect(fileStrategy).toBeDefined();
+            
+            // Mock successful CHANGELOG.txt detection
+            mockPage.goto.mockResolvedValue({ status: () => 200, ok: () => true } as any);
+            mockPage.evaluate.mockResolvedValue('Drupal 10.1.5, 2023-11-01');
+            
+            const result = await fileStrategy!.detect(mockPage, 'https://example.com');
+            expect(result).toBeDefined();
+            expect(result.confidence).toBeDefined();
+            expect(result.method).toBe('file-detection');
+        });
+    });
+
     describe('Meta Tag Detection', () => {
         it('should detect Drupal from meta generator tag', async () => {
             mockPage.evaluate.mockResolvedValue('Drupal 10.1.5 (https://www.drupal.org)');
