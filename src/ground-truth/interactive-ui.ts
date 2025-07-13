@@ -10,8 +10,7 @@ import { generateGroundTruthStats, getDefaultDatabasePath } from './generate-sta
 import { displayGroundTruthStats } from './display-stats.js';
 import { setShuttingDown } from './index.js';
 
-// TODO: These imports need to be updated when ground truth database functions are extracted
-// import { addToGroundTruth, GroundTruthDatabase, groundTruthPath } from './ground-truth-database.js';
+import { addToGroundTruth } from './datastore.js';
 
 const logger = createModuleLogger('interactive-ui');
 
@@ -113,8 +112,7 @@ export async function promptForGroundTruthDecision(
             }
 
             if (choice === '' || choice.toLowerCase() === 'y' || choice.toLowerCase() === 'enter') {
-                // TODO: Import addToGroundTruth when ground truth database functions are extracted
-                // await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
+                await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
                 displayMessage(`✅ Auto-accepted: ${detectedCms}${versionText}`);
                 return { shouldContinue: true };
             } else if (choice.toLowerCase() === 'c') {
@@ -141,8 +139,7 @@ export async function promptForGroundTruthDecision(
             }
             // If user pressed Enter or 'y', add to ground truth
             if (choice === '' || choice.toLowerCase() === 'y' || choice.toLowerCase() === 'enter') {
-                // TODO: Import addToGroundTruth when ground truth database functions are extracted
-                // await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
+                await addToGroundTruth(url, detectedCms, confidence, '', suggestedVersion?.version);
                 displayMessage(`✅ Added: ${detectedCms}${versionText}`);
                 return { shouldContinue: true };
             } else if (choice.toLowerCase() === 'c') {
@@ -160,8 +157,8 @@ export async function promptForGroundTruthDecision(
             //displayMessage(`   [1] WordPress  [2] Drupal  [3] Joomla  [4] Other/Static  [s] Skip`);
             //const choice = await askQuestion(rl, 'Classification needed: ');
             const choice = await getUserChoice(
-                `   [w] WordPress  [d] Drupal  [j] Joomla  [o] Other/Static  [s] Skip`,
-                ['w', 'd', 'j', 'o', 's']
+                `   [w] WordPress  [d] Drupal  [j] Joomla  [u] Duda  [o] Other/Static  [s] Skip`,
+                ['w', 'd', 'j', 'u', 'o', 's']
             );
             if (choice === null) {
                 displayMessage('❌ Invalid input, please try again. NULL choice detected.');
@@ -169,7 +166,7 @@ export async function promptForGroundTruthDecision(
             }
 
             // Map choices to CMS types
-            const cmsMap = { w: 'WordPress', d: 'Drupal', j: 'Joomla', o: 'other' };
+            const cmsMap = { w: 'WordPress', d: 'Drupal', j: 'Joomla', u: 'Duda', o: 'other' };
 
             if (choice === 's') {
                 displayMessage(`⏭️  Skipped`);
@@ -179,8 +176,7 @@ export async function promptForGroundTruthDecision(
                 const selectedVersion = detectedVersions.find(
                     v => v.cms.toLowerCase() === selectedCms
                 );
-                // TODO: Import addToGroundTruth when ground truth database functions are extracted
-                // await addToGroundTruth(url, selectedCms, confidence, '', selectedVersion?.version);
+                await addToGroundTruth(url, selectedCms, confidence, '', selectedVersion?.version);
                 displayMessage(
                     `✅ Added: ${selectedCms}${selectedVersion ? ` v${selectedVersion.version}` : ''}`
                 );
@@ -202,7 +198,7 @@ export async function handleCorrection(
     detectedVersions: Array<{ cms: string; version: string; source: string; confidence?: string }>
 ): Promise<{ shouldContinue: boolean }> {
     try {
-        const actualCms = await getTextInput('Actual CMS (WordPress/drupal/Joomla/other):');
+        const actualCms = await getTextInput('Actual CMS (WordPress/Drupal/Joomla/Duda/other):');
         if (!actualCms) {
             displayMessage('❌ No CMS entered, skipping correction');
             return { shouldContinue: true };
@@ -221,10 +217,8 @@ export async function handleCorrection(
         
         const notes = await getTextInput('Notes (optional):');
 
-        // TODO: Import addToGroundTruth when ground truth database functions are extracted
-        // await addToGroundTruth(url, actualCms, confidence, notes, version);
+        await addToGroundTruth(url, actualCms, confidence, notes || '', version);
         displayMessage(`✅ Corrected to: ${actualCms}${version ? ` v${version}` : ''}`);
-        displayMessage('TODO: Add to ground truth database (function not yet extracted)');
 
         // Only prompt to continue when user made corrections (they might want to review)
         const continueChoice = await getUserChoice(

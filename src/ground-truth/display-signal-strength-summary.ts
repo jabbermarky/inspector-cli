@@ -14,8 +14,8 @@ export function displaySignalStrengthSummary(
 ): void {
     displayMessage(`\n📈 SIGNAL STRENGTH SUMMARY:`);
 
-    const cmsScores = { WordPress: 0, Drupal: 0, Joomla: 0 };
-    const cmsCounts = { WordPress: 0, Drupal: 0, Joomla: 0 };
+    const cmsScores = { WordPress: 0, Drupal: 0, Joomla: 0, Duda: 0 };
+    const cmsCounts = { WordPress: 0, Drupal: 0, Joomla: 0, Duda: 0 };
 
     signalGroups.forEach(group => {
         group.forEach(signal => {

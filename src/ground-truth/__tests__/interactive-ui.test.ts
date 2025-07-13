@@ -327,13 +327,13 @@ describe('InteractiveUI.getUserChoice', () => {
             mockQuestion.mockResolvedValueOnce('w');
 
             const result = await InteractiveUI.getUserChoice(
-                '[w] WordPress  [d] Drupal  [j] Joomla  [o] Other/Static  [s] Skip',
-                ['w', 'd', 'j', 'o', 's']
+                '[w] WordPress  [d] Drupal  [j] Joomla  [u] Duda  [o] Other/Static  [s] Skip',
+                ['w', 'd', 'j', 'u', 'o', 's']
             );
 
             expect(result).toBe('w');
             expect(mockQuestion).toHaveBeenCalledWith(
-                '[w] WordPress  [d] Drupal  [j] Joomla  [o] Other/Static  [s] Skip '
+                '[w] WordPress  [d] Drupal  [j] Joomla  [u] Duda  [o] Other/Static  [s] Skip '
             );
         });
     });

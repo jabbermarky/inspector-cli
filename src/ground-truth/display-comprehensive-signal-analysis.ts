@@ -5,7 +5,8 @@ import {
     analyzeMetaSignals,
     analyzeHeaderSignals,
     analyzeStylesheetSignals,
-    analyzeVersionSignals
+    analyzeVersionSignals,
+    analyzeDudaSignals
 } from './signal-analysis.js';
 import { displaySignalCategory } from './display-signal-category.js';
 import { displaySignalStrengthSummary } from './display-signal-strength-summary.js';
@@ -28,6 +29,7 @@ export function displayComprehensiveSignalAnalysis(data: any): void {
     const metaSignals = analyzeMetaSignals(data);
     const headerSignals = analyzeHeaderSignals(data);
     const stylesheetSignals = analyzeStylesheetSignals(data);
+    const dudaSignals = analyzeDudaSignals(data);
     const versionSignals = analyzeVersionSignals(data);
 
     // Display each category
@@ -36,6 +38,7 @@ export function displayComprehensiveSignalAnalysis(data: any): void {
     displaySignalCategory('META TAG SIGNALS', metaSignals);
     displaySignalCategory('HTTP HEADERS', headerSignals);
     displaySignalCategory('STYLESHEET PATTERNS', stylesheetSignals);
+    displaySignalCategory('DUDA WEBSITE BUILDER', dudaSignals);
     displaySignalCategory('VERSION ANALYSIS', versionSignals);
 
     // Calculate and display signal strength summary
@@ -44,7 +47,8 @@ export function displayComprehensiveSignalAnalysis(data: any): void {
         htmlSignals,
         metaSignals,
         headerSignals,
-        stylesheetSignals
+        stylesheetSignals,
+        dudaSignals
     );
 }
 
