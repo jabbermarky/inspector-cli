@@ -20,6 +20,7 @@ import {
     createWordPressDataPoint, 
     createDrupalDataPoint, 
     createJoomlaDataPoint,
+    createDudaDataPoint,
     createUnknownCMSDataPoint,
     createErrorDataPoint,
     createTestDataPointBatch
@@ -161,6 +162,7 @@ describe('DataStorage Unit Tests', () => {
             await storage.store(createWordPressDataPoint({ url: 'https://wp2.com' }));
             await storage.store(createDrupalDataPoint({ url: 'https://drupal1.com' }));
             await storage.store(createJoomlaDataPoint({ url: 'https://joomla1.com' }));
+            await storage.store(createDudaDataPoint({ url: 'https://duda1.com' }));
             await storage.store(createUnknownCMSDataPoint({ url: 'https://unknown1.com' }));
         });
         
@@ -175,6 +177,20 @@ describe('DataStorage Unit Tests', () => {
             const results = await storage.query({ cmsTypes: ['WordPress', 'Drupal'] });
             
             expect(results).toHaveLength(3);
+        });
+        
+        it('should query Duda data points', async () => {
+            const results = await storage.query({ cmsTypes: ['Duda'] });
+            
+            expect(results).toHaveLength(1);
+            expect(results[0].url).toBe('https://duda1.com');
+            expect(results[0].detectionResults.some(dr => dr.cms === 'Duda')).toBe(true);
+        });
+        
+        it('should query by multiple CMS types including Duda', async () => {
+            const results = await storage.query({ cmsTypes: ['WordPress', 'Duda'] });
+            
+            expect(results).toHaveLength(3); // 2 WordPress + 1 Duda
         });
         
         it('should query by confidence threshold', async () => {

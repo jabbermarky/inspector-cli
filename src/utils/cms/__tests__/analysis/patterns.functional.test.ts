@@ -244,6 +244,45 @@ describe('Functional: PatternDiscovery', () => {
             }
         });
 
+        it('should discover Duda meta tag patterns', () => {
+            const dudaDataPoints = [
+                createDataPoint({
+                    metaTags: [
+                        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+                        { name: 'description', content: 'Built with Duda' }
+                    ],
+                    detectionResults: [{ detector: 'duda-javascript', strategy: 'javascript', cms: 'Duda', confidence: 0.95, executionTime: 120 }]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+                        { name: 'generator', content: 'Duda Website Builder' }
+                    ],
+                    detectionResults: [{ detector: 'html-content', strategy: 'content', cms: 'Duda', confidence: 0.88, executionTime: 80 }]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: 'mobile-web-app-capable', content: 'yes' },
+                        { property: 'og:type', content: 'website' }
+                    ],
+                    detectionResults: [{ detector: 'duda-javascript', strategy: 'javascript', cms: 'Duda', confidence: 0.92, executionTime: 110 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dudaDataPoints);
+            const patterns = discovery.analyzeMetaTagPatterns();
+
+            expect(patterns.has('Duda')).toBe(true);
+            const dudaPatterns = patterns.get('Duda')!;
+            expect(dudaPatterns.length).toBeGreaterThan(0);
+            
+            // Should find viewport pattern with high frequency (appears in all 3 Duda sites)
+            const viewportPattern = dudaPatterns.find((p: any) => p.pattern === 'name:viewport');
+            expect(viewportPattern).toBeDefined();
+            expect(viewportPattern!.frequency).toBeCloseTo(0.666, 2); // 2 out of 3 sites have viewport
+            expect(viewportPattern!.confidence).toBeGreaterThan(0.8);
+        });
+
         it('should handle sites with unknown CMS', () => {
             const dataPoints = [
                 createDataPoint({
@@ -323,6 +362,63 @@ describe('Functional: PatternDiscovery', () => {
             
             expect(drupalPatterns.some((p: any) => p.pattern === 'path:sites')).toBe(true);
             expect(drupalPatterns.some((p: any) => p.pattern === 'inline:Drupal.')).toBe(true);
+        });
+
+        it('should discover Duda script patterns', () => {
+            const dudaDataPoints = [
+                createDataPoint({
+                    scripts: [
+                        { src: 'https://irp.cdn-website.com/js/main.js' },
+                        { src: 'https://lirp.cdn-website.com/css/styles.css' },
+                        { inline: true, content: 'window.Parameters = window.Parameters || {}; var config = { SiteType: atob("RFVEQU9ORQ=="), productId: "DM_DIRECT" };' }
+                    ],
+                    detectionResults: [{ detector: 'duda-javascript', strategy: 'javascript', cms: 'Duda', confidence: 0.95, executionTime: 120 }]
+                }),
+                createDataPoint({
+                    scripts: [
+                        { src: 'https://irp.cdn-website.com/js/app.js' },
+                        { inline: true, content: 'window.Parameters = window.Parameters || {}; window.Parameters.SiteId = "abc123";' }
+                    ],
+                    detectionResults: [{ detector: 'duda-javascript', strategy: 'javascript', cms: 'Duda', confidence: 0.92, executionTime: 110 }]
+                }),
+                createDataPoint({
+                    scripts: [
+                        { src: 'https://lirp.cdn-website.com/js/compiled.js' },
+                        { inline: true, content: 'var dudaConfig = { BlockContainerSelector: ".dmBody", SystemID: "US_DIRECT_PRODUCTION" };' }
+                    ],
+                    detectionResults: [{ detector: 'html-content', strategy: 'content', cms: 'Duda', confidence: 0.88, executionTime: 80 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dudaDataPoints);
+            const patterns = discovery.analyzeScriptPatterns();
+
+            expect(patterns.has('Duda')).toBe(true);
+            const dudaPatterns = patterns.get('Duda')!;
+            expect(dudaPatterns.length).toBeGreaterThan(0);
+            
+            // Should find Duda JavaScript patterns
+            expect(dudaPatterns.some((p: any) => p.pattern === 'inline:window.Parameters')).toBe(true);
+            expect(dudaPatterns.some((p: any) => p.pattern === 'inline:DM_DIRECT')).toBe(true);
+            expect(dudaPatterns.some((p: any) => p.pattern === 'inline:dmBody')).toBe(true);
+            
+            // Check high-confidence patterns have good frequency
+            const windowParamsPattern = dudaPatterns.find((p: any) => p.pattern === 'inline:window.Parameters');
+            expect(windowParamsPattern).toBeDefined();
+            expect(windowParamsPattern!.frequency).toBeCloseTo(0.666, 2); // 2 out of 3 sites
+            expect(windowParamsPattern!.confidence).toBeGreaterThan(0.7);
+            
+            // Check DM_DIRECT pattern
+            const dmDirectPattern = dudaPatterns.find((p: any) => p.pattern === 'inline:DM_DIRECT');
+            expect(dmDirectPattern).toBeDefined();
+            expect(dmDirectPattern!.confidence).toBeGreaterThan(0.7);
+            
+            // All patterns should have valid confidence and frequency
+            for (const pattern of dudaPatterns) {
+                expect(pattern.confidence).toBeGreaterThan(0);
+                expect(pattern.frequency).toBeGreaterThan(0);
+                expect(pattern.frequency).toBeLessThanOrEqual(1);
+            }
         });
 
         it('should extract inline script patterns', () => {
@@ -429,6 +525,67 @@ describe('Functional: PatternDiscovery', () => {
             expect(bodyPattern!.frequency).toBe(1.0);
         });
 
+        it('should discover Duda DOM patterns', () => {
+            const dudaDataPoints = [
+                createDataPoint({
+                    domElements: [
+                        {
+                            selector: 'div[class*="dmBody"]',
+                            count: 1,
+                            sample: '<div class="dmBody dmRespRow">',
+                            attributes: { class: 'dmBody dmRespRow' }
+                        },
+                        {
+                            selector: 'div[id*="dm"]',
+                            count: 2,
+                            sample: '<div id="dmNewParagraph">',
+                            attributes: { id: 'dmNewParagraph' }
+                        },
+                        {
+                            selector: 'div[data-element-type]',
+                            count: 3,
+                            sample: '<div data-element-type="dTeXt">',
+                            attributes: { 'data-element-type': 'dTeXt' }
+                        }
+                    ],
+                    detectionResults: [{ detector: 'duda-dom', strategy: 'dom', cms: 'Duda', confidence: 0.93, executionTime: 90 }]
+                }),
+                createDataPoint({
+                    domElements: [
+                        {
+                            selector: 'div[class*="dmBody"]',
+                            count: 1,
+                            sample: '<div class="dmBody">',
+                            attributes: { class: 'dmBody' }
+                        },
+                        {
+                            selector: 'div[class*="dm-"]',
+                            count: 4,
+                            sample: '<div class="dm-widget">',
+                            attributes: { class: 'dm-widget' }
+                        }
+                    ],
+                    detectionResults: [{ detector: 'duda-dom', strategy: 'dom', cms: 'Duda', confidence: 0.89, executionTime: 85 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dudaDataPoints);
+            const patterns = discovery.analyzeDOMPatterns();
+
+            expect(patterns.has('Duda')).toBe(true);
+            const dudaPatterns = patterns.get('Duda')!;
+            expect(dudaPatterns.length).toBeGreaterThan(0);
+            
+            // dmBody appears in 100% of Duda sites
+            const dmBodyPattern = dudaPatterns.find((p: any) => p.pattern === 'div[class*="dmBody"]');
+            expect(dmBodyPattern).toBeDefined();
+            expect(dmBodyPattern!.frequency).toBe(1.0);
+            expect(dmBodyPattern!.confidence).toBeGreaterThan(0.8);
+            
+            // Should find Duda-specific patterns
+            expect(dudaPatterns.some((p: any) => p.pattern.includes('dm'))).toBe(true);
+        });
+
         it('should filter DOM patterns by frequency and confidence', () => {
             const dataPoints = Array.from({ length: 5 }, (_, i) => 
                 createDataPoint({
@@ -529,6 +686,77 @@ describe('Functional: PatternDiscovery', () => {
             // Should have confidence score
             expect(wpSignature.confidence).toBeGreaterThan(0);
             expect(wpSignature.confidence).toBeLessThanOrEqual(1);
+        });
+
+        it('should generate comprehensive Duda technology signatures', () => {
+            const dataPoints = [
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'Duda Website Builder' },
+                        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+                    ],
+                    scripts: [
+                        { src: 'https://irp.cdn-website.com/js/main.js' },
+                        { inline: true, content: 'window.Parameters = window.Parameters || {}; var config = { SiteType: atob("RFVEQU9ORQ==") };' }
+                    ],
+                    domElements: [
+                        {
+                            selector: 'div[class*="dmBody"]',
+                            count: 1,
+                            sample: '<div class="dmBody dmRespRow">'
+                        }
+                    ],
+                    detectionResults: [{ detector: 'duda-meta', strategy: 'meta-tag', cms: 'Duda', confidence: 0.95, executionTime: 100 }]
+                }),
+                createDataPoint({
+                    metaTags: [
+                        { name: 'generator', content: 'Duda' }
+                    ],
+                    scripts: [
+                        { src: 'https://lirp.cdn-website.com/css/styles.css' },
+                        { inline: true, content: 'window.Parameters.SiteId = "abc123";' }
+                    ],
+                    domElements: [
+                        {
+                            selector: 'div[class*="dmBody"]',
+                            count: 1,
+                            sample: '<div class="dmBody">'
+                        }
+                    ],
+                    detectionResults: [{ detector: 'duda-meta', strategy: 'meta-tag', cms: 'Duda', confidence: 0.92, executionTime: 100 }]
+                })
+            ];
+
+            const discovery = new PatternDiscovery(dataPoints);
+            const signatures = discovery.generateTechnologySignatures();
+
+            expect(signatures.has('Duda')).toBe(true);
+            const dudaSignature = signatures.get('Duda')!;
+            
+            expect(dudaSignature.name).toBe('Duda');
+            expect(dudaSignature.category).toBe('cms');
+            expect(dudaSignature.patterns.length).toBeGreaterThan(0);
+            
+            // Should have different pattern types
+            const patternTypes = new Set(dudaSignature.patterns.map(p => p.type));
+            expect(patternTypes.has('meta')).toBe(true);
+            expect(patternTypes.has('script')).toBe(true);
+            expect(patternTypes.has('dom')).toBe(true);
+            
+            // Should have confidence score
+            expect(dudaSignature.confidence).toBeGreaterThan(0);
+            expect(dudaSignature.confidence).toBeLessThanOrEqual(1);
+            
+            // Should have at least some patterns
+            expect(dudaSignature.patterns.length).toBeGreaterThan(0);
+            
+            // Check for any Duda-specific patterns (may be meta, script, or DOM)
+            const hasDudaPattern = dudaSignature.patterns.some(p => 
+                (p.type === 'meta' && p.pattern.includes('generator')) ||
+                (p.type === 'script' && (p.pattern.includes('cdn-website.com') || p.pattern.includes('window.Parameters'))) ||
+                (p.type === 'dom' && p.pattern.includes('dmBody'))
+            );
+            expect(hasDudaPattern).toBe(true);
         });
 
         it('should mark highly confident patterns as required', () => {

@@ -45,6 +45,14 @@ vi.mock('../../utils/cms/index.js', () => ({
                     executionTime: 1200,
                     version: '10.1'
                 };
+            } else if (url.includes('duda')) {
+                return {
+                    cms: 'Duda',
+                    confidence: 0.9,
+                    originalUrl: url,
+                    finalUrl: url,
+                    executionTime: 1100
+                };
             } else if (url.includes('error')) {
                 throw new Error('Network timeout');
             } else if (url.includes('dns-fail')) {
@@ -131,6 +139,17 @@ describe('Functional: detect_cms.ts', () => {
             expect(results[0].success).toBe(true);
             expect(results[0].cms).toBe('Drupal');
             expect(results[0].version).toBe('10.1');
+        });
+
+        it('should process Duda URLs successfully', async () => {
+            const urls = ['https://duda-site.com'];
+            
+            const results = await processCMSDetectionBatch(urls, { collectData: true });
+            
+            expect(results).toHaveLength(1);
+            expect(results[0].success).toBe(true);
+            expect(results[0].cms).toBe('Duda');
+            expect(results[0].url).toBe('https://duda-site.com');
         });
 
         it('should handle unknown CMS sites', async () => {

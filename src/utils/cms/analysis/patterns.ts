@@ -378,6 +378,11 @@ export class PatternDiscovery {
         if (scriptSrc.includes('/sites/')) patterns.push('path:sites');
         if (scriptSrc.includes('/media/')) patterns.push('path:media');
         
+        // Extract Duda domain patterns
+        if (scriptSrc.includes('irp.cdn-website.com')) patterns.push('domain:irp.cdn-website.com');
+        if (scriptSrc.includes('lirp.cdn-website.com')) patterns.push('domain:lirp.cdn-website.com');
+        if (scriptSrc.includes('cdn-website.com')) patterns.push('domain:cdn-website.com');
+        
         return patterns;
     }
 
@@ -388,6 +393,12 @@ export class PatternDiscovery {
         if (content.includes('Drupal.')) patterns.push('inline:Drupal.');
         if (content.includes('Joomla.')) patterns.push('inline:Joomla.');
         if (content.includes('WordPress')) patterns.push('inline:WordPress');
+        
+        // Add Duda inline script patterns
+        if (content.includes('window.Parameters')) patterns.push('inline:window.Parameters');
+        if (content.includes('DUDAONE')) patterns.push('inline:DUDAONE');
+        if (content.includes('DM_DIRECT')) patterns.push('inline:DM_DIRECT');
+        if (content.includes('dmBody')) patterns.push('inline:dmBody');
         
         return patterns;
     }

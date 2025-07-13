@@ -3,6 +3,7 @@ import { BrowserManager, createDetectionConfig, BrowserNetworkError } from '../b
 import { WordPressDetector } from './detectors/wordpress.js';
 import { JoomlaDetector } from './detectors/joomla.js';
 import { DrupalDetector } from './detectors/drupal.js';
+import { DudaDetector } from './detectors/duda.js';
 import { createModuleLogger } from '../logger.js';
 import { validateAndNormalizeUrl, createValidationContext } from '../url/index.js';
 import { DataCollector } from './analysis/collector.js';
@@ -302,7 +303,8 @@ class CMSDetectionIterator {
         const detectors: CMSDetector[] = [
             new WordPressDetector(),
             new JoomlaDetector(),
-            new DrupalDetector()
+            new DrupalDetector(),
+            new DudaDetector()
         ];
 
         // For now, we'll create a mock page object with the collected data
@@ -515,7 +517,8 @@ export async function detectCMSWithIsolation(url: string, _browserManager: Brows
         const detectors: CMSDetector[] = [
             new WordPressDetector(),  // Most common CMS
             new JoomlaDetector(),     // Second most common
-            new DrupalDetector()      // Less common but still significant
+            new DrupalDetector(),     // Less common but still significant
+            new DudaDetector()        // Website builder - check after traditional CMSs
         ];
 
         // Run all detectors and choose the best result
@@ -645,6 +648,7 @@ export { CMSDetectionIterator };
 export { WordPressDetector } from './detectors/wordpress.js';
 export { JoomlaDetector } from './detectors/joomla.js';
 export { DrupalDetector } from './detectors/drupal.js';
+export { DudaDetector } from './detectors/duda.js';
 export { MetaTagStrategy } from './strategies/meta-tag.js';
 export { HtmlContentStrategy } from './strategies/html-content.js';
 export { ApiEndpointStrategy } from './strategies/api-endpoint.js';

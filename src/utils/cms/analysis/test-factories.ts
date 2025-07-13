@@ -208,6 +208,38 @@ export function createJoomlaDataPoint(overrides: Partial<DetectionDataPoint> = {
 }
 
 /**
+ * Create a Duda-specific data point
+ */
+export function createDudaDataPoint(overrides: Partial<DetectionDataPoint> = {}): DetectionDataPoint {
+    return createTestDataPoint({
+        url: 'https://duda-example.com',
+        metaTags: [
+            { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+        ],
+        htmlContent: '<html><head><script src="https://irp.cdn-website.com/js/main.js"></script></head><body><div class="dmBody"><script>window.Parameters = window.Parameters || {};</script></div></body></html>',
+        links: [
+            { href: 'https://lirp.cdn-website.com/css/styles.css', rel: 'stylesheet' },
+            { href: 'https://www.dudamobile.com', text: 'Mobile Website Builder' }
+        ],
+        scripts: [
+            { src: 'https://irp.cdn-website.com/js/main.js' },
+            { inline: true, content: 'window.Parameters = window.Parameters || {}; var config = { SiteType: atob("RFVEQU9ORQ=="), productId: "DM_DIRECT", BlockContainerSelector: ".dmBody" };' }
+        ],
+        stylesheets: [
+            { href: 'https://lirp.cdn-website.com/css/styles.css' }
+        ],
+        technologies: [
+            { name: 'Duda', confidence: 0.95, evidence: ['window.Parameters', 'irp.cdn-website.com', '.dmBody'], category: 'cms' }
+        ],
+        detectionResults: [
+            { detector: 'Duda', strategy: 'duda-javascript', cms: 'Duda', confidence: 0.95, executionTime: 120 },
+            { detector: 'Duda', strategy: 'html-content', cms: 'Duda', confidence: 0.85, executionTime: 80 }
+        ],
+        ...overrides
+    });
+}
+
+/**
  * Create a data point with no CMS detected
  */
 export function createUnknownCMSDataPoint(overrides: Partial<DetectionDataPoint> = {}): DetectionDataPoint {
@@ -271,7 +303,7 @@ export function createTestDataPointBatch(count: number = 10): DetectionDataPoint
     const dataPoints: DetectionDataPoint[] = [];
     
     for (let i = 0; i < count; i++) {
-        const cmsType = ['WordPress', 'Drupal', 'Joomla', 'Unknown'][i % 4];
+        const cmsType = ['WordPress', 'Drupal', 'Joomla', 'Duda', 'Unknown'][i % 5];
         const url = `https://example${i}.com`;
         const timestamp = new Date(Date.now() - (i * 3600000)); // 1 hour apart
         
@@ -284,6 +316,9 @@ export function createTestDataPointBatch(count: number = 10): DetectionDataPoint
                 break;
             case 'Joomla':
                 dataPoints.push(createJoomlaDataPoint({ url, timestamp }));
+                break;
+            case 'Duda':
+                dataPoints.push(createDudaDataPoint({ url, timestamp }));
                 break;
             default:
                 dataPoints.push(createUnknownCMSDataPoint({ url, timestamp }));

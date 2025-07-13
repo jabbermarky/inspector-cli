@@ -24,7 +24,8 @@ vi.mock('../../utils/utils.js', () => ({
         return [
             'https://example.com',
             'https://wordpress-site.com',
-            'https://drupal-site.com'
+            'https://drupal-site.com',
+            'https://duda-site.com'
         ];
     })
 }));
@@ -48,6 +49,19 @@ vi.mock('../../utils/cms/index.js', () => ({
                     confidence: 0.88,
                     executionTime: 1500,
                     error: null
+                };
+            } else if (url.includes('duda')) {
+                return {
+                    cms: 'Duda',
+                    confidence: 0.93,
+                    executionTime: 1100,
+                    error: null,
+                    version: undefined,
+                    evidence: { 
+                        metaTag: 'generator',
+                        cdnDomain: 'cdn-website.com',
+                        jsSignature: 'window.Parameters'
+                    }
                 };
             } else {
                 return {
@@ -76,6 +90,19 @@ vi.mock('../../utils/robots-txt-analyzer.js', () => ({
                     headers: {
                         'server': 'nginx',
                         'x-pingback': `${url}/xmlrpc.php`
+                    }
+                };
+            } else if (url.includes('duda')) {
+                return {
+                    url: `${url}/robots.txt`,
+                    cms: 'Duda',
+                    confidence: 0.7,
+                    error: null,
+                    content: 'User-agent: *\\nDisallow: /admin\\nDisallow: /edit',
+                    signals: ['admin disallow', 'edit disallow'],
+                    headers: {
+                        'server': 'nginx',
+                        'x-powered-by': 'Duda'
                     }
                 };
             } else {
@@ -226,6 +253,22 @@ describe('Functional: ground-truth.ts Command', () => {
     });
 
     describe('Expected Output Patterns', () => {
+        it('should simulate Duda detection workflow output', () => {
+            const url = 'https://duda-site.com';
+            
+            // Simulate expected console output patterns for Duda
+            console.log(`\\n🔍 Analyzing: ${url}`);
+            console.log('🤖 Robots.txt Analysis:');
+            console.log(`   🤖 robots.txt: Duda (70.0%) via admin disallow`);
+            console.log('🌐 Main Page Detection:');
+            console.log(`   🌐 main page: Duda (93.0%) | 1100ms`);
+            console.log(`   ✅ Final: Duda (93.0%) - both methods agree`);
+            
+            expect(consoleSpy).toHaveBeenCalledWith(`\\n🔍 Analyzing: ${url}`);
+            expect(consoleSpy).toHaveBeenCalledWith('🤖 Robots.txt Analysis:');
+            expect(consoleSpy).toHaveBeenCalledWith('🌐 Main Page Detection:');
+        });
+
         it('should simulate WordPress detection workflow output', () => {
             const url = 'https://wordpress-site.com';
             
@@ -273,13 +316,15 @@ describe('Functional: ground-truth.ts Command', () => {
 
         it('should simulate batch processing output', () => {
             console.log('🔄 Batch processing mode (no interactive prompts)');
-            console.log('📋 Loaded 3 URLs from CSV');
+            console.log('📋 Loaded 4 URLs from CSV');
             console.log('\n🔍 Analyzing: https://example.com');
             console.log('   ✅ Final: WordPress (95.0%)');
-            console.log('\n✅ Completed processing 3 URLs');
+            console.log('\n🔍 Analyzing: https://duda-site.com');
+            console.log('   ✅ Final: Duda (93.0%)');
+            console.log('\n✅ Completed processing 4 URLs');
             
             expect(consoleSpy).toHaveBeenCalledWith('🔄 Batch processing mode (no interactive prompts)');
-            expect(consoleSpy).toHaveBeenCalledWith('\n✅ Completed processing 3 URLs');
+            expect(consoleSpy).toHaveBeenCalledWith('\n✅ Completed processing 4 URLs');
         });
     });
 
@@ -293,6 +338,7 @@ describe('Functional: ground-truth.ts Command', () => {
             console.log('\n📈 CMS Distribution:');
             console.log('   WordPress    1 sites');
             console.log('   Drupal       1 sites');
+            console.log('   Duda         1 sites');
             
             console.log('\n🔢 Version Distribution:');
             console.log('   WordPress:');

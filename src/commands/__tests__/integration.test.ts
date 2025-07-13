@@ -95,7 +95,8 @@ describe('Integration: CMS Detection Workflows', () => {
                 const testUrls = [
                     'https://wordpress-site.com',
                     'https://drupal-site.com',
-                    'https://joomla-site.com'
+                    'https://joomla-site.com',
+                    'https://duda-site.com'
                 ];
                 
                 // Mock the complete workflow
@@ -131,6 +132,18 @@ describe('Integration: CMS Detection Workflows', () => {
                         originalUrl: testUrls[2],
                         finalUrl: testUrls[2],
                         executionTime: 800
+                    })
+                    .mockResolvedValueOnce({
+                        cms: 'Duda',
+                        confidence: 0.93,
+                        originalUrl: testUrls[3],
+                        finalUrl: testUrls[3],
+                        executionTime: 1100,
+                        evidence: {
+                            metaTag: 'generator',
+                            cdnDomain: 'cdn-website.com',
+                            jsSignature: 'window.Parameters'
+                        }
                     });
                 
                 // Verify the workflow steps
@@ -155,7 +168,7 @@ describe('Integration: CMS Detection Workflows', () => {
                 for (const url of testUrls) {
                     const result = await mockIterator.detect(url);
                     expect(result).toBeDefined();
-                    expect(result.cms).toMatch(/WordPress|Drupal|Joomla/);
+                    expect(result.cms).toMatch(/WordPress|Drupal|Joomla|Duda/);
                 }
                 
                 // Verify cleanup
@@ -217,9 +230,10 @@ describe('Integration: CMS Detection Workflows', () => {
                     totalSize: 1024 * 50,
                     avgConfidence: 0.85,
                     cmsDistribution: new Map([
-                        ['WordPress', 60],
-                        ['Drupal', 25],
+                        ['WordPress', 50],
+                        ['Drupal', 20],
                         ['Joomla', 10],
+                        ['Duda', 15],
                         ['Unknown', 5]
                     ]),
                     dateRange: {
@@ -257,7 +271,8 @@ describe('Integration: CMS Detection Workflows', () => {
                 
                 const stats = await storage.getStatistics();
                 expect(stats.totalDataPoints).toBe(100);
-                expect(stats.cmsDistribution.get('WordPress')).toBe(60);
+                expect(stats.cmsDistribution.get('WordPress')).toBe(50);
+                expect(stats.cmsDistribution.get('Duda')).toBe(15);
                 
                 const dataPoints = await storage.query({
                     includeUnknown: false,

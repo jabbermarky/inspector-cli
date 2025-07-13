@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-07-13T02:25:37.956Z",
+  "summary": {
+    "totalSkipped": 1,
+    "byReason": {
+      "DNS timeout": 1
+    }
+  },
+  "details": [
+    {
+      "url": "https://www.cesag.sn/",
+      "reason": "DNS timeout",
+      "error": "DNS timeout after 5000ms"
+    }
+  ]
+}

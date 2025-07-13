@@ -77,7 +77,7 @@ export async function processCMSDetectionBatch(urls: string[], options: { collec
                     
                     results.push(result);
                 } else {
-                    // Success means we detected a known CMS (WordPress, Joomla, Drupal)
+                    // Success means we detected a known CMS (WordPress, Joomla, Drupal, Duda)
                     // "Unknown" CMS counts as a failed detection
                     const isKnownCMS = detected.cms && detected.cms !== 'Unknown';
                     

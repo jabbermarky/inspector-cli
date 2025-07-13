@@ -3,7 +3,7 @@ import { ManagedPage } from '../browser/index.js';
 /**
  * Supported CMS types
  */
-export type CMSType = 'WordPress' | 'Joomla' | 'Drupal' | 'Unknown';
+export type CMSType = 'WordPress' | 'Joomla' | 'Drupal' | 'Duda' | 'Unknown';
 
 /**
  * CMS plugin information

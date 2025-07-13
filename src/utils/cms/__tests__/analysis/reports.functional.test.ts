@@ -103,8 +103,11 @@ vi.mock('../../analysis/patterns.js', () => ({
                 drupalPatterns: [
                     { pattern: 'drupal', confidence: 0.8, count: 1 }
                 ],
+                dudaPatterns: [
+                    { pattern: 'duda', confidence: 0.93, count: 1 }
+                ],
                 commonPatterns: [
-                    { pattern: 'generator', confidence: 0.7, count: 3 }
+                    { pattern: 'generator', confidence: 0.7, count: 4 }
                 ]
             };
         }
@@ -116,6 +119,10 @@ vi.mock('../../analysis/patterns.js', () => ({
                 ],
                 drupalPatterns: [
                     { pattern: 'drupal.js', confidence: 0.85, count: 1 }
+                ],
+                dudaPatterns: [
+                    { pattern: 'window.Parameters', confidence: 0.93, count: 1 },
+                    { pattern: 'cdn-website.com', confidence: 0.91, count: 1 }
                 ],
                 commonPatterns: [
                     { pattern: 'jquery', confidence: 0.6, count: 4 }
@@ -131,6 +138,9 @@ vi.mock('../../analysis/patterns.js', () => ({
                 drupalPatterns: [
                     { pattern: 'node-', confidence: 0.8, count: 2 }
                 ],
+                dudaPatterns: [
+                    { pattern: 'dmBody', confidence: 0.95, count: 1 }
+                ],
                 commonPatterns: [
                     { pattern: 'content', confidence: 0.5, count: 5 }
                 ]
@@ -139,7 +149,9 @@ vi.mock('../../analysis/patterns.js', () => ({
 
         getTopSignatures() {
             return [
+                { pattern: 'dmBody', confidence: 0.95, cms: 'Duda' },
                 { pattern: 'wp-content', confidence: 0.95, cms: 'WordPress' },
+                { pattern: 'window.Parameters', confidence: 0.93, cms: 'Duda' },
                 { pattern: 'wordpress', confidence: 0.9, cms: 'WordPress' },
                 { pattern: 'drupal.js', confidence: 0.85, cms: 'Drupal' }
             ];
@@ -147,8 +159,9 @@ vi.mock('../../analysis/patterns.js', () => ({
 
         analyzeCMSDistribution() {
             return {
-                WordPress: { count: 2, percentage: 66.7 },
-                Drupal: { count: 1, percentage: 33.3 }
+                WordPress: { count: 2, percentage: 50.0 },
+                Drupal: { count: 1, percentage: 25.0 },
+                Duda: { count: 1, percentage: 25.0 }
             };
         }
 
@@ -223,6 +236,34 @@ describe.skip('AnalysisReporter Functional Tests', () => {
                         category: 'cms' as const
                     }
                 ]
+            }),
+            createTestDataPoint({
+                url: 'https://duda-site.com',
+                htmlContent: '<html><meta name="generator" content="Duda Website Builder"><div class="dmBody"></div></html>',
+                title: 'Duda Website',
+                scripts: [
+                    { src: 'https://irp.cdn-website.com/js/main.js' },
+                    { inline: true, content: 'window.Parameters = window.Parameters || {}; var config = { SiteType: atob("RFVEQU9ORQ==") };' }
+                ],
+                technologies: [
+                    { 
+                        name: 'Duda', 
+                        confidence: 0.93, 
+                        evidence: ['meta generator tag', 'CDN patterns', 'JavaScript signatures'],
+                        category: 'cms' as const
+                    }
+                ],
+                detectionResults: [
+                    {
+                        detector: 'DudaDetector',
+                        strategy: 'meta-tag',
+                        cms: 'Duda',
+                        confidence: 0.93,
+                        version: undefined,
+                        evidence: { metaTag: 'generator', cdnDomain: 'irp.cdn-website.com' },
+                        executionTime: 45
+                    }
+                ]
             })
         ];
     });
@@ -235,9 +276,10 @@ describe.skip('AnalysisReporter Functional Tests', () => {
             
             expect(report).toContain('# CMS Detection Analysis Report');
             expect(report).toContain('## Executive Summary');
-            expect(report).toContain('Total sites analyzed: 3');
-            expect(report).toContain('WordPress: 2 sites (66.7%)');
-            expect(report).toContain('Drupal: 1 sites (33.3%)');
+            expect(report).toContain('Total sites analyzed: 4');
+            expect(report).toContain('WordPress: 2 sites (50.0%)');
+            expect(report).toContain('Drupal: 1 sites (25.0%)');
+            expect(report).toContain('Duda: 1 sites (25.0%)');
         });
 
         it('should save report to file when output path provided', async () => {
@@ -272,6 +314,7 @@ describe.skip('AnalysisReporter Functional Tests', () => {
             expect(summary).toContain('## DOM Structure Patterns');
             expect(summary).toContain('wordpress');
             expect(summary).toContain('drupal');
+            expect(summary).toContain('duda');
         });
 
         it('should include pattern confidence scores', async () => {
@@ -331,7 +374,7 @@ describe.skip('AnalysisReporter Functional Tests', () => {
             
             const report = await reporter.generateReport();
             
-            expect(report).toContain('Total sites analyzed: 3');
+            expect(report).toContain('Total sites analyzed: 4');
             expect(report).toContain('Average confidence: ');
             expect(report).toContain('Detection success rate: ');
         });
@@ -382,10 +425,11 @@ describe.skip('AnalysisReporter Functional Tests', () => {
             
             const report = await reporter.generateReport();
             
-            expect(report).toContain('Total sites analyzed: 4');
+            expect(report).toContain('Total sites analyzed: 5');
             expect(report).toContain('WordPress');
             expect(report).toContain('Drupal');
             expect(report).toContain('Joomla');
+            expect(report).toContain('Duda');
         });
 
         it('should generate complete workflow from data to report', async () => {

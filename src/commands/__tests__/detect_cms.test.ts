@@ -532,7 +532,7 @@ describe('CMS Detection Command', () => {
 
     describe('CMS Detection Success Criteria', () => {
         it('should mark known CMS as successful', async () => {
-            const knownCMSTypes: CMSType[] = ['WordPress', 'Drupal', 'Joomla'];
+            const knownCMSTypes: CMSType[] = ['WordPress', 'Drupal', 'Joomla', 'Duda'];
             
             for (const cms of knownCMSTypes) {
                 const mockResult: CMSDetectionResult = {
