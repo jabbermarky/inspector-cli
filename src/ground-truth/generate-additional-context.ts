@@ -61,6 +61,7 @@ export function generateAdditionalContext(data: any): AdditionalContextData {
             { name: 'WordPress', pattern: 'wp-' },
             { name: 'Drupal', pattern: 'drupal' },
             { name: 'Joomla', pattern: 'joomla' },
+            { name: 'Duda', pattern: 'duda' },
             { name: 'jQuery', pattern: 'jquery' },
             { name: 'React', pattern: 'react' },
             { name: 'Angular', pattern: 'angular' },

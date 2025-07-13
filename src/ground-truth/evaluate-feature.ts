@@ -168,6 +168,87 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
             
             return hasJsPattern || hasHtmlPattern;
 
+        // Duda Website Builder features
+        case 'hasWindowParameters':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes('window.Parameters = window.Parameters')
+                ) ||
+                data.htmlContent?.toLowerCase().includes('window.parameters = window.parameters') ||
+                false
+            );
+
+        case 'hasDudaOneSiteType':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes("SiteType: atob('RFVEQU9ORQ==')")
+                ) ||
+                data.htmlContent?.toLowerCase().includes("sitetype: atob('rfvequ9orq==')") ||
+                false
+            );
+
+        case 'hasDMDirectProductId':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes("productId: 'DM_DIRECT'")
+                ) ||
+                data.htmlContent?.toLowerCase().includes("productid: 'dm_direct'") ||
+                false
+            );
+
+        case 'hasDmBodySelector':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes("BlockContainerSelector: '.dmBody'")
+                ) ||
+                data.htmlContent?.toLowerCase().includes("blockcontainerselector: '.dmbody'") ||
+                false
+            );
+
+        case 'hasIrpCdnWebsite':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.src && script.src.includes('irp.cdn-website.com')
+                ) ||
+                data.stylesheets?.some((stylesheet: any) =>
+                    stylesheet.href && stylesheet.href.includes('irp.cdn-website.com')
+                ) ||
+                data.htmlContent?.includes('irp.cdn-website.com') ||
+                false
+            );
+
+        case 'hasLirpCdnWebsite':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.src && script.src.includes('lirp.cdn-website.com')
+                ) ||
+                data.stylesheets?.some((stylesheet: any) =>
+                    stylesheet.href && stylesheet.href.includes('lirp.cdn-website.com')
+                ) ||
+                data.htmlContent?.includes('lirp.cdn-website.com') ||
+                false
+            );
+
+        case 'hasUSDirectProduction':
+            return (
+                data.scripts?.some((script: any) =>
+                    script.content && script.content.includes("SystemID: 'US_DIRECT_PRODUCTION'")
+                ) ||
+                data.htmlContent?.toLowerCase().includes("systemid: 'us_direct_production'") ||
+                false
+            );
+
+        case 'hasDudaMobileDomain':
+            return data.htmlContent?.includes('dudamobile.com') || false;
+
+        case 'hasDmAlbumClasses':
+            const html = data.htmlContent?.toLowerCase() || '';
+            return html.includes('dmalbum') || html.includes('dmrespimg');
+
+        case 'hasDudaBuilderIdentifiers':
+            const htmlLower = data.htmlContent?.toLowerCase() || '';
+            return htmlLower.includes('duda_website_builder') || htmlLower.includes('_duda_');
+
         default:
             return false;
     }
