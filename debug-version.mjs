@@ -1,1 +1,0 @@
-import * as fs from "fs"; import { extractVersionInfo } from "./dist/ground-truth/extract-version-info.js"; const data = JSON.parse(fs.readFileSync("data/cms-analysis/mcsk6ly3-cmVkaGF0Lm.json", "utf8")); const versions = extractVersionInfo(data); console.log("Version extraction:", JSON.stringify(versions, null, 2));

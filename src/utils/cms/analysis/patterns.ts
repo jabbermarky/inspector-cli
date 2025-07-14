@@ -396,10 +396,17 @@ export class PatternDiscovery {
         if (scriptSrc.includes('/modules/')) patterns.push('path:modules');
         if (scriptSrc.includes('/templates/')) patterns.push('path:templates');
         
-        // Extract Duda domain patterns
+        // Extract Duda domain patterns based on LLM analysis
         if (scriptSrc.includes('irp.cdn-website.com')) patterns.push('domain:irp.cdn-website.com');
         if (scriptSrc.includes('lirp.cdn-website.com')) patterns.push('domain:lirp.cdn-website.com');
         if (scriptSrc.includes('cdn-website.com')) patterns.push('domain:cdn-website.com');
+        if (scriptSrc.includes('static.cdn-website.com')) patterns.push('domain:static.cdn-website.com');
+        
+        // High-confidence Duda CDN patterns from LLM analysis
+        if (scriptSrc.includes('d32hwlnfiv2gyn.cloudfront.net')) patterns.push('domain:d32hwlnfiv2gyn.cloudfront.net');
+        if (scriptSrc.includes('d-js-runtime-flex-package.min.js')) patterns.push('script:d-js-runtime-flex-package');
+        if (scriptSrc.includes('sp-2.0.0-dm-0.1.min.js')) patterns.push('script:sp-2.0.0-dm-0.1');
+        if (scriptSrc.includes('runtime-service-worker.js')) patterns.push('script:runtime-service-worker');
         
         return patterns;
     }
@@ -412,11 +419,19 @@ export class PatternDiscovery {
         if (content.includes('Joomla.')) patterns.push('inline:Joomla.');
         if (content.includes('WordPress')) patterns.push('inline:WordPress');
         
-        // Add Duda inline script patterns
+        // Add Duda inline script patterns based on LLM analysis
         if (content.includes('window.Parameters')) patterns.push('inline:window.Parameters');
         if (content.includes('DUDAONE')) patterns.push('inline:DUDAONE');
         if (content.includes('DM_DIRECT')) patterns.push('inline:DM_DIRECT');
         if (content.includes('dmBody')) patterns.push('inline:dmBody');
+        
+        // High-confidence Duda patterns from LLM analysis
+        if (content.includes('window.rtCommonProps')) patterns.push('inline:window.rtCommonProps');
+        if (content.includes('US_DIRECT_PRODUCTION')) patterns.push('inline:US_DIRECT_PRODUCTION');
+        if (content.includes('var d_version')) patterns.push('inline:d_version');
+        if (content.includes('var build')) patterns.push('inline:build_timestamp');
+        if (content.includes('window.isFlexSite')) patterns.push('inline:isFlexSite');
+        if (content.includes('window.SystemID')) patterns.push('inline:SystemID');
         
         return patterns;
     }

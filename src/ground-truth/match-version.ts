@@ -36,3 +36,16 @@ export function isValidJoomlaVersion(version: string): boolean {
     // Joomla versions: 1.x to 5.x range
     return major >= 1 && major <= 5 && minor >= 0 && minor <= 10 && patch >= 0 && patch <= 50;
 }
+
+export function isValidDudaVersion(version: string): boolean {
+    // Duda versions are 4-digit numbers in the format XXXX
+    // Based on analysis: range 4638 to 5624 (with room for future versions)
+    const match = version.match(/^(\d{4})$/);
+    if (!match) return false;
+    
+    const versionNumber = parseInt(match[1]);
+    
+    // Duda versions: observed range 4638-5624, allow broader range for future versions
+    // Allow 4000-9999 to accommodate future platform versions
+    return versionNumber >= 4000 && versionNumber <= 9999;
+}

@@ -7,7 +7,8 @@ import { createModuleLogger } from '../../logger.js';
 import { 
     DUDA_HIGH_CONFIDENCE_PATTERNS,
     DUDA_MEDIUM_CONFIDENCE_PATTERNS,
-    DUDA_PATTERN_CONFIDENCE
+    DUDA_PATTERN_CONFIDENCE,
+    DUDA_VERSION_PATTERNS
 } from '../patterns/duda.js';
 
 const logger = createModuleLogger('cms-duda-detector');
@@ -47,16 +48,21 @@ class DudaJavaScriptStrategy implements DetectionStrategy {
             const confidence = this.calculateConfidence(detectionResults);
             const evidence = detectionResults.map(r => r.pattern);
 
+            // Extract version information if patterns are found
+            const versionInfo = this.extractVersionInfo(html, scripts);
+
             logger.debug('Duda JavaScript detection completed', {
                 url,
                 confidence,
-                evidenceCount: evidence.length
+                evidenceCount: evidence.length,
+                versionInfo
             });
 
             return {
                 confidence,
                 method: this.getName(),
-                evidence
+                evidence,
+                version: versionInfo?.version
             };
 
         } catch (error) {
@@ -128,6 +134,51 @@ class DudaJavaScriptStrategy implements DetectionStrategy {
         const boost = Math.min(highConfidenceCount * 0.1, 0.3);
         
         return Math.min(averageConfidence + boost, 1.0);
+    }
+
+    /**
+     * Extract version information from Duda JavaScript patterns
+     */
+    private extractVersionInfo(html: string, scripts: any[]): {
+        version: string;
+        environment: string;
+        buildTimestamp?: string;
+        source: string;
+        confidence: string;
+    } | null {
+        const allContent = [html, ...scripts.map(s => s.content || '').filter(Boolean)].join('\n');
+
+        // Try to extract d_version pattern
+        const versionMatch = DUDA_VERSION_PATTERNS.D_VERSION_REGEX.exec(allContent);
+        if (versionMatch) {
+            const environment = versionMatch[1];  // e.g., "production"
+            const version = versionMatch[2];      // e.g., "5624"
+            
+            // Try to extract build timestamp
+            const buildMatch = DUDA_VERSION_PATTERNS.BUILD_TIMESTAMP_REGEX.exec(allContent);
+            const buildTimestamp = buildMatch ? buildMatch[1] : undefined;
+            
+            // Verify window version assignment is present for higher confidence
+            const windowVersionMatch = DUDA_VERSION_PATTERNS.WINDOW_VERSION_REGEX.test(allContent);
+            const confidence = windowVersionMatch ? 'high' : 'medium';
+
+            logger.debug('Extracted Duda version information', {
+                version,
+                environment,
+                buildTimestamp,
+                confidence
+            });
+
+            return {
+                version,
+                environment,
+                buildTimestamp,
+                source: 'javascript-d_version',
+                confidence
+            };
+        }
+
+        return null;
     }
 }
 

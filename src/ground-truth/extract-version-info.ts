@@ -1,4 +1,4 @@
-import { isValidWordPressVersion, isValidDrupalVersion, isValidJoomlaVersion } from './match-version.js';
+import { isValidWordPressVersion, isValidDrupalVersion, isValidJoomlaVersion, isValidDudaVersion } from './match-version.js';
 
 export function extractVersionInfo(
     data: any
@@ -47,6 +47,20 @@ export function extractVersionInfo(
                     versions.push({
                         cms: 'Joomla',
                         version: joomlaMatch[1],
+                        source: 'meta-generator',
+                        confidence: 'high',
+                        pattern: generator.content,
+                    });
+                }
+            }
+
+            // Duda version patterns
+            if (content.includes('duda')) {
+                const dudaMatch = content.match(/duda[^\d]*(\d+(?:\.\d+)*)/);
+                if (dudaMatch) {
+                    versions.push({
+                        cms: 'Duda',
+                        version: dudaMatch[1],
                         source: 'meta-generator',
                         confidence: 'high',
                         pattern: generator.content,
@@ -133,6 +147,38 @@ export function extractVersionInfo(
         });
     }
 
+    // Check script content for Duda d_version pattern
+    if (data.scripts) {
+        data.scripts.forEach((script: any) => {
+            if (script.content) {
+                const content = script.content;
+                
+                // Look for Duda d_version pattern: var d_version = "production_XXXX"
+                const dudaVersionMatch = content.match(/var\s+d_version\s*=\s*["']([^_]+)_(\d{4})["']/);
+                if (dudaVersionMatch) {
+                    const environment = dudaVersionMatch[1];
+                    const version = dudaVersionMatch[2];
+                    
+                    if (isValidDudaVersion(version)) {
+                        // Check for additional pattern confirmations
+                        const hasBuildPattern = /var\s+build\s*=\s*["']\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2}["']/.test(content);
+                        const hasWindowPattern = /window\[['"]v['"]\s*\+\s*['"]ersion['"]\]\s*=\s*d_version/.test(content);
+                        
+                        const confidence = (hasBuildPattern && hasWindowPattern) ? 'high' : 'medium';
+                        
+                        versions.push({
+                            cms: 'Duda',
+                            version: version,
+                            source: 'script-content',
+                            confidence: confidence,
+                            pattern: `d_version="${environment}_${version}"`,
+                        });
+                    }
+                }
+            }
+        });
+    }
+
     // Check HTTP headers
     if (data.httpHeaders) {
         Object.entries(data.httpHeaders).forEach(([name, value]: [string, any]) => {
@@ -155,7 +201,7 @@ export function extractVersionInfo(
 
                 // Check other headers for version info
                 const versionMatch = headerValue.match(
-                    /(wordpress|drupal|joomla)[^\d]*(\d+(?:\.\d+)?(?:\.\d+)?)/
+                    /(wordpress|drupal|joomla|duda)[^\d]*(\d+(?:\.\d+)?(?:\.\d+)?)/
                 );
                 if (versionMatch) {
                     const detectedVersion = versionMatch[2];
@@ -169,6 +215,8 @@ export function extractVersionInfo(
                         isValid = isValidDrupalVersion(detectedVersion);
                     } else if (cms === 'Joomla') {
                         isValid = isValidJoomlaVersion(detectedVersion);
+                    } else if (cms === 'Duda') {
+                        isValid = isValidDudaVersion(detectedVersion);
                     }
 
                     if (isValid) {

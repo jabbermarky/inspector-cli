@@ -352,6 +352,7 @@ describe('ClassUnderTest', () => {
 
 ### Data Analysis
 - When analyzing data, create temporary scripts in the reports folder
+- **Always write analysis reports into the reports folder**
 
 ## Development Best Practices
 

@@ -1,1 +1,0 @@
-import * as fs from "fs"; import { analyzeMetaSignals } from "./dist/ground-truth/signal-analysis.js"; const data = JSON.parse(fs.readFileSync("data/cms-analysis/mcsk6ly3-cmVkaGF0Lm.json", "utf8")); const signals = analyzeMetaSignals(data); console.log("Meta signals:", JSON.stringify(signals.filter(s => s.match), null, 2));
