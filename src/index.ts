@@ -30,6 +30,7 @@ import './commands/ground-truth.js';
 import './commands/analyze.js';
 import './commands/analyze-blocking.js';
 import './commands/generate.js';
+import './commands/learn.js';
 
 program.parse(process.argv);
 program.showHelpAfterError();
