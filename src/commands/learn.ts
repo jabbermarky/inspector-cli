@@ -240,12 +240,11 @@ program
                     };
                     
                     try {
-                        // Use Gemini for faster and cheaper analysis
-                        const techAnalysis = await performGeminiAnalysis(
+                        // Use specified model or default to Gemini for efficiency
+                        const techAnalysis = await performDirectLLMAnalysis(
                             techData,
                             createTechnologyMetaAnalysisPrompt(technology),
-                            'gemini-1.5-flash',
-                            'meta-analysis'
+                            options.model || 'gemini-1.5-flash'
                         );
                         
                         if (techAnalysis.validationStatus !== 'invalid') {

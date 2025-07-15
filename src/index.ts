@@ -31,6 +31,7 @@ import './commands/analyze.js';
 import './commands/analyze-blocking.js';
 import './commands/generate.js';
 import './commands/learn.js';
+import './commands/models.js';
 
 program.parse(process.argv);
 program.showHelpAfterError();

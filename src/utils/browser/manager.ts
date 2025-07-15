@@ -348,7 +348,7 @@ export class BrowserManager {
             // Additional wait time if configured
             if (additionalWaitTime && additionalWaitTime > 0) {
                 logger.debug('Additional wait time', { additionalWaitTime });
-                await new Promise(resolve => setTimeout(resolve, additionalWaitTime));
+                await page.waitForTimeout(additionalWaitTime);
             }
 
             const navigationTime = Date.now() - navigationStart;

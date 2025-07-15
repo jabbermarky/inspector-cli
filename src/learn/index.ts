@@ -6,6 +6,7 @@ export * from './llm-integration.js';
 export * from './storage.js';
 export * from './display.js';
 export * from './meta-analysis.js';
+export * from './model-providers.js';
 
 // Re-export main functions for easy access
 export { processLearnAnalysis, processLearnBatch } from './analysis.js';

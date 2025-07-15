@@ -5,6 +5,7 @@ import { withRetryOpenAI } from '../utils/retry.js';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs/promises';
+import { detectModelProvider, ModelProvider } from './model-providers.js';
 
 const logger = createModuleLogger('learn-llm-integration');
 
@@ -40,19 +41,39 @@ function getGeminiClient(): GoogleGenerativeAI {
 }
 
 /**
- * Perform LLM analysis using OpenAI API
+ * Perform LLM analysis routing to appropriate provider based on model
  */
 export async function performLLMAnalysis(
     data: EnhancedDataCollection, 
     prompt: string, 
     model: string
 ): Promise<LLMResponse> {
+    const modelInfo = detectModelProvider(model);
+    
     logger.info('Starting LLM analysis', { 
         url: data.url, 
         model, 
+        provider: modelInfo.provider,
         promptLength: prompt.length 
     });
     
+    // Route to appropriate provider
+    if (modelInfo.provider === 'gemini') {
+        return performGeminiAnalysis(data, prompt, model, 'cms-detection');
+    }
+    
+    // Default to OpenAI
+    return performOpenAIAnalysis(data, prompt, model);
+}
+
+/**
+ * Perform LLM analysis using OpenAI API
+ */
+async function performOpenAIAnalysis(
+    data: EnhancedDataCollection, 
+    prompt: string, 
+    model: string
+): Promise<LLMResponse> {
     try {
         const config = getConfig();
         const openai = getOpenAIClient();
@@ -430,12 +451,33 @@ export async function performDirectLLMAnalysis(
     model: string,
     responseType: 'cms-detection' | 'meta-analysis' = 'cms-detection'
 ): Promise<LLMResponse> {
+    const modelInfo = detectModelProvider(model);
+    
     logger.info('Starting direct LLM analysis', { 
         model,
+        provider: modelInfo.provider,
         promptLength: prompt.length,
         dataSize: JSON.stringify(data).length 
     });
     
+    // Route to appropriate provider
+    if (modelInfo.provider === 'gemini') {
+        return performGeminiAnalysis(data, prompt, model, responseType);
+    }
+    
+    // Default to OpenAI
+    return performDirectOpenAIAnalysis(data, prompt, model, responseType);
+}
+
+/**
+ * Perform direct LLM analysis with OpenAI API
+ */
+async function performDirectOpenAIAnalysis(
+    data: any,
+    prompt: string,
+    model: string,
+    responseType: 'cms-detection' | 'meta-analysis' = 'cms-detection'
+): Promise<LLMResponse> {
     try {
         const config = getConfig();
         const openai = getOpenAIClient();
@@ -508,12 +550,23 @@ export async function performBulkLLMAnalysis(
     model: string,
     responseType: 'cms-detection' | 'meta-analysis' = 'cms-detection'
 ): Promise<LLMResponse> {
-    logger.info('Starting bulk LLM analysis with file upload', { 
+    const modelInfo = detectModelProvider(model);
+    
+    logger.info('Starting bulk LLM analysis', { 
         dataFilePath,
         model,
+        provider: modelInfo.provider,
         promptLength: prompt.length 
     });
     
+    // For non-OpenAI providers, read file and use direct analysis
+    if (modelInfo.provider !== 'openai') {
+        const fileData = await fs.readFile(dataFilePath, 'utf-8');
+        const data = JSON.parse(fileData);
+        return performDirectLLMAnalysis(data, prompt, model, responseType);
+    }
+    
+    // Use OpenAI file upload for OpenAI models
     try {
         const config = getConfig();
         const openai = getOpenAIClient();
