@@ -5,8 +5,12 @@ export * from './data-collection.js';
 export * from './llm-integration.js';
 export * from './storage.js';
 export * from './display.js';
+export * from './meta-analysis.js';
 
 // Re-export main functions for easy access
 export { processLearnAnalysis, processLearnBatch } from './analysis.js';
 export { displayResults } from './display.js';
 export { ensureLearnDirectoryStructure } from './storage.js';
+export { performBulkLLMAnalysis, performDirectLLMAnalysis, performGeminiAnalysis } from './llm-integration.js';
+export { aggregateDataForBulkUpload } from './data-collection.js';
+export { loadExistingLearnAnalyses, createMetaAnalysisPrompt, createTechnologyMetaAnalysisPrompt } from './meta-analysis.js';

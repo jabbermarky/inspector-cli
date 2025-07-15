@@ -6,6 +6,12 @@ export interface LearnOptions {
     outputFormat?: string;
     dryRun?: boolean;
     costEstimate?: boolean;
+    summary?: boolean;
+    crossSiteAnalysis?: boolean;
+    metaAnalysis?: boolean;
+    bulkFile?: string;
+    generateBulkData?: string;
+    headed?: boolean;
 }
 
 export interface LearnResult {
@@ -25,6 +31,13 @@ export interface LearnResult {
     };
 }
 
+export interface DataQualityAssessment {
+    quality: 'high' | 'medium' | 'low' | 'blocked';
+    score: number; // 0-1
+    issues: string[];
+    recommendations: string[];
+}
+
 export interface EnhancedDataCollection {
     url: string;
     timestamp: string;
@@ -40,6 +53,7 @@ export interface EnhancedDataCollection {
         redirectCount: number;
         protocolUpgraded: boolean;
     };
+    dataQuality?: DataQualityAssessment;
 }
 
 export interface Script {

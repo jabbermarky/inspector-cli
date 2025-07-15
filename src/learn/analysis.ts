@@ -27,13 +27,13 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
         let data: EnhancedDataCollection;
         if (options.collectData) {
             logger.info('Collecting fresh data with fallback', { url, forceFresh: options.forceFresh });
-            data = await collectEnhancedDataWithFallback(url, options.forceFresh);
+            data = await collectEnhancedDataWithFallback(url, options.forceFresh, options.headed);
         } else {
             logger.info('Attempting to retrieve existing data', { url });
             const existingData = await retrieveCollectedData(url);
             if (!existingData) {
                 logger.warn('No existing data found, collecting fresh data with fallback', { url });
-                data = await collectEnhancedDataWithFallback(url, options.forceFresh);
+                data = await collectEnhancedDataWithFallback(url, options.forceFresh, options.headed);
             } else {
                 data = existingData;
             }
