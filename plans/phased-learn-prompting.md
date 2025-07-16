@@ -86,3 +86,82 @@ Success Criteria Assumptions
    **answer**: yes.
 3. Backward Compatibility: Existing analysis storage and display systems should continue working?
    **answer**: not needed.
+
+## Implementation Plan
+
+### Phase 1: Baseline Collection and Analysis ✅
+1. Collect baseline data from current single-phase implementation
+2. Analyze pattern naming inconsistencies and confidence variance
+3. Create baseline metrics for comparison
+
+### Phase 2: Two-Phase Prompting Implementation ✅
+1. Create Phase 1 prompt for pattern discovery (temperature 0.2)
+2. Create Phase 2 prompt for pattern standardization (temperature 0.0)
+3. Implement phased analysis workflow
+4. Add --phased-analysis flag to learn command
+
+### Phase 3: Initial Validation ✅
+1. Test phased approach against baseline data
+2. Validate pattern consistency improvements
+3. Fix pattern naming issues (forbidden suffixes)
+
+### Phase 4: Multi-Model Testing ✅
+1. Test with multiple models (GPT-4o, GPT-4-turbo, Gemini variants)
+2. Compare consistency across models
+3. Analyze cost efficiency and success rates
+4. **Add accurate API latency measurement**
+
+### Phase 4.5: API Latency Instrumentation 🔄
+**Objective**: Capture accurate LLM API call durations for model comparison
+
+**Implementation Approach**:
+1. **Performance Wrapper for LLM Calls**:
+   - Instrument `src/services/llm.ts` with high-resolution timing
+   - Use `performance.now()` for microsecond precision
+   - Handle async operations correctly
+   - Account for retry attempts and error handling
+
+2. **Phased Analysis Timing**:
+   - Measure individual phase durations:
+     - Phase 1: Pattern discovery timing
+     - Phase 2: Pattern standardization timing
+   - Track total analysis duration
+   - Store timing metadata in analysis results
+
+3. **Timing Data Structure**:
+   ```json
+   {
+     "timing": {
+       "phase1DurationMs": 1234,
+       "phase2DurationMs": 567,
+       "totalDurationMs": 1801,
+       "retryCount": 0,
+       "networkLatencyMs": 89,
+       "processingLatencyMs": 1712
+     }
+   }
+   ```
+
+4. **Enhanced Model Comparison**:
+   - Average API latency per model
+   - Latency consistency (variance)
+   - Latency vs accuracy trade-offs
+   - Cost per second analysis
+
+**Success Metrics**:
+- Accurate timing data for all API calls
+- Latency comparison across models
+- Performance regression detection
+- Proper handling of retries and failures
+
+### Phase 5: Analysis & Optimization
+1. Fine-tune temperature settings based on results
+2. Optimize prompt language for better compliance
+3. Implement pattern caching for common patterns
+4. Add pattern validation rules
+
+### Phase 6: Production Rollout
+1. Replace single-phase implementation with phased approach
+2. Update configuration and documentation
+3. Monitor production performance
+4. Implement feedback loop for continuous improvement

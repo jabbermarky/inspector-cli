@@ -134,29 +134,117 @@ data/
 
 ## Phase 4: Multi-Model Testing
 
-### 4.1 Model Test Matrix
-Test each model with the 4 test CSV files:
+### 4.1 Mixed Model Test Matrix
+Test mixed model combinations for optimal phase-specific performance:
 
+#### Single Model Baseline Tests:
 | Model | Test Files | Consistency Score | Notes |
 |-------|------------|-------------------|--------|
-| gpt-4o | All 4 CSVs | TBD | Baseline comparison |
-| gpt-4-turbo | All 4 CSVs | TBD | Alternative OpenAI |
-| gemini-2.5-flash | All 4 CSVs | TBD | Google option |
-| gemini-2.5-pro | All 4 CSVs | TBD | Google premium |
+| gpt-4o | All 4 CSVs | 96.8% | Current baseline |
+| gpt-4-turbo | All 4 CSVs | 100% | High accuracy, expensive |
+| gemini-2.0-flash-exp | All 4 CSVs | 75% | Creative discovery |
 
-### 4.2 Testing Process
-For each model:
-1. Run phased analysis on all test sites
-2. Generate consistency report
-3. Compare against baseline
-4. Identify optimal model for consistency
+#### Mixed Model Combination Tests:
+| Phase 1 Model | Phase 2 Model | Strategy | Expected Benefit |
+|---------------|---------------|----------|------------------|
+| gemini-2.0-flash-exp | gpt-4o | Cost-Optimized | Lower cost, good consistency |
+| gpt-4o | gpt-4-turbo | Performance-Optimized | Maximum accuracy |
+| gpt-4o | gpt-4o | Balanced Baseline | Current approach |
+| gemini-2.0-flash-exp | gpt-4-turbo | Creative-Strict | Best discovery + standardization |
+| gpt-4-turbo | gpt-4o | Accuracy-Efficiency | High discovery + cost-effective standardization |
 
-### 4.3 Consistency Measurement Script
+### 4.2 Mixed Model Testing Process
+For each model combination:
+1. **Phase 1 Testing**: Run pattern discovery with Phase 1 model
+2. **Phase 2 Testing**: Run standardization with Phase 2 model on Phase 1 output
+3. **Consistency Analysis**: Measure pattern naming consistency and confidence variance
+4. **Cost Analysis**: Calculate combined cost per analysis
+5. **Latency Analysis**: Measure total time including both phases
+6. **Comparison**: Compare against single-model baselines
+
+### 4.3 Mixed Model Implementation Requirements
+1. **Phased Analysis Updates**:
+   - Support different models for Phase 1 and Phase 2
+   - Pass Phase 1 model config and Phase 2 model config separately
+   - Store both model selections in analysis metadata
+
+2. **Configuration Structure**:
+   ```typescript
+   interface MixedModelConfig {
+     phase1: {
+       model: string;
+       temperature: number;
+       maxTokens: number;
+     };
+     phase2: {
+       model: string;
+       temperature: number;
+       maxTokens: number;
+     };
+   }
+   ```
+
+3. **Cost Calculation**:
+   - Track Phase 1 and Phase 2 costs separately
+   - Calculate total cost per analysis
+   - Compare cost efficiency across combinations
+
+### 4.4 Mixed Model Consistency Measurement
 Create automated script to measure:
-- Pattern name consistency within CMS groups
-- Confidence score variance for identical patterns
-- Pattern completeness and accuracy
-- Cross-model comparison metrics
+- **Pattern Consistency**: Compare mixed model vs single model consistency
+- **Cost Efficiency**: Cost per successful analysis for each combination
+- **Latency Performance**: Total time for both phases combined
+- **Phase-Specific Metrics**: Individual phase performance analysis
+- **Optimal Combination Identification**: Best performing model pairs
+
+### 4.5 Expected Mixed Model Benefits
+1. **Cost Optimization**: Use cheaper models for discovery, expensive models for standardization
+2. **Latency Optimization**: Match model speed to phase requirements
+3. **Quality Optimization**: Use creative models for discovery, rule-following models for standardization
+4. **Flexibility**: Different combinations for different use cases (cost vs quality vs speed)
+
+### 4.4 API Latency Instrumentation
+**Objective**: Capture accurate LLM API call durations for model comparison
+
+**Implementation Approach**:
+1. **Performance Wrapper for LLM Calls**:
+   - Instrument `src/services/llm.ts` with high-resolution timing
+   - Use `performance.now()` for microsecond precision
+   - Handle async operations correctly
+   - Account for retry attempts and error handling
+
+2. **Phased Analysis Timing**:
+   - Measure individual phase durations:
+     - Phase 1: Pattern discovery timing
+     - Phase 2: Pattern standardization timing
+   - Track total analysis duration
+   - Store timing metadata in analysis results
+
+3. **Timing Data Structure**:
+   ```json
+   {
+     "timing": {
+       "phase1DurationMs": 1234,
+       "phase2DurationMs": 567,
+       "totalDurationMs": 1801,
+       "retryCount": 0,
+       "networkLatencyMs": 89,
+       "processingLatencyMs": 1712
+     }
+   }
+   ```
+
+4. **Enhanced Model Comparison**:
+   - Average API latency per model
+   - Latency consistency (variance)
+   - Latency vs accuracy trade-offs
+   - Cost per second analysis
+
+**Success Metrics**:
+- Accurate timing data for all API calls
+- Latency comparison across models
+- Performance regression detection
+- Proper handling of retries and failures
 
 ## Phase 5: Analysis & Optimization
 

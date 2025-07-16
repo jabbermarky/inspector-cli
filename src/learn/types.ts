@@ -9,6 +9,9 @@ export interface LearnOptions {
     summary?: boolean;
     crossSiteAnalysis?: boolean;
     metaAnalysis?: boolean;
+    phasedAnalysis?: boolean;
+    modelPhase1?: string;
+    modelPhase2?: string;
     bulkFile?: string;
     generateBulkData?: string;
     headed?: boolean;
@@ -94,6 +97,15 @@ export interface LLMResponse {
         totalTokens: number;
         promptTokens: number;
         completionTokens: number;
+    };
+    // Phased analysis fields
+    phasedAnalysis?: boolean;
+    phases?: any[];
+    totalCost?: number;
+    totalDuration?: number;
+    mixedModels?: {
+        phase1Model: string;
+        phase2Model: string;
     };
 }
 

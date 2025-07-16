@@ -4,6 +4,7 @@ import { collectEnhancedData, retrieveCollectedData, collectEnhancedDataWithFall
 import { performLLMAnalysis, formatPrompt, estimateTokensAndCost } from './llm-integration.js';
 import { storeAnalysisResult } from './storage.js';
 import { CMS_DETECTION_PROMPT } from '../prompts.js';
+import { performPhasedAnalysis, PhasedAnalysisConfig } from '../utils/cms/phased-analysis.js';
 
 const logger = createModuleLogger('learn-analysis');
 
@@ -61,9 +62,70 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
             console.log(`Estimated cost: $${cost.toFixed(4)}`);
         }
         
-        // Step 5: Perform LLM analysis
-        logger.info('Performing LLM analysis', { url, model: options.model || 'gpt-4o' });
-        const llmResponse = await performLLMAnalysis(data, prompt, options.model || 'gpt-4o');
+        // Step 5: Perform LLM analysis (single-phase or two-phase)
+        let llmResponse;
+        
+        if (options.phasedAnalysis) {
+            logger.info('Performing two-phase LLM analysis', { url, model: options.model || 'gpt-4o' });
+            
+            // Convert data to string format for phased analysis
+            const dataString = JSON.stringify({
+                url: data.url,
+                htmlContent: data.htmlContent,
+                scripts: data.scripts,
+                metaTags: data.metaTags,
+                httpHeaders: data.httpHeaders,
+                robotsTxt: data.robotsTxt,
+                domStructure: data.domStructure
+            }, null, 2);
+            
+            const phasedConfig: PhasedAnalysisConfig = {
+                model: options.model || 'gpt-4o',
+                enablePhasing: true,
+                phase1Temperature: 0.2,
+                phase2Temperature: 0.0
+            };
+            
+            // Add mixed model support if specified
+            if (options.modelPhase1 || options.modelPhase2) {
+                phasedConfig.mixedModels = {
+                    phase1Model: options.modelPhase1 || options.model || 'gpt-4o',
+                    phase2Model: options.modelPhase2 || options.model || 'gpt-4o'
+                };
+                
+                logger.info('Using mixed model configuration', {
+                    phase1Model: phasedConfig.mixedModels.phase1Model,
+                    phase2Model: phasedConfig.mixedModels.phase2Model
+                });
+            }
+            
+            const phasedResult = await performPhasedAnalysis(dataString, phasedConfig);
+            
+            if (phasedResult.success && phasedResult.result) {
+                // Convert phased result back to LLMResponse format
+                llmResponse = {
+                    rawResponse: JSON.stringify(phasedResult.result, null, 2),
+                    parsedJson: phasedResult.result,
+                    parseErrors: [],
+                    validationStatus: 'valid' as const,
+                    tokenUsage: {
+                        totalTokens: phasedResult.totalTokens,
+                        promptTokens: Math.floor(phasedResult.totalTokens * 0.7), // Estimate
+                        completionTokens: Math.floor(phasedResult.totalTokens * 0.3) // Estimate
+                    },
+                    phasedAnalysis: true,
+                    phases: phasedResult.phases,
+                    totalCost: phasedResult.totalCost,
+                    totalDuration: phasedResult.totalDuration,
+                    mixedModels: phasedResult.mixedModels
+                };
+            } else {
+                throw new Error(`Phased analysis failed: ${phasedResult.error}`);
+            }
+        } else {
+            logger.info('Performing single-phase LLM analysis', { url, model: options.model || 'gpt-4o' });
+            llmResponse = await performLLMAnalysis(data, prompt, options.model || 'gpt-4o');
+        }
         
         // Step 6: Extract insights from LLM response
         const analysisInsights = extractAnalysisInsights(llmResponse);
@@ -195,19 +257,45 @@ function extractAnalysisInsights(llmResponse: LLMResponse): {
     try {
         const json = llmResponse.parsedJson;
         
-        // Extract technology detection
-        const technologyDetected = json.platform_identification?.detected_technology || 'Unknown';
-        const confidence = json.platform_identification?.confidence || 0;
+        // Extract technology detection - handle both old and new phased analysis formats
+        let technologyDetected = 'Unknown';
+        let confidence = 0;
         
-        // Extract key patterns from high confidence discriminative patterns
+        if (json.technology && json.confidence !== undefined) {
+            // New phased analysis format
+            technologyDetected = json.technology;
+            confidence = json.confidence;
+        } else if (json.platform_identification?.detected_technology) {
+            // Old single-phase format
+            technologyDetected = json.platform_identification.detected_technology;
+            confidence = json.platform_identification.confidence || 0;
+        }
+        
+        // Extract key patterns - handle both formats
         const keyPatterns: string[] = [];
-        if (json.discriminative_patterns?.high_confidence) {
+        
+        if (json.patterns && Array.isArray(json.patterns)) {
+            // New phased analysis format (Phase 1)
+            keyPatterns.push(...json.patterns.map((p: any) => p.pattern_name || p.name || '').filter(Boolean));
+        } else if (json.standardized_patterns && Array.isArray(json.standardized_patterns)) {
+            // New phased analysis format (Phase 2)
+            keyPatterns.push(...json.standardized_patterns.map((p: any) => p.pattern_name || p.name || '').filter(Boolean));
+        } else if (json.discriminative_patterns?.high_confidence) {
+            // Old single-phase format
             keyPatterns.push(...json.discriminative_patterns.high_confidence.map((p: any) => p.pattern || '').filter(Boolean));
         }
         
-        // Extract implementable patterns from implementation recommendations
+        // Extract implementable patterns - handle both formats
         const implementablePatterns: string[] = [];
-        if (json.implementation_recommendations?.regex_patterns) {
+        
+        if (json.patterns && Array.isArray(json.patterns)) {
+            // New phased analysis format (Phase 1) - use pattern values as implementable patterns
+            implementablePatterns.push(...json.patterns.map((p: any) => p.value || '').filter(Boolean));
+        } else if (json.standardized_patterns && Array.isArray(json.standardized_patterns)) {
+            // New phased analysis format (Phase 2) - use pattern names as implementable patterns
+            implementablePatterns.push(...json.standardized_patterns.map((p: any) => p.pattern_name || '').filter(Boolean));
+        } else if (json.implementation_recommendations?.regex_patterns) {
+            // Old single-phase format
             implementablePatterns.push(...json.implementation_recommendations.regex_patterns);
         }
         if (json.implementation_recommendations?.required_combinations) {
