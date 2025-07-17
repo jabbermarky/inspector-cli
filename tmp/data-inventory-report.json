@@ -1,0 +1,1927 @@
+{
+  "timestamp": "2025-07-16T12:48:03.806Z",
+  "csvFiles": [
+    {
+      "path": "batches/additional_joomla_sites.csv",
+      "name": "additional_joomla_sites.csv",
+      "lineCount": 6,
+      "urlCount": 5,
+      "size": 133,
+      "lastModified": "2025-07-07T04:10:09.566Z",
+      "sampleLines": [
+        "url",
+        "https://www.literacysomerset.org",
+        "https://sclak.mobi/"
+      ]
+    },
+    {
+      "path": "batches/bad-joomla.csv",
+      "name": "bad-joomla.csv",
+      "lineCount": 17,
+      "urlCount": 16,
+      "size": 1750,
+      "lastModified": "2025-07-13T02:18:09.736Z",
+      "sampleLines": [
+        "url, result",
+        "https://vpb.um.ac.ir/index.php/fa/heatomana, \"Error - Navigation timeout after 8000ms\"",
+        "https://herasat.um.ac.ir/index.php?lang=fa, \"Error - Navigation timeout after 8000ms\""
+      ]
+    },
+    {
+      "path": "batches/cpanel.csv",
+      "name": "cpanel.csv",
+      "lineCount": 39,
+      "urlCount": 0,
+      "size": 967,
+      "lastModified": "2025-07-08T12:48:48.107Z",
+      "sampleLines": [
+        "URL\t",
+        "dev.afro.who.int\t",
+        "invasivespecies.wisconsin.gov\t"
+      ]
+    },
+    {
+      "path": "batches/drupal.csv",
+      "name": "drupal.csv",
+      "lineCount": 59,
+      "urlCount": 2,
+      "size": 977,
+      "lastModified": "2025-07-09T13:01:24.816Z",
+      "sampleLines": [
+        "url",
+        "https://www.info.gouv.fr",
+        "caf.fr"
+      ]
+    },
+    {
+      "path": "batches/drupal2.csv",
+      "name": "drupal2.csv",
+      "lineCount": 79,
+      "urlCount": 78,
+      "size": 1916,
+      "lastModified": "2025-07-07T05:03:01.741Z",
+      "sampleLines": [
+        "URL",
+        "https://www.tarafdari.com/",
+        "https://www.wwe.com/"
+      ]
+    },
+    {
+      "path": "batches/duda.csv",
+      "name": "duda.csv",
+      "lineCount": 656,
+      "urlCount": 655,
+      "size": 20307,
+      "lastModified": "2025-07-09T03:46:31.731Z",
+      "sampleLines": [
+        "url",
+        "https://mlspin.com/",
+        "https://www.rapport3.com/"
+      ]
+    },
+    {
+      "path": "batches/duda2.csv",
+      "name": "duda2.csv",
+      "lineCount": 11,
+      "urlCount": 10,
+      "size": 267,
+      "lastModified": "2025-07-13T11:18:17.287Z",
+      "sampleLines": [
+        "url",
+        "https://mlspin.com/",
+        "https://www.rapport3.com/"
+      ]
+    },
+    {
+      "path": "batches/good-drupal.csv",
+      "name": "good-drupal.csv",
+      "lineCount": 11,
+      "urlCount": 9,
+      "size": 260,
+      "lastModified": "2025-07-07T12:49:20.218Z",
+      "sampleLines": [
+        "url",
+        "https://www.redhat.com/en",
+        "https://pantheon.io/"
+      ]
+    },
+    {
+      "path": "batches/good-joomla.csv",
+      "name": "good-joomla.csv",
+      "lineCount": 11,
+      "urlCount": 4,
+      "size": 260,
+      "lastModified": "2025-07-09T13:01:16.969Z",
+      "sampleLines": [
+        "Url\t",
+        "joomla.org",
+        "support.cs.wm.edu\t"
+      ]
+    },
+    {
+      "path": "batches/good-wordpress.csv",
+      "name": "good-wordpress.csv",
+      "lineCount": 11,
+      "urlCount": 3,
+      "size": 165,
+      "lastModified": "2025-07-07T12:23:18.089Z",
+      "sampleLines": [
+        "url",
+        "wordpress.com",
+        "wordpress.org"
+      ]
+    },
+    {
+      "path": "batches/joomla.csv",
+      "name": "joomla.csv",
+      "lineCount": 35,
+      "urlCount": 4,
+      "size": 710,
+      "lastModified": "2025-07-07T13:39:19.112Z",
+      "sampleLines": [
+        "Url\t",
+        "joomla.org",
+        "support.cs.wm.edu\t"
+      ]
+    },
+    {
+      "path": "batches/joomla2.csv",
+      "name": "joomla2.csv",
+      "lineCount": 11,
+      "urlCount": 0,
+      "size": 137,
+      "lastModified": "2025-07-07T02:45:33.143Z",
+      "sampleLines": [
+        "Website",
+        "hubspot.com",
+        "hubspot.fr"
+      ]
+    },
+    {
+      "path": "batches/just-drupal-org.csv",
+      "name": "just-drupal-org.csv",
+      "lineCount": 7,
+      "urlCount": 5,
+      "size": 111,
+      "lastModified": "2025-07-06T18:24:26.226Z",
+      "sampleLines": [
+        "url",
+        "drupal.org",
+        "www.drupal.org"
+      ]
+    },
+    {
+      "path": "batches/more-joomla.csv",
+      "name": "more-joomla.csv",
+      "lineCount": 217,
+      "urlCount": 216,
+      "size": 6407,
+      "lastModified": "2025-07-13T01:38:13.056Z",
+      "sampleLines": [
+        "url",
+        "https://www.extendoffice.com/",
+        "https://iitk.ac.in/dord/"
+      ]
+    },
+    {
+      "path": "batches/myob.csv",
+      "name": "myob.csv",
+      "lineCount": 21,
+      "urlCount": 20,
+      "size": 526,
+      "lastModified": "2025-07-07T04:30:30.887Z",
+      "sampleLines": [
+        "Url",
+        "https://www.minedu.gov.gr",
+        "https://www.thm.de/site"
+      ]
+    },
+    {
+      "path": "batches/product_list.csv",
+      "name": "product_list.csv",
+      "lineCount": 11,
+      "urlCount": 10,
+      "size": 1007,
+      "lastModified": "2025-01-13T03:31:39.740Z",
+      "sampleLines": [
+        "﻿url,path\r",
+        "\"https://atemponewyork.com/collections/jewelry?view=no-usf\",\"atemponewyork_product_list\"\r",
+        "\"https://bevmo.com/collections/mixers?filter.hide-out-of-stock=true\",\"bevmo_product_list\"\r"
+      ]
+    },
+    {
+      "path": "batches/sites.csv",
+      "name": "sites.csv",
+      "lineCount": 99,
+      "urlCount": 98,
+      "size": 2310,
+      "lastModified": "2025-07-08T12:49:43.793Z",
+      "sampleLines": [
+        "URL",
+        "https://www.flaticon.com",
+        "https://kinsta.com"
+      ]
+    },
+    {
+      "path": "batches/test-drupal.csv",
+      "name": "test-drupal.csv",
+      "lineCount": 2,
+      "urlCount": 0,
+      "size": 15,
+      "lastModified": "2025-07-07T01:05:11.330Z",
+      "sampleLines": [
+        "url",
+        "drupal.org"
+      ]
+    },
+    {
+      "path": "batches/unknown-cms-sites.csv",
+      "name": "unknown-cms-sites.csv",
+      "lineCount": 541,
+      "urlCount": 486,
+      "size": 15835,
+      "lastModified": "2025-07-14T14:22:01.070Z",
+      "sampleLines": [
+        "URL",
+        "https://plannedparenthood.org",
+        "https://gnu.org"
+      ]
+    },
+    {
+      "path": "batches/wordpress.csv",
+      "name": "wordpress.csv",
+      "lineCount": 43,
+      "urlCount": 1,
+      "size": 678,
+      "lastModified": "2025-07-09T23:08:22.023Z",
+      "sampleLines": [
+        "url",
+        "https://www.harvard.edu",
+        "lamaisondaffichage.ca\t\t"
+      ]
+    },
+    {
+      "path": "duda-patterns-only.csv",
+      "name": "duda-patterns-only.csv",
+      "lineCount": 1065,
+      "urlCount": 1054,
+      "size": 99290,
+      "lastModified": "2025-07-13T22:50:03.111Z",
+      "sampleLines": [
+        "url,detectedCms,patternText,confidence,isCorrectlyDetected",
+        "\"https://mlspin.com/\",\"Unknown\",\"window.Parameters = window.Parameters\",\"high\",NO",
+        "\"https://mlspin.com/\",\"Unknown\",\"window.parameters = window.parameters\",\"high\",NO"
+      ]
+    },
+    {
+      "path": "ground-truth-drupal.csv",
+      "name": "ground-truth-drupal.csv",
+      "lineCount": 12,
+      "urlCount": 11,
+      "size": 263,
+      "lastModified": "2025-07-09T19:38:22.356Z",
+      "sampleLines": [
+        "url",
+        "https://www.tesla.com",
+        "https://www.weather.com"
+      ]
+    },
+    {
+      "path": "ground-truth-joomla.csv",
+      "name": "ground-truth-joomla.csv",
+      "lineCount": 16,
+      "urlCount": 15,
+      "size": 376,
+      "lastModified": "2025-07-09T19:38:55.504Z",
+      "sampleLines": [
+        "url",
+        "https://marxist.com",
+        "https://generalosgb.com/"
+      ]
+    },
+    {
+      "path": "ground-truth-wordpress.csv",
+      "name": "ground-truth-wordpress.csv",
+      "lineCount": 14,
+      "urlCount": 13,
+      "size": 351,
+      "lastModified": "2025-07-09T19:37:35.440Z",
+      "sampleLines": [
+        "url",
+        "https://gravityforms.com",
+        "https://www.getmorereviews.com/"
+      ]
+    },
+    {
+      "path": "reports/js-pattern-frequency.csv",
+      "name": "js-pattern-frequency.csv",
+      "lineCount": 10,
+      "urlCount": 0,
+      "size": 761,
+      "lastModified": "2025-07-13T22:50:03.141Z",
+      "sampleLines": [
+        "patternName,totalOccurrences,uniqueSites,cmesUsingPattern,confidence,examplePattern",
+        "\"obj.prop = obj.prop\",10666,751,5,\"medium\",\"window.dataLayer = window.dataLayer\"",
+        "\"window.X = window.X\",7800,732,5,\"medium\",\"window.dataLayer = window.dataLayer\""
+      ]
+    },
+    {
+      "path": "reports/js-patterns-summary-by-cms.csv",
+      "name": "js-patterns-summary-by-cms.csv",
+      "lineCount": 6,
+      "urlCount": 0,
+      "size": 283,
+      "lastModified": "2025-07-13T22:50:03.124Z",
+      "sampleLines": [
+        "cms,totalPatterns,uniqueSites,highConfidencePatterns,mediumConfidencePatterns,lowConfidencePatterns,hasDudaPatterns",
+        "\"Joomla\",1640,164,2,1308,330,YES",
+        "\"Unknown\",16743,402,766,13252,2725,YES"
+      ]
+    },
+    {
+      "path": "reports/tier1-recollection.csv",
+      "name": "tier1-recollection.csv",
+      "lineCount": 127,
+      "urlCount": 99,
+      "size": 2587,
+      "lastModified": "2025-07-07T14:31:55.458Z",
+      "sampleLines": [
+        "Url",
+        "acquia.com",
+        "https://www.acquia.com/"
+      ]
+    },
+    {
+      "path": "reports/tier2-recollection.csv",
+      "name": "tier2-recollection.csv",
+      "lineCount": 66,
+      "urlCount": 26,
+      "size": 1315,
+      "lastModified": "2025-07-07T14:59:43.581Z",
+      "sampleLines": [
+        "Url",
+        "bloomberg.com",
+        "bbc.com"
+      ]
+    },
+    {
+      "path": "reports/tier3-recollection.csv",
+      "name": "tier3-recollection.csv",
+      "lineCount": 133,
+      "urlCount": 17,
+      "size": 2550,
+      "lastModified": "2025-07-07T15:24:02.029Z",
+      "sampleLines": [
+        "Url",
+        "abwhost.net",
+        "abzarwp.com"
+      ]
+    },
+    {
+      "path": "tools/joomla-script-options-test.csv",
+      "name": "joomla-script-options-test.csv",
+      "lineCount": 11,
+      "urlCount": 10,
+      "size": 245,
+      "lastModified": "2025-07-09T21:38:57.230Z",
+      "sampleLines": [
+        "url",
+        "https://gamebanshee.com",
+        "https://penn.museum"
+      ]
+    },
+    {
+      "path": "tools/js-assignment-patterns-analysis.csv",
+      "name": "js-assignment-patterns-analysis.csv",
+      "lineCount": 28203,
+      "urlCount": 26523,
+      "size": 3345068,
+      "lastModified": "2025-07-13T22:50:03.106Z",
+      "sampleLines": [
+        "url,actualCms,patternName,patternText,confidence,expectedCms,isDudaPattern",
+        "\"https://frva.com/\",\"Joomla\",\"var X = X\",\"var c = c\",\"low\",\"unknown\",NO",
+        "\"https://frva.com/\",\"Joomla\",\"var X = X\",\"var c = c\",\"low\",\"unknown\",NO"
+      ]
+    }
+  ],
+  "dataDirectories": [
+    {
+      "path": "data",
+      "name": "data",
+      "fileCount": 3328,
+      "totalSize": 795759131,
+      "fileTypes": {
+        "no-extension": 1,
+        ".json": 3310,
+        ".md": 7,
+        ".backup": 2,
+        ".pre-dns-cleanup": 2,
+        ".pre-v2-dedup": 2,
+        ".txt": 1,
+        ".1752079707446": 1,
+        ".1752087118001": 1,
+        ".1752095700427": 1
+      },
+      "lastModified": "2025-07-16T11:18:46.564Z",
+      "files": [
+        {
+          "path": ".DS_Store",
+          "name": ".DS_Store",
+          "size": 6148,
+          "extension": "",
+          "lastModified": "2025-07-14T11:32:10.962Z"
+        },
+        {
+          "path": "baseline-results/drupal-baseline.json",
+          "name": "drupal-baseline.json",
+          "size": 24298,
+          "extension": ".json",
+          "lastModified": "2025-07-15T16:48:18.391Z"
+        },
+        {
+          "path": "baseline-results/joomla-baseline.json",
+          "name": "joomla-baseline.json",
+          "size": 52145,
+          "extension": ".json",
+          "lastModified": "2025-07-15T16:42:39.934Z"
+        },
+        {
+          "path": "baseline-results/wordpress-baseline.json",
+          "name": "wordpress-baseline.json",
+          "size": 25579,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:00:56.201Z"
+        },
+        {
+          "path": "baseline-results-clean/duda-baseline.json",
+          "name": "duda-baseline.json",
+          "size": 23926,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:42:08.321Z"
+        },
+        {
+          "path": "baseline-results-clean/joomla-baseline.json",
+          "name": "joomla-baseline.json",
+          "size": 538,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:36:55.370Z"
+        },
+        {
+          "path": "baseline-results-clean/wordpress-baseline.json",
+          "name": "wordpress-baseline.json",
+          "size": 703,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:27:54.860Z"
+        },
+        {
+          "path": "baseline-results-proper/baseline-summary.json",
+          "name": "baseline-summary.json",
+          "size": 8922,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:58:04.041Z"
+        },
+        {
+          "path": "baseline-results-proper/drupal-baseline.json",
+          "name": "drupal-baseline.json",
+          "size": 94467,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:58:04.038Z"
+        },
+        {
+          "path": "baseline-results-proper/duda-baseline.json",
+          "name": "duda-baseline.json",
+          "size": 22096,
+          "extension": ".json",
+          "lastModified": "2025-07-15T17:58:04.041Z"
+        }
+      ]
+    },
+    {
+      "path": "batches",
+      "name": "batches",
+      "fileCount": 20,
+      "totalSize": 54738,
+      "fileTypes": {
+        ".csv": 20
+      },
+      "lastModified": "2025-07-14T14:31:36.664Z",
+      "files": [
+        {
+          "path": "additional_joomla_sites.csv",
+          "name": "additional_joomla_sites.csv",
+          "size": 133,
+          "extension": ".csv",
+          "lastModified": "2025-07-07T04:10:09.566Z"
+        },
+        {
+          "path": "bad-joomla.csv",
+          "name": "bad-joomla.csv",
+          "size": 1750,
+          "extension": ".csv",
+          "lastModified": "2025-07-13T02:18:09.736Z"
+        },
+        {
+          "path": "cpanel.csv",
+          "name": "cpanel.csv",
+          "size": 967,
+          "extension": ".csv",
+          "lastModified": "2025-07-08T12:48:48.107Z"
+        },
+        {
+          "path": "drupal.csv",
+          "name": "drupal.csv",
+          "size": 977,
+          "extension": ".csv",
+          "lastModified": "2025-07-09T13:01:24.816Z"
+        },
+        {
+          "path": "drupal2.csv",
+          "name": "drupal2.csv",
+          "size": 1916,
+          "extension": ".csv",
+          "lastModified": "2025-07-07T05:03:01.741Z"
+        },
+        {
+          "path": "duda.csv",
+          "name": "duda.csv",
+          "size": 20307,
+          "extension": ".csv",
+          "lastModified": "2025-07-09T03:46:31.731Z"
+        },
+        {
+          "path": "duda2.csv",
+          "name": "duda2.csv",
+          "size": 267,
+          "extension": ".csv",
+          "lastModified": "2025-07-13T11:18:17.287Z"
+        },
+        {
+          "path": "good-drupal.csv",
+          "name": "good-drupal.csv",
+          "size": 260,
+          "extension": ".csv",
+          "lastModified": "2025-07-07T12:49:20.218Z"
+        },
+        {
+          "path": "good-joomla.csv",
+          "name": "good-joomla.csv",
+          "size": 260,
+          "extension": ".csv",
+          "lastModified": "2025-07-09T13:01:16.969Z"
+        },
+        {
+          "path": "good-wordpress.csv",
+          "name": "good-wordpress.csv",
+          "size": 165,
+          "extension": ".csv",
+          "lastModified": "2025-07-07T12:23:18.089Z"
+        }
+      ]
+    },
+    {
+      "path": "reports",
+      "name": "reports",
+      "fileCount": 136,
+      "totalSize": 200167417,
+      "fileTypes": {
+        ".md": 58,
+        ".json": 30,
+        ".cjs": 9,
+        ".txt": 13,
+        ".js": 20,
+        ".csv": 5,
+        ".log": 1
+      },
+      "lastModified": "2025-07-16T11:38:21.026Z",
+      "files": [
+        {
+          "path": "BOT_DETECTION_ANALYSIS.md",
+          "name": "BOT_DETECTION_ANALYSIS.md",
+          "size": 6825,
+          "extension": ".md",
+          "lastModified": "2025-07-09T13:47:09.181Z"
+        },
+        {
+          "path": "CMS-Detection-Executive-Summary.md",
+          "name": "CMS-Detection-Executive-Summary.md",
+          "size": 4247,
+          "extension": ".md",
+          "lastModified": "2025-07-07T15:55:36.522Z"
+        },
+        {
+          "path": "CMS_Detection_Rules_Summary.md",
+          "name": "CMS_Detection_Rules_Summary.md",
+          "size": 11006,
+          "extension": ".md",
+          "lastModified": "2025-07-08T13:42:48.774Z"
+        },
+        {
+          "path": "COMPLETE_GROUND_TRUTH_ANALYSIS.md",
+          "name": "COMPLETE_GROUND_TRUTH_ANALYSIS.md",
+          "size": 7665,
+          "extension": ".md",
+          "lastModified": "2025-07-09T11:43:38.124Z"
+        },
+        {
+          "path": "COMPREHENSIVE_JOOMLA_VALIDATION.md",
+          "name": "COMPREHENSIVE_JOOMLA_VALIDATION.md",
+          "size": 5014,
+          "extension": ".md",
+          "lastModified": "2025-07-07T04:14:01.316Z"
+        },
+        {
+          "path": "COMPREHENSIVE_ROBOTS_TXT_GROUND_TRUTH_ANALYSIS.md",
+          "name": "COMPREHENSIVE_ROBOTS_TXT_GROUND_TRUTH_ANALYSIS.md",
+          "size": 26497,
+          "extension": ".md",
+          "lastModified": "2025-07-09T15:01:07.460Z"
+        },
+        {
+          "path": "Captured_Data_Analysis.md",
+          "name": "Captured_Data_Analysis.md",
+          "size": 65890,
+          "extension": ".md",
+          "lastModified": "2025-07-08T01:37:20.942Z"
+        },
+        {
+          "path": "DATA_COLLECTION_ANALYSIS.md",
+          "name": "DATA_COLLECTION_ANALYSIS.md",
+          "size": 5607,
+          "extension": ".md",
+          "lastModified": "2025-07-09T11:34:14.834Z"
+        },
+        {
+          "path": "DATA_COMPLETENESS_SUMMARY.md",
+          "name": "DATA_COMPLETENESS_SUMMARY.md",
+          "size": 4735,
+          "extension": ".md",
+          "lastModified": "2025-07-07T11:43:11.609Z"
+        },
+        {
+          "path": "DRUPAL2_ANALYSIS_FINDINGS.md",
+          "name": "DRUPAL2_ANALYSIS_FINDINGS.md",
+          "size": 9548,
+          "extension": ".md",
+          "lastModified": "2025-07-07T05:09:09.286Z"
+        }
+      ]
+    },
+    {
+      "path": "plans",
+      "name": "plans",
+      "fileCount": 4,
+      "totalSize": 53841,
+      "fileTypes": {
+        ".md": 4
+      },
+      "lastModified": "2025-07-16T12:28:48.886Z",
+      "files": [
+        {
+          "path": "bot-defense-testing-plan.md",
+          "name": "bot-defense-testing-plan.md",
+          "size": 19275,
+          "extension": ".md",
+          "lastModified": "2025-07-16T12:30:01.841Z"
+        },
+        {
+          "path": "phased-learn-implementation-plan.md",
+          "name": "phased-learn-implementation-plan.md",
+          "size": 12502,
+          "extension": ".md",
+          "lastModified": "2025-07-15T20:29:17.998Z"
+        },
+        {
+          "path": "phased-learn-prompting.md",
+          "name": "phased-learn-prompting.md",
+          "size": 6731,
+          "extension": ".md",
+          "lastModified": "2025-07-15T20:24:14.515Z"
+        },
+        {
+          "path": "phased-learn-testing-plan.md",
+          "name": "phased-learn-testing-plan.md",
+          "size": 15333,
+          "extension": ".md",
+          "lastModified": "2025-07-16T12:09:53.301Z"
+        }
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "path": "dist/ground-truth/same-domain-html-pattern.d.ts",
+      "name": "same-domain-html-pattern.d.ts",
+      "size": 952,
+      "lastModified": "2025-07-16T11:19:13.565Z"
+    },
+    {
+      "path": "dist/ground-truth/same-domain-html-pattern.d.ts.map",
+      "name": "same-domain-html-pattern.d.ts.map",
+      "size": 397,
+      "lastModified": "2025-07-16T11:19:13.564Z"
+    },
+    {
+      "path": "dist/ground-truth/same-domain-html-pattern.js",
+      "name": "same-domain-html-pattern.js",
+      "size": 4186,
+      "lastModified": "2025-07-16T11:19:13.564Z"
+    },
+    {
+      "path": "dist/ground-truth/same-domain-html-pattern.js.map",
+      "name": "same-domain-html-pattern.js.map",
+      "size": 2979,
+      "lastModified": "2025-07-16T11:19:13.563Z"
+    },
+    {
+      "path": "dist/utils/cms/__tests__/analysis/patterns.functional.test.d.ts",
+      "name": "patterns.functional.test.d.ts",
+      "size": 65,
+      "lastModified": "2025-07-12T19:52:47.294Z"
+    },
+    {
+      "path": "dist/utils/cms/__tests__/analysis/patterns.functional.test.d.ts.map",
+      "name": "patterns.functional.test.d.ts.map",
+      "size": 183,
+      "lastModified": "2025-07-12T19:52:47.294Z"
+    },
+    {
+      "path": "dist/utils/cms/__tests__/analysis/patterns.functional.test.js",
+      "name": "patterns.functional.test.js",
+      "size": 34635,
+      "lastModified": "2025-07-12T19:52:47.294Z"
+    },
+    {
+      "path": "dist/utils/cms/__tests__/analysis/patterns.functional.test.js.map",
+      "name": "patterns.functional.test.js.map",
+      "size": 28559,
+      "lastModified": "2025-07-12T19:52:47.293Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/__tests__/patterns.functional.test.d.ts",
+      "name": "patterns.functional.test.d.ts",
+      "size": 65,
+      "lastModified": "2025-07-11T11:11:27.968Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/__tests__/patterns.functional.test.d.ts.map",
+      "name": "patterns.functional.test.d.ts.map",
+      "size": 183,
+      "lastModified": "2025-07-11T11:11:27.967Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/__tests__/patterns.functional.test.js",
+      "name": "patterns.functional.test.js",
+      "size": 34761,
+      "lastModified": "2025-07-11T11:11:27.967Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/__tests__/patterns.functional.test.js.map",
+      "name": "patterns.functional.test.js.map",
+      "size": 28547,
+      "lastModified": "2025-07-11T11:11:27.966Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/patterns.d.ts",
+      "name": "patterns.d.ts",
+      "size": 1346,
+      "lastModified": "2025-07-16T11:19:13.378Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/patterns.d.ts.map",
+      "name": "patterns.d.ts.map",
+      "size": 849,
+      "lastModified": "2025-07-16T11:19:13.378Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/patterns.js",
+      "name": "patterns.js",
+      "size": 21687,
+      "lastModified": "2025-07-16T11:19:13.377Z"
+    },
+    {
+      "path": "dist/utils/cms/analysis/patterns.js.map",
+      "name": "patterns.js.map",
+      "size": 18611,
+      "lastModified": "2025-07-16T11:19:13.376Z"
+    },
+    {
+      "path": "docs/test-organization-standards.md",
+      "name": "test-organization-standards.md",
+      "size": 5865,
+      "lastModified": "2025-07-11T16:31:25.121Z"
+    },
+    {
+      "path": "docs/test-standardization-status.md",
+      "name": "test-standardization-status.md",
+      "size": 29054,
+      "lastModified": "2025-07-11T15:13:01.247Z"
+    },
+    {
+      "path": "docs/testing-standards.md",
+      "name": "testing-standards.md",
+      "size": 2366,
+      "lastModified": "2025-07-10T17:42:55.197Z"
+    },
+    {
+      "path": "duda-patterns-only.csv",
+      "name": "duda-patterns-only.csv",
+      "size": 99290,
+      "lastModified": "2025-07-13T22:50:03.111Z"
+    },
+    {
+      "path": "node_modules/@babel/core/lib/config/pattern-to-regex.js",
+      "name": "pattern-to-regex.js",
+      "size": 1189,
+      "lastModified": "2025-07-04T21:40:03.605Z"
+    },
+    {
+      "path": "node_modules/@babel/core/lib/config/pattern-to-regex.js.map",
+      "name": "pattern-to-regex.js.map",
+      "size": 3232,
+      "lastModified": "2025-07-04T21:40:03.608Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/commonjs/engine/metadata/patterns.d.ts",
+      "name": "patterns.d.ts",
+      "size": 1341,
+      "lastModified": "2025-01-20T02:59:16.455Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/commonjs/engine/metadata/patterns.d.ts.map",
+      "name": "patterns.d.ts.map",
+      "size": 1016,
+      "lastModified": "2025-01-20T02:59:16.297Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/commonjs/engine/metadata/patterns.js",
+      "name": "patterns.js",
+      "size": 5063,
+      "lastModified": "2025-01-20T02:59:16.002Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/commonjs/engine/metadata/patterns.js.map",
+      "name": "patterns.js.map",
+      "size": 4632,
+      "lastModified": "2025-01-20T02:59:16.298Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/esm/engine/metadata/patterns.d.ts",
+      "name": "patterns.d.ts",
+      "size": 1341,
+      "lastModified": "2025-01-20T02:59:16.456Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/esm/engine/metadata/patterns.d.ts.map",
+      "name": "patterns.d.ts.map",
+      "size": 1016,
+      "lastModified": "2025-01-20T02:59:16.297Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/esm/engine/metadata/patterns.js",
+      "name": "patterns.js",
+      "size": 4437,
+      "lastModified": "2025-01-20T02:59:16.004Z"
+    },
+    {
+      "path": "node_modules/@cliqz/adblocker/dist/esm/engine/metadata/patterns.js.map",
+      "name": "patterns.js.map",
+      "size": 4598,
+      "lastModified": "2025-01-20T02:59:16.300Z"
+    },
+    {
+      "path": "node_modules/@eslint/eslintrc/lib/config-array/ignore-pattern.js",
+      "name": "ignore-pattern.js",
+      "size": 8357,
+      "lastModified": "2025-07-04T20:45:56.587Z"
+    },
+    {
+      "path": "node_modules/@eslint/eslintrc/node_modules/ajv/lib/dot/pattern.jst",
+      "name": "pattern.jst",
+      "size": 348,
+      "lastModified": "2025-07-04T20:45:56.606Z"
+    },
+    {
+      "path": "node_modules/@eslint/eslintrc/node_modules/ajv/lib/dot/required.jst",
+      "name": "required.jst",
+      "size": 2868,
+      "lastModified": "2025-07-04T20:45:56.612Z"
+    },
+    {
+      "path": "node_modules/@eslint/eslintrc/node_modules/ajv/lib/dotjs/pattern.js",
+      "name": "pattern.js",
+      "size": 2586,
+      "lastModified": "2025-07-04T20:45:56.559Z"
+    },
+    {
+      "path": "node_modules/@eslint/eslintrc/node_modules/ajv/lib/dotjs/required.js",
+      "name": "required.js",
+      "size": 12395,
+      "lastModified": "2025-07-04T20:45:56.566Z"
+    },
+    {
+      "path": "node_modules/@google/generative-ai/dist/scripts/format-patterns.d.ts",
+      "name": "format-patterns.d.ts",
+      "size": 711,
+      "lastModified": "2025-07-15T03:46:30.548Z"
+    },
+    {
+      "path": "node_modules/@google/generative-ai/dist/server/scripts/format-patterns.d.ts",
+      "name": "format-patterns.d.ts",
+      "size": 711,
+      "lastModified": "2025-07-15T03:46:30.548Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/commonjs/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.766Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/commonjs/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.688Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/commonjs/pattern.js",
+      "name": "pattern.js",
+      "size": 7300,
+      "lastModified": "2025-07-04T21:40:03.565Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/commonjs/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13391,
+      "lastModified": "2025-07-04T21:40:03.695Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/esm/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.766Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/esm/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.694Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/esm/pattern.js",
+      "name": "pattern.js",
+      "size": 7161,
+      "lastModified": "2025-07-04T21:40:03.570Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/glob/dist/esm/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13407,
+      "lastModified": "2025-07-04T21:40:03.697Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.350Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.918Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 492,
+      "lastModified": "2025-07-04T21:40:02.642Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 802,
+      "lastModified": "2025-07-04T21:40:02.928Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.354Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.924Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/esm/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 336,
+      "lastModified": "2025-07-04T21:40:02.684Z"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/minimatch/dist/esm/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 785,
+      "lastModified": "2025-07-04T21:40:02.934Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/patterns/patterns.d.ts",
+      "name": "patterns.d.ts",
+      "size": 430,
+      "lastModified": "2025-07-04T21:40:04.067Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/patterns/patterns.js",
+      "name": "patterns.js",
+      "size": 683,
+      "lastModified": "2025-07-04T21:40:03.895Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/required/required-from-mapped-result.d.ts",
+      "name": "required-from-mapped-result.d.ts",
+      "size": 771,
+      "lastModified": "2025-07-04T21:40:04.070Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/required/required-from-mapped-result.js",
+      "name": "required-from-mapped-result.js",
+      "size": 708,
+      "lastModified": "2025-07-04T21:40:03.897Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/required/required.d.ts",
+      "name": "required.d.ts",
+      "size": 3314,
+      "lastModified": "2025-07-04T21:40:04.070Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/required/required.js",
+      "name": "required.js",
+      "size": 3553,
+      "lastModified": "2025-07-04T21:40:03.897Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/template-literal/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 261,
+      "lastModified": "2025-07-04T21:40:04.067Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/cjs/type/template-literal/pattern.js",
+      "name": "pattern.js",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.895Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/patterns/patterns.d.mts",
+      "name": "patterns.d.mts",
+      "size": 430,
+      "lastModified": "2025-07-04T21:40:04.025Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/patterns/patterns.mjs",
+      "name": "patterns.mjs",
+      "size": 393,
+      "lastModified": "2025-07-04T21:40:03.977Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/required/required-from-mapped-result.d.mts",
+      "name": "required-from-mapped-result.d.mts",
+      "size": 791,
+      "lastModified": "2025-07-04T21:40:04.028Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/required/required-from-mapped-result.mjs",
+      "name": "required-from-mapped-result.mjs",
+      "size": 556,
+      "lastModified": "2025-07-04T21:40:03.982Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/required/required.d.mts",
+      "name": "required.d.mts",
+      "size": 3402,
+      "lastModified": "2025-07-04T21:40:04.028Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/required/required.mjs",
+      "name": "required.mjs",
+      "size": 3306,
+      "lastModified": "2025-07-04T21:40:03.982Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/template-literal/pattern.d.mts",
+      "name": "pattern.d.mts",
+      "size": 269,
+      "lastModified": "2025-07-04T21:40:04.025Z"
+    },
+    {
+      "path": "node_modules/@sinclair/typebox/build/esm/type/template-literal/pattern.mjs",
+      "name": "pattern.mjs",
+      "size": 1865,
+      "lastModified": "2025-07-04T21:40:03.977Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T20:45:56.531Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T20:45:56.437Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 492,
+      "lastModified": "2025-07-04T20:45:56.286Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 802,
+      "lastModified": "2025-07-04T20:45:56.443Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T20:45:56.532Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T20:45:56.440Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/esm/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 336,
+      "lastModified": "2025-07-04T20:45:56.307Z"
+    },
+    {
+      "path": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/dist/esm/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 785,
+      "lastModified": "2025-07-04T20:45:56.445Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/commonjs/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-12T01:19:23.305Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/commonjs/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-12T01:19:23.155Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/commonjs/pattern.js",
+      "name": "pattern.js",
+      "size": 7300,
+      "lastModified": "2025-07-12T01:19:22.753Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/commonjs/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13391,
+      "lastModified": "2025-07-12T01:19:23.163Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/esm/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-12T01:19:23.309Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/esm/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-12T01:19:23.159Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/esm/pattern.js",
+      "name": "pattern.js",
+      "size": 7161,
+      "lastModified": "2025-07-12T01:19:22.893Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/glob/dist/esm/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13407,
+      "lastModified": "2025-07-12T01:19:23.170Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-12T01:19:23.197Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-12T01:19:23.002Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 492,
+      "lastModified": "2025-07-12T01:19:22.181Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 802,
+      "lastModified": "2025-07-12T01:19:23.015Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-12T01:19:23.201Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-12T01:19:23.009Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/esm/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 336,
+      "lastModified": "2025-07-12T01:19:22.187Z"
+    },
+    {
+      "path": "node_modules/@vitest/coverage-v8/node_modules/minimatch/dist/esm/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 785,
+      "lastModified": "2025-07-12T01:19:23.021Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/applicator/patternProperties.d.ts",
+      "name": "patternProperties.d.ts",
+      "size": 120,
+      "lastModified": "2025-01-20T02:59:16.468Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/applicator/patternProperties.js",
+      "name": "patternProperties.js",
+      "size": 3236,
+      "lastModified": "2025-01-20T02:59:15.945Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/applicator/patternProperties.js.map",
+      "name": "patternProperties.js.map",
+      "size": 2734,
+      "lastModified": "2025-01-20T02:59:16.234Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 243,
+      "lastModified": "2025-01-20T02:59:16.466Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/pattern.js",
+      "name": "pattern.js",
+      "size": 905,
+      "lastModified": "2025-01-20T02:59:15.941Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 933,
+      "lastModified": "2025-01-20T02:59:16.232Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/required.d.ts",
+      "name": "required.d.ts",
+      "size": 255,
+      "lastModified": "2025-01-20T02:59:16.487Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/required.js",
+      "name": "required.js",
+      "size": 3188,
+      "lastModified": "2025-01-20T02:59:15.979Z"
+    },
+    {
+      "path": "node_modules/ajv/dist/vocabularies/validation/required.js.map",
+      "name": "required.js.map",
+      "size": 2994,
+      "lastModified": "2025-01-20T02:59:16.245Z"
+    },
+    {
+      "path": "node_modules/ajv/lib/vocabularies/applicator/patternProperties.ts",
+      "name": "patternProperties.ts",
+      "size": 2870,
+      "lastModified": "2025-01-20T02:59:16.469Z"
+    },
+    {
+      "path": "node_modules/ajv/lib/vocabularies/validation/pattern.ts",
+      "name": "pattern.ts",
+      "size": 961,
+      "lastModified": "2025-01-20T02:59:16.467Z"
+    },
+    {
+      "path": "node_modules/ajv/lib/vocabularies/validation/required.ts",
+      "name": "required.ts",
+      "size": 2961,
+      "lastModified": "2025-01-20T02:59:16.488Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/_required.d.ts",
+      "name": "_required.d.ts",
+      "size": 268,
+      "lastModified": "2025-01-20T02:59:15.810Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/_required.js",
+      "name": "_required.js",
+      "size": 708,
+      "lastModified": "2025-01-20T02:59:14.725Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/_required.js.map",
+      "name": "_required.js.map",
+      "size": 743,
+      "lastModified": "2025-01-20T02:59:15.501Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/patternRequired.d.ts",
+      "name": "patternRequired.d.ts",
+      "size": 228,
+      "lastModified": "2025-01-20T02:59:15.976Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/patternRequired.js",
+      "name": "patternRequired.js",
+      "size": 1604,
+      "lastModified": "2025-01-20T02:59:15.247Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/definitions/patternRequired.js.map",
+      "name": "patternRequired.js.map",
+      "size": 1542,
+      "lastModified": "2025-01-20T02:59:15.689Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/keywords/patternRequired.d.ts",
+      "name": "patternRequired.d.ts",
+      "size": 117,
+      "lastModified": "2025-01-20T02:59:15.978Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/keywords/patternRequired.js",
+      "name": "patternRequired.js",
+      "size": 497,
+      "lastModified": "2025-01-20T02:59:15.255Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/dist/keywords/patternRequired.js.map",
+      "name": "patternRequired.js.map",
+      "size": 301,
+      "lastModified": "2025-01-20T02:59:15.692Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/src/definitions/_required.ts",
+      "name": "_required.ts",
+      "size": 671,
+      "lastModified": "2025-01-20T02:59:15.816Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/src/definitions/patternRequired.ts",
+      "name": "patternRequired.ts",
+      "size": 1444,
+      "lastModified": "2025-01-20T02:59:15.979Z"
+    },
+    {
+      "path": "node_modules/ajv-keywords/src/keywords/patternRequired.ts",
+      "name": "patternRequired.ts",
+      "size": 227,
+      "lastModified": "2025-01-20T02:59:15.982Z"
+    },
+    {
+      "path": "node_modules/caniuse-lite/data/features/input-pattern.js",
+      "name": "input-pattern.js",
+      "size": 1844,
+      "lastModified": "2025-01-20T02:59:16.445Z"
+    },
+    {
+      "path": "node_modules/eslint/lib/rules/no-empty-pattern.js",
+      "name": "no-empty-pattern.js",
+      "size": 1841,
+      "lastModified": "2025-07-04T20:45:56.829Z"
+    },
+    {
+      "path": "node_modules/eslint/node_modules/ajv/lib/dot/pattern.jst",
+      "name": "pattern.jst",
+      "size": 348,
+      "lastModified": "2025-07-04T20:45:56.605Z"
+    },
+    {
+      "path": "node_modules/eslint/node_modules/ajv/lib/dot/required.jst",
+      "name": "required.jst",
+      "size": 2868,
+      "lastModified": "2025-07-04T20:45:56.611Z"
+    },
+    {
+      "path": "node_modules/eslint/node_modules/ajv/lib/dotjs/pattern.js",
+      "name": "pattern.js",
+      "size": 2586,
+      "lastModified": "2025-07-04T20:45:56.558Z"
+    },
+    {
+      "path": "node_modules/eslint/node_modules/ajv/lib/dotjs/required.js",
+      "name": "required.js",
+      "size": 12395,
+      "lastModified": "2025-07-04T20:45:56.564Z"
+    },
+    {
+      "path": "node_modules/eslint/node_modules/eslint-scope/lib/pattern-visitor.js",
+      "name": "pattern-visitor.js",
+      "size": 4926,
+      "lastModified": "2025-07-04T20:45:56.457Z"
+    },
+    {
+      "path": "node_modules/eslint-scope/lib/pattern-visitor.js",
+      "name": "pattern-visitor.js",
+      "size": 4924,
+      "lastModified": "2025-01-20T02:59:14.754Z"
+    },
+    {
+      "path": "node_modules/fast-glob/out/utils/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2766,
+      "lastModified": "2025-07-04T20:45:56.522Z"
+    },
+    {
+      "path": "node_modules/fast-glob/out/utils/pattern.js",
+      "name": "pattern.js",
+      "size": 8520,
+      "lastModified": "2025-07-04T20:45:56.462Z"
+    },
+    {
+      "path": "node_modules/figlet/test/expected/standard",
+      "name": "standard",
+      "size": 351,
+      "lastModified": "2025-01-20T02:59:14.930Z"
+    },
+    {
+      "path": "node_modules/jake/test/integration/jakelib/required_module.jake.js",
+      "name": "required_module.jake.js",
+      "size": 182,
+      "lastModified": "2025-07-04T21:40:02.948Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/commonjs/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.759Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/commonjs/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.650Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/commonjs/pattern.js",
+      "name": "pattern.js",
+      "size": 7300,
+      "lastModified": "2025-07-04T21:40:03.542Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/commonjs/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13391,
+      "lastModified": "2025-07-04T21:40:03.660Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/esm/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.760Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/esm/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.658Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/esm/pattern.js",
+      "name": "pattern.js",
+      "size": 7161,
+      "lastModified": "2025-07-04T21:40:03.550Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/glob/dist/esm/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13407,
+      "lastModified": "2025-07-04T21:40:03.667Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.350Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.918Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 492,
+      "lastModified": "2025-07-04T21:40:02.642Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 802,
+      "lastModified": "2025-07-04T21:40:02.927Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.354Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.924Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/esm/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 336,
+      "lastModified": "2025-07-04T21:40:02.684Z"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/minimatch/dist/esm/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 785,
+      "lastModified": "2025-07-04T21:40:02.934Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/commonjs/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.764Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/commonjs/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.653Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/commonjs/pattern.js",
+      "name": "pattern.js",
+      "size": 7300,
+      "lastModified": "2025-07-04T21:40:03.543Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/commonjs/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13391,
+      "lastModified": "2025-07-04T21:40:03.661Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/esm/pattern.d.ts",
+      "name": "pattern.d.ts",
+      "size": 2117,
+      "lastModified": "2025-07-04T21:40:03.765Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/esm/pattern.d.ts.map",
+      "name": "pattern.d.ts.map",
+      "size": 1314,
+      "lastModified": "2025-07-04T21:40:03.658Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/esm/pattern.js",
+      "name": "pattern.js",
+      "size": 7161,
+      "lastModified": "2025-07-04T21:40:03.550Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/glob/dist/esm/pattern.js.map",
+      "name": "pattern.js.map",
+      "size": 13407,
+      "lastModified": "2025-07-04T21:40:03.670Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.350Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/commonjs/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.918Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 492,
+      "lastModified": "2025-07-04T21:40:02.641Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/commonjs/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 802,
+      "lastModified": "2025-07-04T21:40:02.927Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts",
+      "name": "assert-valid-pattern.d.ts",
+      "size": 115,
+      "lastModified": "2025-07-04T21:40:03.354Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/esm/assert-valid-pattern.d.ts.map",
+      "name": "assert-valid-pattern.d.ts.map",
+      "size": 199,
+      "lastModified": "2025-07-04T21:40:02.924Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/esm/assert-valid-pattern.js",
+      "name": "assert-valid-pattern.js",
+      "size": 336,
+      "lastModified": "2025-07-04T21:40:02.684Z"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/minimatch/dist/esm/assert-valid-pattern.js.map",
+      "name": "assert-valid-pattern.js.map",
+      "size": 785,
+      "lastModified": "2025-07-04T21:40:02.934Z"
+    },
+    {
+      "path": "node_modules/mime/types/standard.js",
+      "name": "standard.js",
+      "size": 9530,
+      "lastModified": "2025-01-20T02:59:14.877Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv/lib/dot/pattern.jst",
+      "name": "pattern.jst",
+      "size": 348,
+      "lastModified": "2025-01-20T02:59:15.979Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv/lib/dot/required.jst",
+      "name": "required.jst",
+      "size": 2868,
+      "lastModified": "2025-01-20T02:59:15.991Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv/lib/dotjs/pattern.js",
+      "name": "pattern.js",
+      "size": 2586,
+      "lastModified": "2025-01-20T02:59:15.781Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv/lib/dotjs/required.js",
+      "name": "required.js",
+      "size": 12395,
+      "lastModified": "2025-01-20T02:59:15.839Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv-keywords/keywords/dot/patternRequired.jst",
+      "name": "patternRequired.jst",
+      "size": 781,
+      "lastModified": "2025-01-20T02:59:15.041Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv-keywords/keywords/dotjs/patternRequired.js",
+      "name": "patternRequired.js",
+      "size": 2608,
+      "lastModified": "2025-01-20T02:59:15.152Z"
+    },
+    {
+      "path": "node_modules/schema-utils/node_modules/ajv-keywords/keywords/patternRequired.js",
+      "name": "patternRequired.js",
+      "size": 412,
+      "lastModified": "2025-01-20T02:59:15.276Z"
+    },
+    {
+      "path": "node_modules/ts-jest/node_modules/type-fest/source/has-required-keys.d.ts",
+      "name": "has-required-keys.d.ts",
+      "size": 1197,
+      "lastModified": "2025-07-04T21:40:03.689Z"
+    },
+    {
+      "path": "node_modules/ts-jest/node_modules/type-fest/source/required-deep.d.ts",
+      "name": "required-deep.d.ts",
+      "size": 2832,
+      "lastModified": "2025-07-04T21:40:03.792Z"
+    },
+    {
+      "path": "node_modules/ts-jest/node_modules/type-fest/source/required-keys-of.d.ts",
+      "name": "required-keys-of.d.ts",
+      "size": 994,
+      "lastModified": "2025-07-04T21:40:03.793Z"
+    },
+    {
+      "path": "node_modules/ts-jest/node_modules/type-fest/source/set-required-deep.d.ts",
+      "name": "set-required-deep.d.ts",
+      "size": 2208,
+      "lastModified": "2025-07-04T21:40:03.796Z"
+    },
+    {
+      "path": "node_modules/ts-jest/node_modules/type-fest/source/set-required.d.ts",
+      "name": "set-required.d.ts",
+      "size": 2740,
+      "lastModified": "2025-07-04T21:40:03.796Z"
+    },
+    {
+      "path": "node_modules/type-fest/source/set-required.d.ts",
+      "name": "set-required.d.ts",
+      "size": 914,
+      "lastModified": "2025-07-04T21:40:03.447Z"
+    },
+    {
+      "path": "node_modules/zod/lib/standard-schema.d.ts",
+      "name": "standard-schema.d.ts",
+      "size": 2843,
+      "lastModified": "2025-01-20T02:59:15.825Z"
+    },
+    {
+      "path": "node_modules/zod/lib/standard-schema.js",
+      "name": "standard-schema.js",
+      "size": 77,
+      "lastModified": "2025-01-20T02:59:15.462Z"
+    },
+    {
+      "path": "reports/analyze_patterns.cjs",
+      "name": "analyze_patterns.cjs",
+      "size": 5798,
+      "lastModified": "2025-07-07T03:01:59.735Z"
+    },
+    {
+      "path": "reports/bootstrap-pattern-validation-2025-07-13.json",
+      "name": "bootstrap-pattern-validation-2025-07-13.json",
+      "size": 56373,
+      "lastModified": "2025-07-13T00:49:59.792Z"
+    },
+    {
+      "path": "reports/d_version-pattern-final-report.md",
+      "name": "d_version-pattern-final-report.md",
+      "size": 4273,
+      "lastModified": "2025-07-14T11:48:57.871Z"
+    },
+    {
+      "path": "reports/duda-pattern-analysis-summary.md",
+      "name": "duda-pattern-analysis-summary.md",
+      "size": 3843,
+      "lastModified": "2025-07-13T22:14:02.567Z"
+    },
+    {
+      "path": "reports/duda-version-pattern-analysis.md",
+      "name": "duda-version-pattern-analysis.md",
+      "size": 3578,
+      "lastModified": "2025-07-14T11:34:29.270Z"
+    },
+    {
+      "path": "reports/js-pattern-frequency.csv",
+      "name": "js-pattern-frequency.csv",
+      "size": 761,
+      "lastModified": "2025-07-13T22:50:03.141Z"
+    },
+    {
+      "path": "reports/js-patterns-summary-by-cms.csv",
+      "name": "js-patterns-summary-by-cms.csv",
+      "size": 283,
+      "lastModified": "2025-07-13T22:50:03.124Z"
+    },
+    {
+      "path": "reports/phased-results/phase2-validation/pattern-fix-validation.js",
+      "name": "pattern-fix-validation.js",
+      "size": 2790,
+      "lastModified": "2025-07-15T18:39:38.364Z"
+    },
+    {
+      "path": "reports/phased-results/phase2-validation/wordpress-pattern-fix-summary.md",
+      "name": "wordpress-pattern-fix-summary.md",
+      "size": 3541,
+      "lastModified": "2025-07-15T18:40:37.999Z"
+    },
+    {
+      "path": "reports/wordpress-pattern-analysis-2025-07-13.json",
+      "name": "wordpress-pattern-analysis-2025-07-13.json",
+      "size": 38489,
+      "lastModified": "2025-07-13T00:32:00.850Z"
+    },
+    {
+      "path": "src/ground-truth/same-domain-html-pattern.ts",
+      "name": "same-domain-html-pattern.ts",
+      "size": 4360,
+      "lastModified": "2025-07-12T19:26:49.686Z"
+    },
+    {
+      "path": "src/utils/cms/__tests__/analysis/patterns.functional.test.ts",
+      "name": "patterns.functional.test.ts",
+      "size": 69346,
+      "lastModified": "2025-07-13T20:06:37.838Z"
+    },
+    {
+      "path": "src/utils/cms/analysis/patterns.ts",
+      "name": "patterns.ts",
+      "size": 22880,
+      "lastModified": "2025-07-14T13:15:03.818Z"
+    },
+    {
+      "path": "tools/all-dversion-patterns-analysis.json",
+      "name": "all-dversion-patterns-analysis.json",
+      "size": 189,
+      "lastModified": "2025-07-14T11:43:04.341Z"
+    },
+    {
+      "path": "tools/all-js-assignment-patterns-analysis.json",
+      "name": "all-js-assignment-patterns-analysis.json",
+      "size": 12805473,
+      "lastModified": "2025-07-13T22:11:07.846Z"
+    },
+    {
+      "path": "tools/analyze-all-dversion-patterns.js",
+      "name": "analyze-all-dversion-patterns.js",
+      "size": 10940,
+      "lastModified": "2025-07-14T11:42:54.889Z"
+    },
+    {
+      "path": "tools/analyze-all-environment-patterns.js",
+      "name": "analyze-all-environment-patterns.js",
+      "size": 9494,
+      "lastModified": "2025-07-14T11:45:12.259Z"
+    },
+    {
+      "path": "tools/analyze-all-js-assignment-patterns.js",
+      "name": "analyze-all-js-assignment-patterns.js",
+      "size": 11969,
+      "lastModified": "2025-07-13T22:10:17.810Z"
+    },
+    {
+      "path": "tools/analyze-js-assignment-patterns.js",
+      "name": "analyze-js-assignment-patterns.js",
+      "size": 9996,
+      "lastModified": "2025-07-13T22:02:24.921Z"
+    },
+    {
+      "path": "tools/convert-js-patterns-to-csv.js",
+      "name": "convert-js-patterns-to-csv.js",
+      "size": 6714,
+      "lastModified": "2025-07-13T22:49:53.492Z"
+    },
+    {
+      "path": "tools/environment-patterns-comprehensive-analysis.json",
+      "name": "environment-patterns-comprehensive-analysis.json",
+      "size": 4003209,
+      "lastModified": "2025-07-14T11:46:52.112Z"
+    },
+    {
+      "path": "tools/js-assignment-patterns-analysis.csv",
+      "name": "js-assignment-patterns-analysis.csv",
+      "size": 3345068,
+      "lastModified": "2025-07-13T22:50:03.106Z"
+    },
+    {
+      "path": "tools/js-assignment-patterns-analysis.json",
+      "name": "js-assignment-patterns-analysis.json",
+      "size": 148984,
+      "lastModified": "2025-07-13T22:02:34.200Z"
+    },
+    {
+      "path": "tools/validate-bootstrap-pattern.mjs",
+      "name": "validate-bootstrap-pattern.mjs",
+      "size": 13221,
+      "lastModified": "2025-07-14T14:29:09.371Z"
+    }
+  ],
+  "summary": {
+    "totalCSVFiles": 31,
+    "totalURLs": 29390,
+    "totalDataDirectories": 4,
+    "totalDataFiles": 3488,
+    "totalDataSize": 996035127,
+    "patternFiles": 201,
+    "recommendations": []
+  }
+}

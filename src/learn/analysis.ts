@@ -141,7 +141,8 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
                 promptVersion: '1.0',
                 dataSource: determineDataSource(options, data),
                 tokenCount: llmResponse.tokenUsage?.totalTokens || 0,
-                estimatedCost: calculateActualCost(llmResponse.tokenUsage, options.model || 'gpt-4o')
+                estimatedCost: calculateActualCost(llmResponse.tokenUsage, options.model || 'gpt-4o'),
+                timingMetrics: extractTimingMetrics(llmResponse)
             },
             inputData: {
                 url: data.url, // Use normalized URL from data collection
@@ -313,6 +314,45 @@ function extractAnalysisInsights(llmResponse: LLMResponse): {
         logger.error('Failed to extract analysis insights', { error: (error as Error).message });
         return defaultInsights;
     }
+}
+
+/**
+ * Extract timing metrics from LLM response
+ */
+function extractTimingMetrics(llmResponse: LLMResponse): any {
+    const metrics: any = {};
+    
+    // Handle phased analysis timing
+    if (llmResponse.phasedAnalysis && llmResponse.phases) {
+        // Extract phase-specific timing
+        const phase1 = llmResponse.phases.find((p: any) => p.phase === 1);
+        const phase2 = llmResponse.phases.find((p: any) => p.phase === 2);
+        
+        if (phase1?.timingMetrics) {
+            metrics.phase1DurationMs = phase1.timingMetrics.apiCallDurationMs;
+        }
+        if (phase2?.timingMetrics) {
+            metrics.phase2DurationMs = phase2.timingMetrics.apiCallDurationMs;
+        }
+        
+        metrics.totalDurationMs = llmResponse.totalDuration;
+        
+        // Calculate network latency as average of both phases
+        const networkLatencies = [];
+        if (phase1?.timingMetrics?.networkLatencyMs) networkLatencies.push(phase1.timingMetrics.networkLatencyMs);
+        if (phase2?.timingMetrics?.networkLatencyMs) networkLatencies.push(phase2.timingMetrics.networkLatencyMs);
+        if (networkLatencies.length > 0) {
+            metrics.networkLatencyMs = networkLatencies.reduce((a, b) => a + b, 0) / networkLatencies.length;
+        }
+    } else if (llmResponse.timingMetrics) {
+        // Single-phase timing
+        metrics.apiCallDurationMs = llmResponse.timingMetrics.apiCallDurationMs;
+        metrics.totalDurationMs = llmResponse.timingMetrics.apiCallDurationMs;
+        metrics.networkLatencyMs = llmResponse.timingMetrics.networkLatencyMs;
+        metrics.processingLatencyMs = llmResponse.timingMetrics.processingLatencyMs;
+    }
+    
+    return Object.keys(metrics).length > 0 ? metrics : undefined;
 }
 
 /**

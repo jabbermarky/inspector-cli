@@ -1,0 +1,48 @@
+{
+  "cms": "WordPress",
+  "description": "Required patterns for WordPress CMS detection (based on actual phased analysis discovery)",
+  "version": "2.0",
+  "required_patterns": [
+    "meta_generator_wordpress",
+    "url_wp_content_path",
+    "robots_disallow_wp_admin",
+    "js_global_wp_emoji_settings",
+    "file_wp_json_api",
+    "header_link_wordpress_api",
+    "js_wpemoji_settings",
+    "file_wp_json_endpoint",
+    "header_x_rq_wordpress",
+    "robots_yoast_block_wordpress",
+    "js_gtm4wp_wordpress",
+    "header_powered_by_php"
+  ],
+  "discriminator_patterns": [
+    "meta_generator_wordpress",
+    "url_wp_content_path",
+    "robots_disallow_wp_admin",
+    "js_global_wp_emoji_settings",
+    "file_wp_json_api"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.90,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 2,
+  "based_on_actual_discovery": true,
+  "discovery_frequency": {
+    "meta_generator_wordpress": 5,
+    "url_wp_content_path": 4,
+    "robots_disallow_wp_admin": 4,
+    "js_global_wp_emoji_settings": 1,
+    "file_wp_json_api": 1,
+    "header_link_wordpress_api": 1,
+    "js_wpemoji_settings": 1,
+    "file_wp_json_endpoint": 1,
+    "header_x_rq_wordpress": 1,
+    "robots_yoast_block_wordpress": 1,
+    "js_gtm4wp_wordpress": 1,
+    "header_powered_by_php": 1
+  }
+}

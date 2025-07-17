@@ -33,6 +33,7 @@
   "author": "Mark Lummus",
   "license": "ISC",
   "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.53",
     "@google/generative-ai": "^0.24.1",
     "ajv": "^8.17.1",
     "commander": "^13.0.0",

@@ -15,6 +15,9 @@ export interface LearnOptions {
     bulkFile?: string;
     generateBulkData?: string;
     headed?: boolean;
+    cacheStats?: boolean;
+    cacheClear?: boolean;
+    cacheReport?: boolean;
 }
 
 export interface LearnResult {
@@ -107,6 +110,14 @@ export interface LLMResponse {
         phase1Model: string;
         phase2Model: string;
     };
+    // API timing metrics
+    timingMetrics?: {
+        apiCallDurationMs: number;
+        networkLatencyMs?: number;
+        processingLatencyMs?: number;
+        retryCount?: number;
+        checkpoints?: Record<string, number>;
+    };
 }
 
 export interface AnalysisResult {
@@ -138,6 +149,14 @@ export interface AnalysisMetadata {
     dataSource: 'fresh' | 'cached' | 'fallback-cached';
     tokenCount: number;
     estimatedCost: number;
+    timingMetrics?: {
+        apiCallDurationMs?: number;
+        phase1DurationMs?: number;
+        phase2DurationMs?: number;
+        totalDurationMs?: number;
+        networkLatencyMs?: number;
+        processingLatencyMs?: number;
+    };
 }
 
 export interface IndexEntry {

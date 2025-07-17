@@ -6,6 +6,8 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs/promises';
 import { detectModelProvider, ModelProvider } from './model-providers.js';
+import { PerformanceTimer, DetailedTimingMetrics } from '../utils/performance.js';
+import { withOpenAIResponseCache, withGeminiResponseCache, globalResponseCache, CacheStats } from './response-cache.js';
 
 const logger = createModuleLogger('learn-llm-integration');
 
@@ -57,13 +59,26 @@ export async function performLLMAnalysis(
         promptLength: prompt.length 
     });
     
-    // Route to appropriate provider
+    // Route to appropriate provider with caching
     if (modelInfo.provider === 'gemini') {
-        return performGeminiAnalysis(data, prompt, model, 'cms-detection');
+        return withGeminiResponseCache(
+            performGeminiAnalysis,
+            data,
+            prompt,
+            model,
+            'cms-detection',
+            'single'
+        );
     }
     
-    // Default to OpenAI
-    return performOpenAIAnalysis(data, prompt, model);
+    // Default to OpenAI with caching
+    return withOpenAIResponseCache(
+        performOpenAIAnalysis,
+        data,
+        prompt,
+        model,
+        'single'
+    );
 }
 
 /**
@@ -74,6 +89,12 @@ async function performOpenAIAnalysis(
     prompt: string, 
     model: string
 ): Promise<LLMResponse> {
+    const timer = new PerformanceTimer('OpenAI API Call', {
+        model,
+        url: data.url,
+        promptLength: prompt.length
+    });
+
     try {
         const config = getConfig();
         const openai = getOpenAIClient();
@@ -95,10 +116,14 @@ async function performOpenAIAnalysis(
             maxTokens: createParams.max_tokens 
         });
         
+        timer.checkpoint('api-call-start');
+        
         const response = await withRetryOpenAI(
             () => openai.chat.completions.create(createParams),
             'OpenAI Learn Analysis API call'
         );
+        
+        timer.checkpoint('api-call-complete');
         
         if (!response.choices || response.choices.length === 0 || !response.choices[0].message) {
             throw new Error('Invalid response from OpenAI API - no choices returned');
@@ -116,8 +141,17 @@ async function performOpenAIAnalysis(
             completionTokens: tokenUsage?.completion_tokens
         });
         
+        timer.checkpoint('response-parsing-start');
+        
         // Parse JSON response
         const parseResult = parseAndValidateResponse(rawResponse);
+        
+        timer.checkpoint('response-parsing-complete');
+        
+        const timingMetrics = timer.end({
+            tokensUsed: tokenUsage?.total_tokens || 0,
+            responseLength: rawResponse.length
+        });
         
         const llmResponse: LLMResponse = {
             rawResponse,
@@ -128,6 +162,12 @@ async function performOpenAIAnalysis(
                 totalTokens: tokenUsage?.total_tokens || 0,
                 promptTokens: tokenUsage?.prompt_tokens || 0,
                 completionTokens: tokenUsage?.completion_tokens || 0
+            },
+            timingMetrics: {
+                apiCallDurationMs: timingMetrics.durationMs,
+                networkLatencyMs: timingMetrics.metadata?.checkpoints?.['api-call-completeMs'] as number,
+                processingLatencyMs: timingMetrics.metadata?.checkpoints?.['response-parsing-completeMs'] as number,
+                checkpoints: timingMetrics.metadata?.checkpoints as Record<string, number>
             }
         };
         
@@ -136,13 +176,23 @@ async function performOpenAIAnalysis(
             model,
             validationStatus: llmResponse.validationStatus,
             totalTokens: llmResponse.tokenUsage?.totalTokens,
-            parseErrors: llmResponse.parseErrors.length
+            parseErrors: llmResponse.parseErrors.length,
+            apiCallDurationMs: llmResponse.timingMetrics?.apiCallDurationMs
         });
         
         return llmResponse;
         
     } catch (error) {
-        logger.error('LLM analysis failed', { url: data.url, model }, error as Error);
+        const timingMetrics = timer.end({
+            errorOccurred: true,
+            errorMessage: (error as Error).message
+        });
+        
+        logger.error('LLM analysis failed', { 
+            url: data.url, 
+            model,
+            apiCallDurationMs: timingMetrics.durationMs
+        }, error as Error);
         throw error;
     }
 }
@@ -375,6 +425,12 @@ export async function performGeminiAnalysis(
     model: string = 'gemini-1.5-flash',
     responseType: 'cms-detection' | 'meta-analysis' = 'cms-detection'
 ): Promise<LLMResponse> {
+    const timer = new PerformanceTimer('Gemini API Call', {
+        model,
+        promptLength: prompt.length,
+        dataSize: JSON.stringify(data).length
+    });
+
     logger.info('Starting Gemini analysis', { 
         model,
         promptLength: prompt.length,
@@ -385,6 +441,8 @@ export async function performGeminiAnalysis(
         const gemini = getGeminiClient();
         const geminiModel = gemini.getGenerativeModel({ model });
         
+        timer.checkpoint('prompt-preparation');
+        
         // Inject data directly into prompt
         const dataJsonString = JSON.stringify(data, null, 2);
         const fullPrompt = `${prompt}\n\n** DATA TO ANALYZE **\n${dataJsonString}`;
@@ -394,6 +452,8 @@ export async function performGeminiAnalysis(
             estimatedTokens: Math.ceil(fullPrompt.length / 4)
         });
         
+        timer.checkpoint('api-call-start');
+        
         const result = await geminiModel.generateContent({
             contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
             generationConfig: {
@@ -402,6 +462,8 @@ export async function performGeminiAnalysis(
                 responseMimeType: 'application/json'
             }
         });
+        
+        timer.checkpoint('api-call-complete');
         
         const rawResponse = result.response.text();
         
@@ -417,27 +479,51 @@ export async function performGeminiAnalysis(
             tokenUsage
         });
         
+        timer.checkpoint('response-parsing-start');
+        
         // Parse and validate the response
         const { json, errors, status } = parseAndValidateResponse(rawResponse, responseType);
+        
+        timer.checkpoint('response-parsing-complete');
+        
+        const timingMetrics = timer.end({
+            tokensUsed: tokenUsage.totalTokens,
+            responseLength: rawResponse.length
+        });
         
         const response: LLMResponse = {
             rawResponse,
             parsedJson: json,
             parseErrors: errors,
             validationStatus: status,
-            tokenUsage
+            tokenUsage,
+            timingMetrics: {
+                apiCallDurationMs: timingMetrics.durationMs,
+                networkLatencyMs: timingMetrics.metadata?.checkpoints?.['api-call-completeMs'] as number,
+                processingLatencyMs: timingMetrics.metadata?.checkpoints?.['response-parsing-completeMs'] as number,
+                checkpoints: timingMetrics.metadata?.checkpoints as Record<string, number>
+            }
         };
         
         logger.info('Gemini analysis completed successfully', { 
             model,
             validationStatus: status,
-            tokenUsage: response.tokenUsage
+            tokenUsage: response.tokenUsage,
+            apiCallDurationMs: response.timingMetrics?.apiCallDurationMs
         });
         
         return response;
         
     } catch (error) {
-        logger.error('Gemini analysis failed', { model }, error as Error);
+        const timingMetrics = timer.end({
+            errorOccurred: true,
+            errorMessage: (error as Error).message
+        });
+        
+        logger.error('Gemini analysis failed', { 
+            model,
+            apiCallDurationMs: timingMetrics.durationMs
+        }, error as Error);
         throw error;
     }
 }
@@ -679,4 +765,25 @@ export async function performBulkLLMAnalysis(
         logger.error('Bulk LLM analysis failed', { dataFilePath, model }, error as Error);
         throw error;
     }
+}
+
+/**
+ * Get cache statistics for monitoring
+ */
+export async function getCacheStats(): Promise<CacheStats> {
+    return globalResponseCache.getStats();
+}
+
+/**
+ * Clear the response cache
+ */
+export async function clearResponseCache(): Promise<void> {
+    return globalResponseCache.clear();
+}
+
+/**
+ * Generate cache report
+ */
+export async function generateCacheReport(): Promise<string> {
+    return globalResponseCache.generateReport();
 }

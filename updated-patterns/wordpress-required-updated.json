@@ -1,0 +1,34 @@
+{
+  "cms": "WordPress",
+  "description": "Required patterns for WordPress CMS detection - Updated based on LLM analysis",
+  "version": "2.0",
+  "last_updated": "2025-07-16T23:24:33.396198",
+  "analysis_source": "LLM pattern discovery results",
+  "sites_analyzed": 77,
+  "required_patterns": [
+    "header_api_wordpress",
+    "meta_generator_wordpress",
+    "robots_disallow_wordpress:wp_admin",
+    "robots_disallow_wp_admin",
+    "url_api_wordpress",
+    "url_content_wordpress",
+    "url_wp_content_path"
+  ],
+  "discriminator_patterns": [
+    "meta_generator_wordpress"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.9,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 1,
+  "changelog": {
+    "patterns_kept": 5,
+    "patterns_removed": 8,
+    "patterns_added": 2,
+    "previous_total": 13,
+    "new_total": 7
+  }
+}

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This plan implements a multi-phase approach to improve pattern naming consistency in the learn command. The strategy separates pattern discovery from standardization, uses different temperature settings for each phase, and includes comprehensive testing across multiple models.
+This plan implements a multi-Step approach to improve pattern naming consistency in the learn command. The strategy separates pattern discovery from standardization, uses different temperature settings for each phase, and includes comprehensive testing across multiple models.
 
 ## Success Metrics
 
@@ -16,7 +16,7 @@ This plan implements a multi-phase approach to improve pattern naming consistenc
 2. **Cross-Model Consistency**: Comparison of pattern consistency across different LLM models
 3. **Processing Time**: Acceptable performance with 2x API calls
 
-## Phase 1: Baseline Collection & Setup
+## Step 1: Baseline Collection & Setup
 
 ### 1.1 Pre-Implementation Commit
 - [ ] Create git commit of current state for rollback capability
@@ -32,7 +32,7 @@ This plan implements a multi-phase approach to improve pattern naming consistenc
 - [ ] Create `tmp/` folder for intermediate storage
 - [ ] Create `data/phased-results/` folder for new results
 - [ ] Create `reports/consistency-analysis/` folder for reports
-- [ ] Set up progress indication system for multi-phase processing
+- [ ] Set up progress indication system for multi-Step processing
 
 ### 1.4 Test Data Organization
 ```
@@ -54,9 +54,9 @@ data/
     └── good-other.csv
 ```
 
-## Phase 2: Two-Phase Prompt Development
+## Step 2: Two-Step Prompt Development
 
-### 2.1 Phase 1 Prompt: Pattern Discovery
+### 2.1 Step 1 Prompt: Pattern Discovery
 **Objective**: Raw pattern identification and confidence assignment
 **Temperature**: 0.2 (allows creative pattern recognition)
 
@@ -86,12 +86,12 @@ data/
 }
 ```
 
-### 2.2 Phase 2 Prompt: Standardization & Formatting
+### 2.2 Step 2 Prompt: Standardization & Formatting
 **Objective**: Pattern normalization and consistent naming
 **Temperature**: 0.0 (maximum consistency)
 
 #### Key Changes:
-- Take Phase 1 output as input
+- Take Step 1 output as input
 - Apply strict pattern naming conventions
 - Generate consistent pattern IDs
 - Create proper cross-references
@@ -105,18 +105,18 @@ data/
 5. Create final structured output
 
 ### 2.3 Prompt Development Process
-- [ ] Draft Phase 1 prompt focusing on discovery
-- [ ] Draft Phase 2 prompt focusing on standardization
+- [ ] Draft Step 1 prompt focusing on discovery
+- [ ] Draft Step 2 prompt focusing on standardization
 - [ ] Create prompt validation tests
 - [ ] Test prompts with sample data
 - [ ] Refine based on initial results
 
-## Phase 3: Implementation
+## Step 3: Implementation
 
 ### 3.1 Core Implementation
 - [ ] Create `src/learn/phased-analysis.ts` module
-- [ ] Implement Phase 1 analysis function
-- [ ] Implement Phase 2 standardization function
+- [ ] Implement Step 1 analysis function
+- [ ] Implement Step 2 standardization function
 - [ ] Add intermediate storage handling
 - [ ] Add progress indication
 - [ ] Update main learn command to use phased approach
@@ -127,12 +127,12 @@ data/
 - [ ] Handle different response formats across providers
 
 ### 3.3 Error Handling
-- [ ] Phase 1 failure handling
-- [ ] Phase 2 failure handling
+- [ ] Step 1 failure handling
+- [ ] Step 2 failure handling
 - [ ] Intermediate storage cleanup
 - [ ] Graceful degradation options
 
-## Phase 4: Multi-Model Testing
+## Step 4: Multi-Model Testing
 
 ### 4.1 Mixed Model Test Matrix
 Test mixed model combinations for optimal phase-specific performance:
@@ -145,7 +145,7 @@ Test mixed model combinations for optimal phase-specific performance:
 | gemini-2.0-flash-exp | All 4 CSVs | 75% | Creative discovery |
 
 #### Mixed Model Combination Tests:
-| Phase 1 Model | Phase 2 Model | Strategy | Expected Benefit |
+| Step 1 Model | Step 2 Model | Strategy | Expected Benefit |
 |---------------|---------------|----------|------------------|
 | gemini-2.0-flash-exp | gpt-4o | Cost-Optimized | Lower cost, good consistency |
 | gpt-4o | gpt-4-turbo | Performance-Optimized | Maximum accuracy |
@@ -155,8 +155,8 @@ Test mixed model combinations for optimal phase-specific performance:
 
 ### 4.2 Mixed Model Testing Process
 For each model combination:
-1. **Phase 1 Testing**: Run pattern discovery with Phase 1 model
-2. **Phase 2 Testing**: Run standardization with Phase 2 model on Phase 1 output
+1. **Step 1 Testing**: Run pattern discovery with Step 1 model
+2. **Step 2 Testing**: Run standardization with Step 2 model on Step 1 output
 3. **Consistency Analysis**: Measure pattern naming consistency and confidence variance
 4. **Cost Analysis**: Calculate combined cost per analysis
 5. **Latency Analysis**: Measure total time including both phases
@@ -164,8 +164,8 @@ For each model combination:
 
 ### 4.3 Mixed Model Implementation Requirements
 1. **Phased Analysis Updates**:
-   - Support different models for Phase 1 and Phase 2
-   - Pass Phase 1 model config and Phase 2 model config separately
+   - Support different models for Step 1 and Step 2
+   - Pass Step 1 model config and Step 2 model config separately
    - Store both model selections in analysis metadata
 
 2. **Configuration Structure**:
@@ -185,7 +185,7 @@ For each model combination:
    ```
 
 3. **Cost Calculation**:
-   - Track Phase 1 and Phase 2 costs separately
+   - Track Step 1 and Step 2 costs separately
    - Calculate total cost per analysis
    - Compare cost efficiency across combinations
 
@@ -194,12 +194,12 @@ Create automated script to measure:
 - **Pattern Consistency**: Compare mixed model vs single model consistency
 - **Cost Efficiency**: Cost per successful analysis for each combination
 - **Latency Performance**: Total time for both phases combined
-- **Phase-Specific Metrics**: Individual phase performance analysis
+- **Phase-Specific Metrics**: Individual Step performance analysis
 - **Optimal Combination Identification**: Best performing model pairs
 
 ### 4.5 Expected Mixed Model Benefits
 1. **Cost Optimization**: Use cheaper models for discovery, expensive models for standardization
-2. **Latency Optimization**: Match model speed to phase requirements
+2. **Latency Optimization**: Match model speed to Step requirements
 3. **Quality Optimization**: Use creative models for discovery, rule-following models for standardization
 4. **Flexibility**: Different combinations for different use cases (cost vs quality vs speed)
 
@@ -214,9 +214,9 @@ Create automated script to measure:
    - Account for retry attempts and error handling
 
 2. **Phased Analysis Timing**:
-   - Measure individual phase durations:
-     - Phase 1: Pattern discovery timing
-     - Phase 2: Pattern standardization timing
+   - Measure individual Step durations:
+     - Step 1: Pattern discovery timing
+     - Step 2: Pattern standardization timing
    - Track total analysis duration
    - Store timing metadata in analysis results
 
@@ -246,11 +246,11 @@ Create automated script to measure:
 - Performance regression detection
 - Proper handling of retries and failures
 
-## Phase 5: Analysis & Optimization
+## Step 5: Analysis & Optimization
 
 ### 5.1 Results Analysis
 - [ ] Generate comprehensive consistency reports
-- [ ] Compare phased vs single-phase approaches
+- [ ] Compare phased vs single-Step approaches
 - [ ] Identify best-performing model combinations
 - [ ] Document pattern naming improvements
 
@@ -266,10 +266,10 @@ Create automated script to measure:
 - [ ] Validate pattern recognition accuracy
 - [ ] Document performance improvements
 
-## Phase 6: Production Rollout
+## Step 6: Production Rollout
 
 ### 6.1 Integration
-- [ ] Replace single-phase implementation with phased approach
+- [ ] Replace single-Step implementation with phased approach
 - [ ] Update configuration for optimal model selection
 - [ ] Add user documentation for new approach
 - [ ] Update CLI help text if needed
@@ -308,17 +308,17 @@ Create automated script to measure:
 
 ## Success Criteria
 
-### Phase 1 Success
+### Step 1 Success
 - [ ] Baseline data collected and analyzed
 - [ ] Current consistency issues quantified
 - [ ] Infrastructure and tooling in place
 
-### Phase 2 Success
-- [ ] Two-phase prompts developed and tested
+### Step 2 Success
+- [ ] Two-Step prompts developed and tested
 - [ ] Pattern naming consistency improved in test scenarios
 - [ ] Confidence score variance reduced
 
-### Phase 3 Success
+### Step 3 Success
 - [ ] Phased approach implemented and working
 - [ ] Multi-model testing completed
 - [ ] Optimal model configuration identified
@@ -332,7 +332,7 @@ Create automated script to measure:
 ## Deliverables
 
 1. **Baseline Analysis Report**: Current consistency issues and metrics
-2. **Phased Prompts**: Two-phase prompt system with documentation
+2. **Phased Prompts**: Two-Step prompt system with documentation
 3. **Implementation**: Working phased analysis system
 4. **Testing Results**: Comprehensive multi-model consistency analysis
 5. **Production System**: Optimized learn command with improved consistency
@@ -341,7 +341,7 @@ Create automated script to measure:
 ## Next Steps
 
 1. **Immediate**: Commit current state and begin baseline collection
-2. **Short-term**: Develop and test two-phase prompt system
+2. **Short-term**: Develop and test two-Step prompt system
 3. **Medium-term**: Implement and test across multiple models
 4. **Long-term**: Optimize and roll out to production
 

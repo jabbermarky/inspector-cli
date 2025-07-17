@@ -1,0 +1,31 @@
+{
+  "cms": "Joomla",
+  "description": "Required patterns for Joomla CMS detection - Updated based on LLM analysis",
+  "version": "2.0",
+  "last_updated": "2025-07-16T23:24:33.397036",
+  "analysis_source": "LLM pattern discovery results",
+  "sites_analyzed": 61,
+  "required_patterns": [
+    "meta_generator_joomla",
+    "robots_disallow_administrator",
+    "robots_disallow_joomla:administrator"
+  ],
+  "discriminator_patterns": [
+    "meta_generator_joomla",
+    "robots_disallow_administrator"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.9,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 2,
+  "changelog": {
+    "patterns_kept": 2,
+    "patterns_removed": 9,
+    "patterns_added": 1,
+    "previous_total": 11,
+    "new_total": 3
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "cms": "duda",
+  "total_sites": 0,
+  "expected_patterns": "{'css_class_duda:design', 'file_runtime_duda', 'header_powered_duda', 'js_global_duda:window_parameters', 'url_runtime_duda', 'url_api_duda', 'js_global_duda:dmAPI', 'js_runtime_duda', 'js_global_duda:dm_direct', 'css_class_duda:dm_body', 'meta_viewport_duda:settings', 'meta_viewport_duda'}",
+  "discriminator_patterns": "{'js_global_duda:window_parameters', 'url_api_duda', 'js_runtime_duda', 'js_global_duda:dm_direct', 'css_class_duda:dm_body', 'meta_viewport_duda'}",
+  "site_results": [],
+  "average_completeness": 0,
+  "average_discriminator_completeness": 0
+}

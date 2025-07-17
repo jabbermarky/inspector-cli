@@ -54,6 +54,12 @@ export interface PhaseResult {
   cost?: number;
   duration?: number;
   model?: string; // Track which model was used for this phase
+  timingMetrics?: {
+    apiCallDurationMs: number;
+    networkLatencyMs?: number;
+    processingLatencyMs?: number;
+    checkpoints?: Record<string, number>;
+  };
 }
 
 export interface PhasedAnalysisResult {
@@ -186,7 +192,8 @@ async function performPhase1Analysis(
       tokenUsage: response.tokenUsage?.totalTokens || 0,
       cost: calculateCostFromTokens(response.tokenUsage, modelToUse),
       duration: Date.now() - startTime,
-      model: modelToUse
+      model: modelToUse,
+      timingMetrics: response.timingMetrics
     };
 
   } catch (error) {
@@ -239,7 +246,8 @@ async function performPhase2Analysis(
       tokenUsage: response.tokenUsage?.totalTokens || 0,
       cost: calculateCostFromTokens(response.tokenUsage, modelToUse),
       duration: Date.now() - startTime,
-      model: modelToUse
+      model: modelToUse,
+      timingMetrics: response.timingMetrics
     };
 
   } catch (error) {

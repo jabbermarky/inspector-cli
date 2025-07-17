@@ -10,6 +10,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'WordPress',
                 confidence: 0.9,
                 type: 'script-src',
+                hybridPatternName: 'url_content_wordpress',
             },
             {
                 feature: 'hasWpContentInHtml',
@@ -17,6 +18,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'WordPress',
                 confidence: 0.9,
                 type: 'html-content',
+                hybridPatternName: 'url_content_wordpress',
             },
             {
                 feature: 'hasWpJsonLink',
@@ -24,6 +26,15 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'WordPress',
                 confidence: 0.8,
                 type: 'html-content',
+                hybridPatternName: 'url_api_wordpress',
+            },
+            {
+                feature: 'generatorContainsWordPress',
+                description: 'Generator meta tag contains WordPress',
+                cms: 'WordPress',
+                confidence: 0.95,
+                type: 'meta-tag',
+                hybridPatternName: 'meta_generator_wordpress',
             },
             {
                 feature: 'hasDrupalSites',
@@ -31,6 +42,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.8,
                 type: 'script-src',
+                hybridPatternName: 'url_sites_drupal',
             },
             {
                 feature: 'generatorContainsDrupal',
@@ -38,6 +50,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.95,
                 type: 'meta-tag',
+                hybridPatternName: 'meta_generator_drupal',
             },
             {
                 feature: 'hasDrupalDynamicCacheHeader',
@@ -45,6 +58,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.95,
                 type: 'header',
+                hybridPatternName: 'header_cache_drupal',
             },
             {
                 feature: 'hasDrupalSettingsJson',
@@ -52,6 +66,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.98,
                 type: 'script-src',
+                hybridPatternName: 'js_settings_drupal',
             },
             {
                 feature: 'hasDrupalMessagesFallback',
@@ -59,6 +74,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.97,
                 type: 'html-content',
+                hybridPatternName: 'js_messages_drupal',
             },
             {
                 feature: 'hasDrupalSettingsExtend',
@@ -66,6 +82,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.99,
                 type: 'script-src',
+                hybridPatternName: 'js_settings_drupal',
             },
             {
                 feature: 'hasDrupalJavaScript',
@@ -73,6 +90,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Drupal',
                 confidence: 0.95,
                 type: 'script-src',
+                hybridPatternName: 'js_object_drupal',
             },
             {
                 feature: 'hasJoomlaTemplates',
@@ -80,6 +98,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 0.9,
                 type: 'script-src',
+                hybridPatternName: 'url_template_joomla',
             },
             {
                 feature: 'hasJoomlaScriptOptions',
@@ -87,6 +106,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 1.0,
                 type: 'dom-structure',
+                hybridPatternName: 'js_global_joomla',
             },
             {
                 feature: 'generatorContainsJoomla',
@@ -94,6 +114,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 0.8,
                 type: 'meta-tag',
+                hybridPatternName: 'meta_generator_joomla',
             },
             {
                 feature: 'hasJoomlaJUI',
@@ -101,6 +122,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 0.95,
                 type: 'script-src',
+                hybridPatternName: 'url_media_joomla:jui',
             },
             {
                 feature: 'hasJoomlaMedia',
@@ -108,6 +130,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Joomla',
                 confidence: 0.6,
                 type: 'script-src',
+                hybridPatternName: 'url_media_joomla',
             },
             // Duda Website Builder discriminative features
             {
@@ -116,6 +139,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.99,
                 type: 'script-src',
+                hybridPatternName: 'js_global_duda:window_parameters',
             },
             {
                 feature: 'hasDudaOneSiteType',
@@ -123,6 +147,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.99,
                 type: 'script-src',
+                hybridPatternName: 'js_global_duda:site_type',
             },
             {
                 feature: 'hasDMDirectProductId',
@@ -130,6 +155,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.98,
                 type: 'script-src',
+                hybridPatternName: 'js_global_duda:product_id',
             },
             {
                 feature: 'hasDmBodySelector',
@@ -137,6 +163,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.98,
                 type: 'script-src',
+                hybridPatternName: 'css_class_duda:dm_body',
             },
             {
                 feature: 'hasIrpCdnWebsite',
@@ -144,6 +171,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.85,
                 type: 'script-src',
+                hybridPatternName: 'url_cdn_duda',
             },
             {
                 feature: 'hasLirpCdnWebsite',
@@ -151,6 +179,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.85,
                 type: 'script-src',
+                hybridPatternName: 'url_cdn_duda',
             },
             {
                 feature: 'hasUSDirectProduction',
@@ -158,6 +187,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.9,
                 type: 'script-src',
+                hybridPatternName: 'js_global_duda:system_id',
             },
             {
                 feature: 'hasDudaMobileDomain',
@@ -165,6 +195,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.8,
                 type: 'html-content',
+                hybridPatternName: 'url_api_duda',
             },
             {
                 feature: 'hasDmAlbumClasses',
@@ -172,6 +203,7 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.75,
                 type: 'dom-structure',
+                hybridPatternName: 'css_class_duda:design',
             },
             {
                 feature: 'hasDudaBuilderIdentifiers',
@@ -179,6 +211,15 @@ export function loadDiscriminativeFeatures(): DiscriminativeFeature[] {
                 cms: 'Duda',
                 confidence: 0.7,
                 type: 'html-content',
+                hybridPatternName: 'meta_generator_duda',
+            },
+            {
+                feature: 'hasWpAdminDisallow',
+                description: 'robots.txt disallows /wp-admin/',
+                cms: 'WordPress',
+                confidence: 0.9,
+                type: 'robots-txt',
+                hybridPatternName: 'robots_disallow_wordpress:wp_admin',
             },
         ];
     }

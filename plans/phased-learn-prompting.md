@@ -63,7 +63,7 @@ Technical Assumptions
 2. Response Time: Multi-phase will be slower - what's the maximum acceptable increase?
    **answer**: time increase is acceptable for now. we will optimize later.
 
-3. Intermediate Storage: Phase 1 output needs to be stored/passed to Phase 2 - temporary storage is acceptable?
+3. Intermediate Storage: Pattern Discovery Phase output needs to be stored/passed to Pattern Standardization Phase - temporary storage is acceptable?
    **answer**: yes, temp storage is fine. create a tmp folder
 
 Scope Assumptions
@@ -89,29 +89,29 @@ Success Criteria Assumptions
 
 ## Implementation Plan
 
-### Phase 1: Baseline Collection and Analysis ✅
+### Step 1: Baseline Collection and Analysis ✅
 1. Collect baseline data from current single-phase implementation
 2. Analyze pattern naming inconsistencies and confidence variance
 3. Create baseline metrics for comparison
 
-### Phase 2: Two-Phase Prompting Implementation ✅
-1. Create Phase 1 prompt for pattern discovery (temperature 0.2)
-2. Create Phase 2 prompt for pattern standardization (temperature 0.0)
+### Step 2: Two-Phase Prompting Implementation ✅
+1. Create Pattern Discovery Phase prompt for pattern discovery (temperature 0.2)
+2. Create Pattern Standardization Phase prompt for pattern standardization (temperature 0.0)
 3. Implement phased analysis workflow
 4. Add --phased-analysis flag to learn command
 
-### Phase 3: Initial Validation ✅
+### Step 3: Initial Validation ✅
 1. Test phased approach against baseline data
 2. Validate pattern consistency improvements
 3. Fix pattern naming issues (forbidden suffixes)
 
-### Phase 4: Multi-Model Testing ✅
+### Step 4: Multi-Model Testing ✅
 1. Test with multiple models (GPT-4o, GPT-4-turbo, Gemini variants)
 2. Compare consistency across models
 3. Analyze cost efficiency and success rates
 4. **Add accurate API latency measurement**
 
-### Phase 4.5: API Latency Instrumentation 🔄
+### Step 4.5: API Latency Instrumentation 🔄
 **Objective**: Capture accurate LLM API call durations for model comparison
 
 **Implementation Approach**:
@@ -123,8 +123,8 @@ Success Criteria Assumptions
 
 2. **Phased Analysis Timing**:
    - Measure individual phase durations:
-     - Phase 1: Pattern discovery timing
-     - Phase 2: Pattern standardization timing
+     - 1: Pattern discovery timing
+     - 2: Pattern standardization timing
    - Track total analysis duration
    - Store timing metadata in analysis results
 
@@ -154,13 +154,13 @@ Success Criteria Assumptions
 - Performance regression detection
 - Proper handling of retries and failures
 
-### Phase 5: Analysis & Optimization
+### Step 5: Analysis & Optimization
 1. Fine-tune temperature settings based on results
 2. Optimize prompt language for better compliance
 3. Implement pattern caching for common patterns
 4. Add pattern validation rules
 
-### Phase 6: Production Rollout
+### Step 6: Production Rollout
 1. Replace single-phase implementation with phased approach
 2. Update configuration and documentation
 3. Monitor production performance

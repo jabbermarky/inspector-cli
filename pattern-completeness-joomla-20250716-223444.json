@@ -1,0 +1,190 @@
+{
+  "cms": "joomla",
+  "total_sites": 20,
+  "expected_patterns": "{'url_component_joomla', 'url_module_joomla:mod', 'file_settings_joomla', 'css_system_joomla:files', 'css_system_joomla', 'robots_disallow_joomla:administrator', 'header_content_joomla', 'url_template_joomla', 'url_component_joomla:com', 'url_media_joomla', 'url_admin_joomla', 'js_global_joomla', 'url_module_joomla', 'meta_generator_joomla', 'js_core_joomla'}",
+  "discriminator_patterns": "{'url_component_joomla', 'css_system_joomla', 'url_template_joomla', 'url_media_joomla', 'js_global_joomla', 'url_module_joomla', 'meta_generator_joomla'}",
+  "site_results": [
+    {
+      "url": "https://www.generalosgb.com/",
+      "total_patterns": 4,
+      "found_patterns": "{'url_component_joomla', 'js_global_joomla:joomla_script', 'meta_generator_joomla', 'robots_disallow_joomla:administrator'}",
+      "found_expected": "{'url_component_joomla', 'meta_generator_joomla', 'robots_disallow_joomla:administrator'}",
+      "found_discriminators": "{'url_component_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://www.generalosgb.com",
+      "total_patterns": 5,
+      "found_patterns": "{'url_component_joomla', 'js_global_joomla:powr_joomla', 'robots_disallow_joomla:administrator', 'url_media_joomla:plg_jchoptimize', 'meta_generator_joomla'}",
+      "found_expected": "{'url_component_joomla', 'meta_generator_joomla', 'robots_disallow_joomla:administrator'}",
+      "found_discriminators": "{'url_component_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://bcn-acces.com/",
+      "total_patterns": 4,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'js_global_joomla:jtext', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://macroscope.ca.fujitsu.com/en",
+      "total_patterns": 5,
+      "found_patterns": "{'url_component_joomla', 'robots_disallow_joomla:administrator', 'js_global_joomla:jtext', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'url_component_joomla', 'url_media_joomla', 'meta_generator_joomla', 'robots_disallow_joomla:administrator'}",
+      "found_discriminators": "{'url_component_joomla', 'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.26666666666666666,
+      "discriminator_completeness": 0.42857142857142855
+    },
+    {
+      "url": "joomla.org",
+      "total_patterns": 6,
+      "found_patterns": "{'url_templates_joomla', 'robots_disallow_joomla:administrator', 'js_global_joomla:jtext', 'header_turbo_joomla', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "wyospcr.wyo.gov",
+      "total_patterns": 6,
+      "found_patterns": "{'robots_disallow_joomla:components', 'robots_disallow_joomla:plugins', 'js_global_joomla:joomla_script', 'robots_disallow_joomla:administrator', 'robots_disallow_joomla:modules', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://www.literacysomerset.org",
+      "total_patterns": 3,
+      "found_patterns": "{'meta_generator_joomla', 'robots_disallow_joomla:administrator', 'header_encoded_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://sclak.mobi",
+      "total_patterns": 4,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'js_global_joomla:joomla_script', 'url_component_joomla:jchoptimize', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://meetings.portseattle.org",
+      "total_patterns": 5,
+      "found_patterns": "{'js_global_joomla:j_multiselect', 'robots_disallow_joomla:administrator', 'url_media_joomla', 'css_class_joomla:dj_hideitem', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://sclak.mobi/",
+      "total_patterns": 4,
+      "found_patterns": "{'js_global_joomla:jtext', 'url_component_joomla:jchoptimize', 'meta_generator_joomla', 'url_admin_joomla'}",
+      "found_expected": "{'url_admin_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://bcn-acces.com",
+      "total_patterns": 4,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'js_global_joomla:hidden_mail', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://www.frva.com/",
+      "total_patterns": 2,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'header_encoded_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator'}",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.06666666666666667,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.literacysomerset.org",
+      "total_patterns": 3,
+      "found_patterns": "{'meta_generator_joomla', 'robots_disallow_joomla:administrator', 'header_encoded_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://www.frva.com",
+      "total_patterns": 2,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'header_encoded_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator'}",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.06666666666666667,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "meetings.portseattle.org",
+      "total_patterns": 4,
+      "found_patterns": "{'robots_disallow_joomla:administrator', 'js_global_joomla:JMultiSelect', 'meta_generator_joomla', 'url_component_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla', 'url_component_joomla'}",
+      "found_discriminators": "{'url_component_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://bensguide.gpo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'url_plugin_joomla', 'js_global_joomla:joomla_script', 'robots_disallow_joomla:administrator', 'url_template_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_template_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_template_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    },
+    {
+      "url": "https://wyospcr.wyo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'file_template_joomla', 'robots_disallow_joomla:administrator', 'js_global_joomla:JCaption', 'url_structure_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "wizard.waltherarms.com",
+      "total_patterns": 5,
+      "found_patterns": "{'url_media_joomla:vendor', 'robots_disallow_joomla:administrator', 'url_component_joomla:finder', 'js_global_joomla:jtext', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "bensguide.gpo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'js_global_joomla:mootools_core', 'url_component_joomla:yeeditor', 'robots_disallow_joomla:administrator', 'js_global_joomla:script_options', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'meta_generator_joomla'}",
+      "found_discriminators": "{'meta_generator_joomla'}",
+      "expected_completeness": 0.13333333333333333,
+      "discriminator_completeness": 0.14285714285714285
+    },
+    {
+      "url": "https://macroscope.ca.fujitsu.com/en/",
+      "total_patterns": 4,
+      "found_patterns": "{'js_options_joomla', 'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_expected": "{'robots_disallow_joomla:administrator', 'url_media_joomla', 'meta_generator_joomla'}",
+      "found_discriminators": "{'url_media_joomla', 'meta_generator_joomla'}",
+      "expected_completeness": 0.2,
+      "discriminator_completeness": 0.2857142857142857
+    }
+  ],
+  "average_completeness": 0.16333333333333333,
+  "average_discriminator_completeness": 0.20714285714285713
+}

@@ -150,17 +150,17 @@ describe('CMS Detection', () => {
 
 ## Migration Guide
 
-### Phase 1: Infrastructure (Complete)
+### Step 1: Infrastructure (Complete)
 - ✅ Created centralized test utilities
 - ✅ Standardized mock implementations
 - ✅ Added TypeScript type safety
 
-### Phase 2: Gradual Migration (Next)
+### Step 2: Gradual Migration (Next)
 1. Migrate highest-impact files first (DetectionPage/BrowserManager users)
 2. Update 2-3 test files per iteration
 3. Validate test coverage remains consistent
 
-### Phase 3: Cleanup (Final)
+### Step 3: Cleanup (Final)
 1. Remove duplicate mock code
 2. Add lint rules to prevent regression
 3. Update documentation

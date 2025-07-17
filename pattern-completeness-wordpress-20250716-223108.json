@@ -1,0 +1,154 @@
+{
+  "cms": "wordpress",
+  "total_sites": 16,
+  "expected_patterns": "{'header_api_wordpress', 'js_localize_script_wordpress', 'meta_generator_wordpress', 'url_includes_wordpress', 'url_content_wordpress', 'css_includes_wordpress', 'js_embed_wordpress', 'file_login_wordpress', 'url_api_wordpress:rest', 'url_api_wordpress', 'robots_disallow_wordpress:wp_admin', 'css_block_library_wordpress', 'js_emoji_release_wordpress', 'url_admin_wordpress:ajax'}",
+  "discriminator_patterns": "{'meta_generator_wordpress', 'css_includes_wordpress', 'url_content_wordpress', 'js_embed_wordpress', 'url_api_wordpress:rest', 'url_api_wordpress', 'js_emoji_release_wordpress', 'url_admin_wordpress:ajax'}",
+  "site_results": [
+    {
+      "url": "https://www.branch.io/",
+      "total_patterns": 5,
+      "found_patterns": "{'link', 'yoast_seo', 'generator', 'wp-content', 'wp-json'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://lamaisondaffichage.ca",
+      "total_patterns": 5,
+      "found_patterns": "{'robots_txt_content', 'wp-emoji-settings', 'x-powered-by', 'generator', 'wp-content'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "wordpress.org",
+      "total_patterns": 6,
+      "found_patterns": "{'link', 'generator', 'wp-content', 'x-olaf', 'disallow_wp_admin', 'wpEmojiSettings'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.branch.io",
+      "total_patterns": 5,
+      "found_patterns": "{'wordpress_paths', 'wp_block_classes', 'yoast_seo', 'generator', 'link_header'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "events.geschaeftskunden.telekom.de",
+      "total_patterns": 6,
+      "found_patterns": "{'wp-block', 'theme_file_path', 'generator', 'wp-content', 'link_header', 'wordpress_disallow'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://events.geschaeftskunden.telekom.de",
+      "total_patterns": 9,
+      "found_patterns": "{'wp-block', 'wp-includes', 'x-powered-by', 'link', 'php_version', 'wp-content', 'wp-json', 'disallow_wp_admin', 'robots'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "taboola.com",
+      "total_patterns": 3,
+      "found_patterns": "{'disallowed_paths', 'generator', 'wp-content'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.harvard.edu",
+      "total_patterns": 5,
+      "found_patterns": "{'yoast_block', 'link_header_json', 'gtm4wp_plugin_script', 'wordpress_content_url', 'yoast_seo_plugin'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://css-tricks.com",
+      "total_patterns": 6,
+      "found_patterns": "{'x-cache', 'sitemap', 'generator', 'wp-content', 'og:image', 'wp-json'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "css-tricks.com",
+      "total_patterns": 6,
+      "found_patterns": "{'wordpress_json', 'og_image', 'jetpack_plugin', 'wordpress_default', 'wordpress_content', 'cloudways_cache'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://jquery.com",
+      "total_patterns": 6,
+      "found_patterns": "{'wordpress_file_paths', 'wordpress_robots_rules', 'x_powered_by', 'wordpress_url_structure', 'link_header', 'generator_tag'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://wordpress.org",
+      "total_patterns": 7,
+      "found_patterns": "{'wp-block', 'wp-include', 'wp-admin', 'generator', 'wp-content', 'x-frame-options', 'wpEmojiSettings'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.harvard.edu",
+      "total_patterns": 5,
+      "found_patterns": "{'yoast_block', 'link_header_json', 'gtm4wp_plugin_script', 'wordpress_content_url', 'yoast_seo_plugin'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "jquery.com",
+      "total_patterns": 5,
+      "found_patterns": "{'x-powered-by', 'link', 'generator', 'wp-content', 'disallow_wp_admin'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "lamaisondaffichage.ca",
+      "total_patterns": 7,
+      "found_patterns": "{'generator_wpbakery', 'wp_content', 'wordpress_emoji_settings', 'x-powered-by', 'link_api', 'crawl_delay', 'generator_all_in_one_seo'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://taboola.com",
+      "total_patterns": 2,
+      "found_patterns": "{'yoast_seo', 'wordpress_content'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    }
+  ],
+  "average_completeness": 0.0,
+  "average_discriminator_completeness": 0.0
+}

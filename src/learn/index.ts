@@ -12,6 +12,6 @@ export * from './model-providers.js';
 export { processLearnAnalysis, processLearnBatch } from './analysis.js';
 export { displayResults } from './display.js';
 export { ensureLearnDirectoryStructure } from './storage.js';
-export { performBulkLLMAnalysis, performDirectLLMAnalysis, performGeminiAnalysis } from './llm-integration.js';
+export { performBulkLLMAnalysis, performDirectLLMAnalysis, performGeminiAnalysis, getCacheStats, clearResponseCache, generateCacheReport } from './llm-integration.js';
 export { aggregateDataForBulkUpload } from './data-collection.js';
 export { loadExistingLearnAnalyses, createMetaAnalysisPrompt, createTechnologyMetaAnalysisPrompt } from './meta-analysis.js';

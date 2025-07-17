@@ -62,33 +62,87 @@ Be creative in pattern identification but accurate in confidence assessment.
 
 // Phase 2 Prompt: Pattern Standardization (Temperature: 0.0)
 export const CMS_PATTERN_STANDARDIZATION_PROMPT = `
-You are a pattern standardization specialist. Your task is to apply strict naming conventions to CMS detection patterns.
+You are a pattern standardization specialist. Your task is to transform Phase 1 patterns into standardized names using a hybrid format.
 
-STANDARDIZATION RULES:
-1. Pattern names must follow the format: {source}_{indicator}_{specificity}
-2. Use only these source prefixes:
-   - meta_ (for meta tags)
-   - header_ (for HTTP headers)
-   - url_ (for URL patterns)
-   - js_ (for JavaScript)
-   - css_ (for CSS classes)
-   - robots_ (for robots.txt)
-   - file_ (for file paths)
+HYBRID FORMAT RULES:
+1. BASE FORMAT (for unique patterns): {source}_{indicator}_{cms}
+2. INSTANCE FORMAT (for multiple instances): {source}_{indicator}_{cms}:{instance}
 
-3. Common indicator terms:
-   - generator (for generator tags/headers)
-   - powered_by (for X-Powered-By headers)
-   - content_path (for content directories)
-   - admin_path (for admin directories)
-   - cache (for caching headers)
-   - version (for version indicators)
+WHEN TO USE EACH FORMAT:
+- BASE FORMAT: When pattern is unique (meta generator, main content path, primary header)
+- INSTANCE FORMAT: When multiple instances exist (multiple robots disallow rules, multiple CSS classes, multiple JS globals)
 
-4. Specificity rules:
-   - Use cms_name when pattern is specific to a CMS (drupal, wordpress, joomla)
-   - Use descriptive terms for general patterns (admin, content, cache)
-   - NEVER use generic suffixes like "_specific", "_generic", "_unique", "_custom"
-   - Keep pattern names as concise as possible while being descriptive
-   - For CSS patterns: use concrete descriptors like "block", "theme", "plugin" instead of generic terms
+TRANSFORMATION PROCESS:
+1. Extract source from type: "url_pattern" → "url", "robots_txt" → "robots"
+2. Simplify indicator from name: "wp-content" → "content", "disallow_wp_admin" → "disallow"
+3. Add CMS specificity: "wordpress", "drupal", "joomla", "duda"
+4. If multiple instances: Add specific instance after colon
+
+CONSOLIDATION RULES - Apply these transformations:
+WordPress patterns:
+- "wp-content" → "content"
+- "wp-admin" → "admin"
+- "wp-json" → "api"
+- "wp-includes" → "includes"
+- "disallow_wp_admin" → "disallow" (instance: "wp_admin")
+- "link" (to API) → "api"
+- "x-powered-by" → "powered_by"
+- "generator" → "generator"
+- CSS classes → "class" (instance: specific class name)
+- JS globals → "global" (instance: specific global name)
+
+Drupal patterns:
+- "drupal-settings" → "settings"
+- "x-drupal-cache" → "cache"
+- "sites/default" → "content"
+- "core/modules" → "modules"
+
+Joomla patterns:
+- "com_" → "component" (instance: component name)
+- "mod_" → "module" (instance: module name)
+- "administrator" → "admin"
+- "media/system" → "media"
+
+Duda patterns:
+- "window_parameters" → "global"
+- "dm_" → "dm"
+- "runtime" → "runtime"
+
+TRANSFORMATION EXAMPLES:
+
+UNIQUE PATTERNS (Base Format):
+Phase 1: {type: "meta_tag", name: "generator", value: "WordPress 6.8"}
+Phase 2: "meta_generator_wordpress"
+
+Phase 1: {type: "url_pattern", name: "wp-content", value: "/wp-content/themes/..."}
+Phase 2: "url_content_wordpress"
+
+Phase 1: {type: "http_header", name: "x-powered-by", value: "PHP/8.2.28"}
+Phase 2: "header_powered_by_wordpress"
+
+MULTIPLE INSTANCES (Instance Format):
+Phase 1: {type: "robots_txt", name: "disallow_wp_admin", value: "Disallow: /wp-admin/"}
+Phase 2: "robots_disallow_wordpress:wp_admin"
+
+Phase 1: {type: "robots_txt", name: "disallow_wp_content", value: "Disallow: /wp-content/uploads/"}
+Phase 2: "robots_disallow_wordpress:wp_content"
+
+Phase 1: {type: "css_class", name: "wp-block-button", value: "..."}
+Phase 2: "css_class_wordpress:wp_block"
+
+Phase 1: {type: "js_global", name: "wp_config", value: "window.wp_config = ..."}
+Phase 2: "js_global_wordpress:wp_config"
+
+INSTANCE NAMING RULES:
+- Keep instance names short and descriptive
+- Use underscores within instance names if needed
+- Remove redundant CMS prefixes in instances (wp-admin → wp_admin, not wordpress_admin)
+- Focus on the distinguishing part of the pattern
+
+PATTERN DETECTION LOGIC:
+1. If you see multiple similar patterns (multiple robots disallow, multiple CSS classes, multiple JS globals): Use instance format
+2. If pattern is unique or primary: Use base format
+3. Group related patterns under same base pattern when possible
 
 CONFIDENCE STANDARDIZATION:
 - Use exactly these confidence values:
@@ -97,21 +151,26 @@ CONFIDENCE STANDARDIZATION:
   - 0.85: Moderate indicators
   - 0.80: Weak but useful indicators
 
-REQUIRED PATTERNS (must be included if detected):
+REQUIRED PATTERNS (use these exact names if detected):
 For WordPress:
 - meta_generator_wordpress
-- url_wp_content_path
-- robots_disallow_wp_admin
+- url_content_wordpress
+- robots_disallow_wordpress:wp_admin (if /wp-admin/ is disallowed)
 
 For Drupal:
 - meta_generator_drupal
-- header_x_drupal_cache
-- robots_disallow_admin
+- header_cache_drupal
+- robots_disallow_drupal:admin (if /admin/ is disallowed)
 
 For Joomla:
 - meta_generator_joomla
-- header_x_content_encoded_by
-- robots_disallow_administrator
+- header_encoded_joomla
+- robots_disallow_joomla:administrator (if /administrator/ is disallowed)
+
+For Duda:
+- js_global_duda
+- css_class_duda
+- js_api_duda
 
 INPUT: Raw pattern data from Phase 1
 OUTPUT: Standardized JSON object with this exact structure:
@@ -127,23 +186,15 @@ OUTPUT: Standardized JSON object with this exact structure:
   ]
 }
 
+FINAL VALIDATION:
+Before outputting any pattern, verify:
+- Base format: Pattern has exactly 3 parts (2 underscores)
+- Instance format: Pattern has base + colon + instance (e.g., "robots_disallow_wordpress:wp_admin")
+- No compound indicators in base pattern (like "wp_content", "drupal_settings")
+- CMS name is consistent throughout
+- Instance names are meaningful and concise
+
 Apply these rules strictly with no exceptions.
-IMPORTANT: Always include the technology and confidence fields at the top level.
-
-CRITICAL PATTERN STANDARDIZATION RULES:
-1. FORBIDDEN SUFFIXES: "_specific", "_generic", "_unique", "_custom", "_base", "_main", "_common"
-2. REQUIRED FORMAT: {source}_{indicator}_{cms_name} OR {source}_{indicator}_{descriptor}
-3. CSS PATTERN EXAMPLES:
-   - CORRECT: "css_wp_block_library", "css_wp_theme_styles", "css_wp_admin_bar"
-   - INCORRECT: "css_wp_block_specific", "css_wp_block_generic", "css_wp_block_unique"
-4. PATTERN CONSOLIDATION: If multiple similar patterns exist, choose the most specific descriptor
-5. IMMEDIATE REJECTION: Any pattern with forbidden suffixes must be renamed immediately
-
-VALIDATION CHECKLIST:
-- [ ] No forbidden suffixes in any pattern name
-- [ ] All patterns follow {source}_{indicator}_{specificity} format
-- [ ] CSS patterns use concrete descriptors (not generic terms)
-- [ ] Pattern names are concise and descriptive
 `;
 
 // Configuration for two-phase analysis

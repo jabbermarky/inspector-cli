@@ -1,0 +1,31 @@
+{
+  "cms": "Duda",
+  "description": "Required patterns for Duda CMS detection - Updated based on LLM analysis",
+  "version": "2.0",
+  "last_updated": "2025-07-16T23:24:33.397368",
+  "analysis_source": "LLM pattern discovery results",
+  "sites_analyzed": 42,
+  "required_patterns": [
+    "js_global_duda:SystemID",
+    "js_global_duda:parameters",
+    "js_global_duda:window_parameters",
+    "url_cdn_duda"
+  ],
+  "discriminator_patterns": [
+    "url_cdn_duda"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.9,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 1,
+  "changelog": {
+    "patterns_kept": 1,
+    "patterns_removed": 9,
+    "patterns_added": 3,
+    "previous_total": 10,
+    "new_total": 4
+  }
+}

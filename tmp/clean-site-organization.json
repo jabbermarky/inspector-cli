@@ -1,0 +1,76 @@
+{
+  "timestamp": "2025-07-16T13:03:13.494Z",
+  "cleanSites": {
+    "WordPress": [],
+    "Drupal": [],
+    "Joomla": [],
+    "Duda": []
+  },
+  "botProtectedSites": {
+    "WordPress": [
+      "https://wordpress.com",
+      "https://wordpress.org",
+      "https://10web.io",
+      "https://elementor.com",
+      "https://jquery.com",
+      "https://abzarwp.com/",
+      "https://css-tricks.com",
+      "https://www.branch.io/",
+      "https://www.checkpoint.com/",
+      "https://cpanel.net"
+    ],
+    "Drupal": [
+      "https://www.redhat.com/en",
+      "https://pantheon.io/",
+      "https://www.acquia.com/",
+      "https://www.pfizer.com",
+      "https://www.un.org/en/",
+      "https://commission.europa.eu/index_en",
+      "https://www.nestle.com/",
+      "https://www.defendpublichealth.org",
+      "https://creation-site-drupal.fr/",
+      "https://europa.eu"
+    ],
+    "Joomla": [
+      "https://Url",
+      "https://joomla.org",
+      "https://support.cs.wm.edu",
+      "https://wyospcr.wyo.gov",
+      "https://bensguide.gpo.gov",
+      "https://wizard.waltherarms.com",
+      "https://www.frva.com/",
+      "https://meetings.portseattle.org",
+      "https://macroscope.ca.fujitsu.com/en/",
+      "https://www.xpressbet.com/",
+      "https://annotate.warwick.ac.uk/live/index.php/login"
+    ],
+    "Duda": [
+      "https://mlspin.com/",
+      "https://www.rapport3.com/",
+      "https://www.awardspring.com/",
+      "https://www.ref-me.com/",
+      "https://www.shootq.com/",
+      "https://www.iclasspro.com/",
+      "https://www.superpay.me/",
+      "https://www.ergorobotic.com/",
+      "https://www.nesmaairlines.com/",
+      "https://www.ilocal.com.br/"
+    ]
+  },
+  "summary": {
+    "cleanSitesByyCMS": {
+      "WordPress": 0,
+      "Drupal": 0,
+      "Joomla": 0,
+      "Duda": 0
+    },
+    "botProtectedSitesByCMS": {
+      "WordPress": 10,
+      "Drupal": 10,
+      "Joomla": 11,
+      "Duda": 10
+    },
+    "totalCleanSites": 0,
+    "totalBotProtectedSites": 41
+  }
+}

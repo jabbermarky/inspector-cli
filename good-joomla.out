@@ -1,0 +1,319 @@
+  ___                           _                ____ _     ___ 
+ |_ _|_ __  ___ _ __   ___  ___| |_ ___  _ __   / ___| |   |_ _|
+  | || '_ \/ __| '_ \ / _ \/ __| __/ _ \| '__| | |   | |    | | 
+  | || | | \__ \ |_) |  __/ (__| || (_) | |    | |___| |___ | | 
+ |___|_| |_|___/ .__/ \___|\___|\__\___/|_|     \____|_____|___|
+               |_|                                              
+Processing learn analysis for 12 URLs...
+[1/12] ✓ joomla.org → joomla (95% confidence)
+[2/12] ✓ support.cs.wm.edu → joomla (95% confidence)
+[3/12] ✓ wyospcr.wyo.gov → joomla (95% confidence)
+[4/12] ✓ bensguide.gpo.gov → joomla (95% confidence)
+[5/12] ✓ wizard.waltherarms.com → joomla (95% confidence)
+[6/12] ✓ https://www.frva.com/ → joomla (95% confidence)
+[7/12] ✓ meetings.portseattle.org → Joomla (95% confidence)
+[8/12] ✓ https://macroscope.ca.fujitsu.com/en/ → joomla (95% confidence)
+[9/12] ✓ https://www.literacysomerset.org → joomla (95% confidence)
+[10/12] ✓ https://sclak.mobi/ → joomla (95% confidence)
+[11/12] ✓ https://bcn-acces.com/ → joomla (95% confidence)
+[12/12] ✓ https://www.generalosgb.com/ → joomla (95% confidence)
+
+Learn Analysis Results (12 URLs processed):
+✓ 12 successful, ✗ 0 failed
+
+Successful analyses:
+- joomla.org:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_media_joomla, url_templates_joomla
+  → Analysis cost: 20994 tokens, $0.0997
+- support.cs.wm.edu:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_media_joomla, js_global_joomla:jtext
+  → Analysis cost: 6971 tokens, $0.0331
+- wyospcr.wyo.gov:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, robots_disallow_joomla:administrator, robots_disallow_joomla:components
+  → Analysis cost: 25061 tokens, $0.1190
+- bensguide.gpo.gov:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_component_joomla:yeeditor, js_global_joomla:script_options
+  → Analysis cost: 11863 tokens, $0.0563
+- wizard.waltherarms.com:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_component_joomla:finder, robots_disallow_joomla:administrator
+  → Analysis cost: 8623 tokens, $0.0410
+- https://www.frva.com/:
+  → Technology: joomla (95% confidence)
+  → Key patterns: header_encoded_joomla, robots_disallow_joomla:administrator
+  → Analysis cost: 47318 tokens, $0.2248
+- meetings.portseattle.org:
+  → Technology: Joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, robots_disallow_joomla:administrator, url_component_joomla
+  → Analysis cost: 35169 tokens, $0.1670
+- https://macroscope.ca.fujitsu.com/en/:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_media_joomla, js_options_joomla
+  → Analysis cost: 14410 tokens, $0.0684
+- https://www.literacysomerset.org:
+  → Technology: joomla (95% confidence)
+  → Key patterns: header_encoded_joomla, meta_generator_joomla, robots_disallow_joomla:administrator
+  → Analysis cost: 21667 tokens, $0.1029
+- https://sclak.mobi/:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_component_joomla:jchoptimize, js_global_joomla:jtext
+  → Analysis cost: 91484 tokens, $0.4345
+- https://bcn-acces.com/:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_media_joomla, robots_disallow_joomla:administrator
+  → Analysis cost: 106572 tokens, $0.5062
+- https://www.generalosgb.com/:
+  → Technology: joomla (95% confidence)
+  → Key patterns: meta_generator_joomla, url_component_joomla, js_global_joomla:joomla_script
+  → Analysis cost: 26052 tokens, $0.1237
+
+Results stored in: ./data/learn/
+Index file: ./data/learn/index.json
+
+================================================================================
+DETAILED ANALYSIS REPORTS
+================================================================================
+
+================================================================================
+DETAILED ANALYSIS REPORT: joomla.org
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716353085-spzzdey5w
+   Data Source: cached
+   Token Usage: 20994 tokens
+   Analysis Cost: $0.0997
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: support.cs.wm.edu
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716366342-jkgdloajv
+   Data Source: cached
+   Token Usage: 6971 tokens
+   Analysis Cost: $0.0331
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: wyospcr.wyo.gov
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716376184-ibar2i6u8
+   Data Source: cached
+   Token Usage: 25061 tokens
+   Analysis Cost: $0.1190
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: bensguide.gpo.gov
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716387935-osbfo5fu8
+   Data Source: cached
+   Token Usage: 11863 tokens
+   Analysis Cost: $0.0563
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: wizard.waltherarms.com
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716398898-bbcnbafgb
+   Data Source: cached
+   Token Usage: 8623 tokens
+   Analysis Cost: $0.0410
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://www.frva.com/
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716410908-mffxym9ap
+   Data Source: cached
+   Token Usage: 47318 tokens
+   Analysis Cost: $0.2248
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: meetings.portseattle.org
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: Joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716423368-2d49e7nxx
+   Data Source: cached
+   Token Usage: 35169 tokens
+   Analysis Cost: $0.1670
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://macroscope.ca.fujitsu.com/en/
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716438118-53jxn1h8r
+   Data Source: cached
+   Token Usage: 14410 tokens
+   Analysis Cost: $0.0684
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://www.literacysomerset.org
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716448960-frqq4zy5a
+   Data Source: cached
+   Token Usage: 21667 tokens
+   Analysis Cost: $0.1029
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://sclak.mobi/
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716460204-w8fekhemi
+   Data Source: cached
+   Token Usage: 91484 tokens
+   Analysis Cost: $0.4345
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://bcn-acces.com/
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716474371-m71cze3a7
+   Data Source: cached
+   Token Usage: 106572 tokens
+   Analysis Cost: $0.5062
+
+================================================================================
+
+
+================================================================================
+DETAILED ANALYSIS REPORT: https://www.generalosgb.com/
+================================================================================
+
+🎯 PLATFORM IDENTIFICATION
+   Technology: joomla
+   Category: unknown
+   Confidence: 95%
+
+🔍 DISCRIMINATIVE PATTERNS
+
+📊 ANALYSIS METADATA
+   Analysis ID: learn-1752716497327-yawu7qfd3
+   Data Source: cached
+   Token Usage: 26052 tokens
+   Analysis Cost: $0.1237
+
+================================================================================
+

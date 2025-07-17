@@ -1,0 +1,33 @@
+{
+  "cms": "Drupal",
+  "description": "Required patterns for Drupal CMS detection - Updated based on LLM analysis",
+  "version": "2.0",
+  "last_updated": "2025-07-16T23:24:33.396603",
+  "analysis_source": "LLM pattern discovery results",
+  "sites_analyzed": 57,
+  "required_patterns": [
+    "header_cache_drupal",
+    "header_generator_drupal",
+    "meta_generator_drupal",
+    "robots_disallow_admin",
+    "url_content_drupal"
+  ],
+  "discriminator_patterns": [
+    "header_generator_drupal",
+    "meta_generator_drupal"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.9,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 2,
+  "changelog": {
+    "patterns_kept": 3,
+    "patterns_removed": 10,
+    "patterns_added": 2,
+    "previous_total": 13,
+    "new_total": 5
+  }
+}

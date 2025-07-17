@@ -30,6 +30,15 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
         case 'hasWpJsonLink':
             return hasSameDomainHtmlPattern(data.htmlContent, 'wp-json', targetUrl);
 
+        case 'generatorContainsWordPress':
+            return (
+                data.metaTags?.some(
+                    (tag: any) =>
+                        tag.name && tag.name.toLowerCase() === 'generator' &&
+                        tag.content?.toLowerCase().includes('wordpress')
+                ) || false
+            );
+
         case 'hasDrupalSites':
             return (
                 data.scripts?.some(
@@ -248,6 +257,23 @@ export function evaluateFeature(feature: DiscriminativeFeature, data: any): bool
         case 'hasDudaBuilderIdentifiers':
             const htmlLower = data.htmlContent?.toLowerCase() || '';
             return htmlLower.includes('duda_website_builder') || htmlLower.includes('_duda_');
+
+        case 'hasWpAdminDisallow':
+            // Check if robots.txt contains disallow directive for /wp-admin/
+            const robotsContent = data.robotsTxt?.content?.toLowerCase() || '';
+            const robotsLines = robotsContent.split('\n');
+            
+            for (const line of robotsLines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith('disallow:')) {
+                    const path = trimmedLine.substring('disallow:'.length).trim();
+                    // Match /wp-admin/ or /wp-admin with optional trailing slash/wildcard
+                    if (path === '/wp-admin' || path === '/wp-admin/' || path.startsWith('/wp-admin/')) {
+                        return true;
+                    }
+                }
+            }
+            return false;
 
         default:
             return false;

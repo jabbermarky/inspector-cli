@@ -1,0 +1,131 @@
+{
+  "version": "2.0",
+  "description": "Hybrid format naming conventions for CMS detection patterns",
+  "last_updated": "2025-07-16 8:15PM EST",
+  "naming_rules": {
+    "base_format": "{source}_{indicator}_{cms}",
+    "instance_format": "{source}_{indicator}_{cms}:{instance}",
+    "usage": {
+      "base_format": "For unique patterns (meta generator, main content path, primary header)",
+      "instance_format": "For multiple instances (multiple robots disallow, multiple CSS classes, multiple JS globals)"
+    },
+    "sources": {
+      "meta": "HTML meta tags",
+      "header": "HTTP response headers", 
+      "url": "URL patterns and paths",
+      "js": "JavaScript globals and inline scripts",
+      "css": "CSS classes and selectors",
+      "robots": "robots.txt rules",
+      "file": "File and directory paths"
+    },
+    "indicators": {
+      "generator": "Generator tags/headers",
+      "powered_by": "X-Powered-By headers",
+      "content": "Content directories",
+      "admin": "Admin directories",
+      "cache": "Caching headers",
+      "api": "API endpoints",
+      "global": "Global JavaScript objects",
+      "class": "CSS class names",
+      "disallow": "robots.txt disallow rules",
+      "settings": "Configuration/settings",
+      "aggregate": "Aggregated resources",
+      "theme": "Theme-related patterns",
+      "module": "Module/plugin patterns",
+      "component": "Component patterns",
+      "embed": "Embedded scripts/styles",
+      "emoji": "Emoji-related features",
+      "localize": "Localization scripts",
+      "block": "Block/widget libraries",
+      "includes": "Include directories",
+      "login": "Login files",
+      "viewport": "Viewport meta tags",
+      "runtime": "Runtime configurations"
+    },
+    "cms_names": {
+      "wordpress": "WordPress CMS",
+      "drupal": "Drupal CMS", 
+      "joomla": "Joomla CMS",
+      "duda": "Duda platform"
+    },
+    "forbidden_suffixes": [
+      "_specific",
+      "_generic", 
+      "_unique",
+      "_custom",
+      "_base",
+      "_main",
+      "_common",
+      "_path",
+      "_structure"
+    ]
+  },
+  "confidence_values": {
+    "0.95": "Strong, unique indicators",
+    "0.90": "Good indicators with minor ambiguity", 
+    "0.85": "Moderate indicators",
+    "0.80": "Weak but useful indicators"
+  },
+  "pattern_examples": {
+    "correct_base_format": [
+      "meta_generator_wordpress",
+      "header_cache_drupal",
+      "url_content_wordpress", 
+      "js_global_drupal",
+      "css_class_joomla",
+      "robots_disallow_duda",
+      "file_settings_drupal"
+    ],
+    "correct_instance_format": [
+      "robots_disallow_wordpress:wp_admin",
+      "js_global_wordpress:wp_emoji_settings",
+      "css_class_wordpress:wp_block",
+      "robots_disallow_drupal:admin",
+      "robots_disallow_joomla:administrator",
+      "js_global_duda:window_parameters"
+    ],
+    "incorrect": [
+      "meta_generator_wordpress_specific",
+      "url_wp_content_path",
+      "robots_disallow_wp_admin", 
+      "js_global_window_parameters",
+      "css_wp_block_generic",
+      "url_admin_custom"
+    ]
+  },
+  "transformation_rules": {
+    "wordpress_consolidations": {
+      "wp-content": "content",
+      "wp-admin": "admin", 
+      "wp-json": "api",
+      "wp-includes": "includes",
+      "wp_": "wordpress:"
+    },
+    "drupal_consolidations": {
+      "drupal-settings": "settings",
+      "x-drupal-cache": "cache",
+      "sites/default": "content",
+      "core/modules": "modules"
+    },
+    "joomla_consolidations": {
+      "com_": "component:",
+      "mod_": "module:",
+      "administrator": "admin",
+      "media/system": "media"
+    },
+    "duda_consolidations": {
+      "window_parameters": "global:window_parameters",
+      "dm_": "dm:",
+      "runtime": "runtime"
+    }
+  },
+  "validation_rules": [
+    "Base format patterns must have exactly 3 parts separated by underscores",
+    "Instance format patterns must have base + colon + instance",
+    "No forbidden suffixes allowed",
+    "CMS names must be lowercase and from approved list", 
+    "Instance names must be meaningful and concise",
+    "Pattern names must be descriptive but not redundant",
+    "Confidence values must be from the approved set"
+  ]
+}

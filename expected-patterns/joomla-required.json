@@ -1,0 +1,38 @@
+{
+  "cms": "Joomla",
+  "description": "Required patterns for Joomla CMS detection",
+  "version": "1.1",
+  "required_patterns": [
+    "meta_generator_joomla",
+    "header_content_joomla",
+    "robots_disallow_joomla:administrator",
+    "js_global_joomla",
+    "css_system_joomla",
+    "url_template_joomla",
+    "url_media_joomla",
+    "url_component_joomla",
+    "url_module_joomla",
+    "url_admin_joomla",
+    "url_component_joomla:com",
+    "url_module_joomla:mod",
+    "js_core_joomla",
+    "css_system_joomla:files",
+    "file_settings_joomla"
+  ],
+  "discriminator_patterns": [
+    "js_global_joomla",
+    "meta_generator_joomla",
+    "css_system_joomla",
+    "url_template_joomla",
+    "url_media_joomla",
+    "url_component_joomla",
+    "url_module_joomla"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.90,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 2
+}

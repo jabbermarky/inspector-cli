@@ -13,7 +13,10 @@ import {
     aggregateDataForBulkUpload,
     loadExistingLearnAnalyses,
     createMetaAnalysisPrompt,
-    createTechnologyMetaAnalysisPrompt
+    createTechnologyMetaAnalysisPrompt,
+    getCacheStats,
+    clearResponseCache,
+    generateCacheReport
 } from '../learn/index.js';
 import { BULK_CMS_ANALYSIS_PROMPT } from '../prompts.js';
 
@@ -37,10 +40,43 @@ program
     .option('--model-phase1 <model>', 'Model to use for Phase 1 (discovery) in mixed model testing')
     .option('--model-phase2 <model>', 'Model to use for Phase 2 (standardization) in mixed model testing')
     .option('--headed', 'Run browser in non-headless mode (visible GUI) to bypass bot detection')
+    .option('--cache-stats', 'Display response cache statistics')
+    .option('--cache-clear', 'Clear the response cache')
+    .option('--cache-report', 'Generate detailed cache performance report')
     .option('--bulk-file <path>', '[DEPRECATED] Perform bulk analysis using uploaded data file')
     .option('--generate-bulk-data <path>', '[DEPRECATED] Generate bulk data file from URLs for later analysis')
     .action(async (input, options: LearnOptions) => {
         try {
+            // Handle cache management operations first
+            if (options.cacheStats) {
+                const stats = await getCacheStats();
+                console.log('\n' + '='.repeat(50));
+                console.log('RESPONSE CACHE STATISTICS');
+                console.log('='.repeat(50));
+                console.log(`Hit Rate: ${(stats.hitRate * 100).toFixed(1)}% (${stats.hits} hits, ${stats.misses} misses)`);
+                console.log(`Cache Entries: ${stats.entries}`);
+                console.log(`Cache Size: ${(stats.totalSizeBytes / (1024 * 1024)).toFixed(2)} MB`);
+                console.log(`Cost Saved: $${stats.costSaved.toFixed(2)}`);
+                console.log(`API Calls Avoided: ${stats.hits}`);
+                return;
+            }
+            
+            if (options.cacheClear) {
+                console.log('Clearing response cache...');
+                await clearResponseCache();
+                console.log('✓ Response cache cleared successfully');
+                return;
+            }
+            
+            if (options.cacheReport) {
+                console.log('\n' + '='.repeat(80));
+                console.log('RESPONSE CACHE PERFORMANCE REPORT');
+                console.log('='.repeat(80));
+                const report = await generateCacheReport();
+                console.log(report);
+                return;
+            }
+            
             // Ensure learn directory structure exists
             await ensureLearnDirectoryStructure();
             

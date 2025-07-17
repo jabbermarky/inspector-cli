@@ -154,12 +154,12 @@ class GroundTruthAnalysisWorkflow implements Workflow<AnalysisInput, AnalysisRes
     version = '2.0.0';
     
     steps = [
-        // Phase 1: Data Collection
+        // Step 1: Data Collection
         new LoadExistingDataStep(),
         new RobotsTxtFetchStep(),
         new CMSDetectionWithDataStep(),
         
-        // Phase 2: Signal Analysis
+        // Step 2: Signal Analysis
         new ScriptSignalAnalysisStep(),
         new HTMLSignalAnalysisStep(),
         new MetaSignalAnalysisStep(),
@@ -167,7 +167,7 @@ class GroundTruthAnalysisWorkflow implements Workflow<AnalysisInput, AnalysisRes
         new StylesheetSignalAnalysisStep(),
         new VersionDetectionStep(),
         
-        // Phase 3: Interactive Verification
+        // Step 3: Interactive Verification
         new DisplayResultsStep(),
         new UserVerificationStep(),
         new DatabaseUpdateStep()
@@ -452,11 +452,11 @@ const result = await engine.execute(customWorkflow, { urls: [...] });
 
 ## Migration Path
 
-1. **Phase 1**: Implement core workflow engine
-2. **Phase 2**: Create step implementations for existing logic
-3. **Phase 3**: Migrate ground-truth.ts to workflow-based approach
-4. **Phase 4**: Convert other commands to use workflows
-5. **Phase 5**: Add workflow CLI commands for custom compositions
+1. **Step 1**: Implement core workflow engine
+2. **Step 2**: Create step implementations for existing logic
+3. **Step 3**: Migrate ground-truth.ts to workflow-based approach
+4. **Step 4**: Convert other commands to use workflows
+5. **Step 5**: Add workflow CLI commands for custom compositions
 
 ## Conclusion
 

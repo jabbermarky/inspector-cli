@@ -168,25 +168,25 @@ describe('DataStorage Logic Tests', () => {
 
 ## Implementation Steps
 
-### Phase 1: Refactor DataStorage
+### Step 1: Refactor DataStorage
 1. Create FileSystemAdapter interface
 2. Implement NodeFileSystemAdapter
 3. Inject adapter into DataStorage constructor
 4. Update all fs calls to use adapter
 
-### Phase 2: Implement Test Infrastructure
+### Step 2: Implement Test Infrastructure
 1. Create InMemoryFileSystemAdapter
 2. Set up test factories for data points
 3. Create test utilities for common operations
 4. Set up integration test helpers
 
-### Phase 3: Write Unit Tests
+### Step 3: Write Unit Tests
 1. Port existing tests to new approach
 2. Add missing coverage scenarios
 3. Verify all edge cases covered
 4. Ensure tests are isolated
 
-### Phase 4: Write Integration Tests
+### Step 4: Write Integration Tests
 1. Set up temp directory management
 2. Test real filesystem scenarios
 3. Add performance benchmarks

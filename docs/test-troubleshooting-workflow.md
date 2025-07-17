@@ -20,7 +20,7 @@ Root Cause: [Final determination]
 Solution: [What actually fixed it]
 ```
 
-## Phase 1: Foundation Verification (5-10 minutes)
+## Step 1: Foundation Verification (5-10 minutes)
 
 ### Step 1.1: Mock Verification Checklist
 Before debugging complex logic, verify ALL mocks work:
@@ -64,7 +64,7 @@ Document all integration points between mocked and real code:
 - What data flows between components?
 - Which components wrap others (like withRetry wrapper)?
 
-## Phase 2: Systematic Hypothesis Testing (15-20 minutes)
+## Step 2: Systematic Hypothesis Testing (15-20 minutes)
 
 ### Step 2.1: Bottom-Up Debugging Pyramid
 
@@ -118,7 +118,7 @@ For each failed approach, document:
 - What error/behavior resulted
 - Why this eliminates certain root causes
 
-## Phase 3: Pattern Application (5-10 minutes)
+## Step 3: Pattern Application (5-10 minutes)
 
 ### Step 3.1: Solution Generalization
 Once a fix works for one test:

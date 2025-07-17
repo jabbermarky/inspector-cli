@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Inspector CLI is a command-line tool for analyzing websites and e-commerce integrations, specifically designed for inspecting PayPal integrations. The tool provides web scraping capabilities, screenshot generation, CMS detection with batch processing, and AI-powered analysis of website content.
 
 ## Development Philosophy
-
+- Don't make assumptions.
 - KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
 - Clarify assumptions by asking clarifying questions before coding
 - When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
@@ -45,19 +45,6 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - `npm run quality` - Combined linting and formatting validation
 - `npm run quality:fix` - Fix both linting and formatting issues
 
-**Testing Specific Files (CRITICAL - Remember correct Jest syntax)**
-```bash
-# CORRECT: Run specific test file
-npm test -- --testPathPatterns="filename.test.ts"
-
-# WRONG: This will error (old syntax)
-npm test -- --testPathPattern="filename.test.ts"
-
-# Examples:
-npm test -- --testPathPatterns="analyze-blocking.functional.test.ts"
-npm test -- --testPathPatterns=".*\.functional\.test\.ts"  # All functional tests
-npm test -- --testPathPatterns="commands.*test.ts"        # All command tests
-```
 
 **Pre-Test Implementation Study Commands (CRITICAL - Always run these FIRST):**
 ```bash
@@ -101,9 +88,10 @@ chmod +x dist/index.js  # Make executable if needed
 ```
 
 ### Known Good Test Files
-- `good-wordpress.csv` - 10 known WordPress sites for validation
-- `good-drupal.csv` - 10 known Drupal sites for validation  
-- `good-joomla.csv` - 10 known Joomla sites for validation
+- `good-wordpress.csv` - 10+ known WordPress sites for validation
+- `good-drupal.csv` - 10+ known Drupal sites for validation  
+- `good-joomla.csv` - 10+ known Joomla sites for validation
+- `good-duda.csv` - 10+ known Duda sites for validation
 
 ### Validation Commands (Use These for Testing)
 ```bash
@@ -115,6 +103,9 @@ node dist/index.js detect-cms good-drupal.csv --collect-data
 
 # Test Joomla detection (expect 100% success)
 node dist/index.js detect-cms good-joomla.csv --collect-data
+
+# Test Duda detection (expect 100% success)
+node dist/index.js detect-cms good-duda.csv --collect-data
 ```
 
 ### Data Collection Location

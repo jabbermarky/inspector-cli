@@ -1,0 +1,34 @@
+{
+  "cms": "Duda",
+  "description": "Required patterns for Duda CMS detection",
+  "version": "1.1",
+  "required_patterns": [
+    "js_global_duda:window_parameters",
+    "css_class_duda:dm_body",
+    "js_global_duda:dm_direct",
+    "url_api_duda",
+    "meta_viewport_duda",
+    "js_runtime_duda",
+    "url_runtime_duda",
+    "css_class_duda:design",
+    "js_global_duda:dmAPI",
+    "meta_viewport_duda:settings",
+    "file_runtime_duda",
+    "header_powered_duda"
+  ],
+  "discriminator_patterns": [
+    "js_global_duda:window_parameters",
+    "css_class_duda:dm_body",
+    "js_global_duda:dm_direct",
+    "url_api_duda",
+    "meta_viewport_duda",
+    "js_runtime_duda"
+  ],
+  "confidence_thresholds": {
+    "high": 0.95,
+    "medium": 0.90,
+    "low": 0.85
+  },
+  "minimum_patterns_required": 3,
+  "minimum_discriminators_required": 2
+}

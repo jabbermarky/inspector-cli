@@ -1,0 +1,9 @@
+{
+  "cms": "joomla",
+  "total_sites": 0,
+  "expected_patterns": "{'url_admin_joomla', 'url_component_joomla', 'file_settings_joomla', 'header_content_joomla', 'url_module_joomla:mod', 'css_system_joomla', 'meta_generator_joomla', 'js_core_joomla', 'robots_disallow_joomla:administrator', 'css_system_joomla:files', 'url_template_joomla', 'js_global_joomla', 'url_media_joomla', 'url_component_joomla:com', 'url_module_joomla'}",
+  "discriminator_patterns": "{'url_component_joomla', 'css_system_joomla', 'meta_generator_joomla', 'url_template_joomla', 'js_global_joomla', 'url_media_joomla', 'url_module_joomla'}",
+  "site_results": [],
+  "average_completeness": 0,
+  "average_discriminator_completeness": 0
+}

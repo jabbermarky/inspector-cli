@@ -1,0 +1,9 @@
+{
+  "cms": "drupal",
+  "total_sites": 0,
+  "expected_patterns": "{'js_settings_drupal:object', 'url_theme_drupal', 'url_content_drupal', 'js_settings_drupal', 'robots_disallow_drupal:admin', 'header_cache_drupal', 'js_version_drupal', 'header_powered_drupal', 'css_aggregate_drupal:files', 'url_module_drupal', 'meta_generator_drupal', 'css_aggregate_drupal', 'js_object_drupal', 'file_settings_drupal', 'js_aggregate_drupal'}",
+  "discriminator_patterns": "{'url_theme_drupal', 'js_settings_drupal', 'js_version_drupal', 'header_powered_drupal', 'meta_generator_drupal', 'css_aggregate_drupal', 'js_object_drupal', 'js_aggregate_drupal'}",
+  "site_results": [],
+  "average_completeness": 0,
+  "average_discriminator_completeness": 0
+}

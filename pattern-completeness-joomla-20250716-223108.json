@@ -1,0 +1,190 @@
+{
+  "cms": "joomla",
+  "total_sites": 20,
+  "expected_patterns": "{'file_settings_joomla', 'js_global_joomla', 'url_module_joomla:mod', 'css_system_joomla:files', 'header_content_joomla', 'css_system_joomla', 'robots_disallow_joomla:administrator', 'url_module_joomla', 'url_component_joomla:com', 'js_core_joomla', 'url_component_joomla', 'url_admin_joomla', 'url_template_joomla', 'url_media_joomla', 'meta_generator_joomla'}",
+  "discriminator_patterns": "{'js_global_joomla', 'css_system_joomla', 'url_module_joomla', 'url_component_joomla', 'url_template_joomla', 'url_media_joomla', 'meta_generator_joomla'}",
+  "site_results": [
+    {
+      "url": "https://www.generalosgb.com/",
+      "total_patterns": 4,
+      "found_patterns": "{'joomla_script', 'joomla_disallow', 'joomla_component', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.generalosgb.com",
+      "total_patterns": 5,
+      "found_patterns": "{'joomla_plugin_script', 'generator', 'joomla_directories', 'joomla_component', 'joomla_media_path'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://bcn-acces.com/",
+      "total_patterns": 4,
+      "found_patterns": "{'joomla_robots_txt', 'joomla_url_patterns', 'joomla_jtext', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://macroscope.ca.fujitsu.com/en",
+      "total_patterns": 6,
+      "found_patterns": "{'x-powered-by', 'generator', 'joomla_script_options', 'joomla_component_path', 'joomla_media_directory', 'joomla_default_directories'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "joomla.org",
+      "total_patterns": 6,
+      "found_patterns": "{'templates_path', 'x-turbo-charged-by', 'generator', 'joomla_script_options', 'disallow_patterns', 'media_path'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "wyospcr.wyo.gov",
+      "total_patterns": 4,
+      "found_patterns": "{'disallow_paths', 'joomla_script', 'url_path', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.literacysomerset.org",
+      "total_patterns": 5,
+      "found_patterns": "{'x-content-encoded-by', 'generator', 'joomla_script_options', 'joomla_disallow_rules', 'template_url'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://sclak.mobi",
+      "total_patterns": 4,
+      "found_patterns": "{'joomla-script', 'joomla_directories', 'robots_rules', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://meetings.portseattle.org",
+      "total_patterns": 5,
+      "found_patterns": "{'generator', 'joomla_directories', 'joomla_class', 'joomla_script', 'joomla_media'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://sclak.mobi/",
+      "total_patterns": 4,
+      "found_patterns": "{'joomla_script', 'administrator_path', 'generator', 'url_structure'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://bcn-acces.com",
+      "total_patterns": 7,
+      "found_patterns": "{'joomla_disallow_directories', 'generator', 'server', 'joomla_common_directories', 'x-content-type-options', 'joomla_hidden_mail_script', 'media_system_js'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.frva.com/",
+      "total_patterns": 3,
+      "found_patterns": "{'x-content-encoded-by', 'common_paths', 'joomla_structure'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.literacysomerset.org",
+      "total_patterns": 5,
+      "found_patterns": "{'x-content-encoded-by', 'generator', 'joomla_script_options', 'joomla_disallow_rules', 'template_url'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://www.frva.com",
+      "total_patterns": 3,
+      "found_patterns": "{'x-content-encoded-by', 'common_joomla_disallow', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "meetings.portseattle.org",
+      "total_patterns": 5,
+      "found_patterns": "{'joomla_media_files', 'generator', 'joomla_directories', 'joomla_robots', 'joomla_script'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://bensguide.gpo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'generator', 'template_structure', 'plugin_url', 'joomla_script', 'robots_txt_rules'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://wyospcr.wyo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'generator', 'joomla_template_path', 'joomla_robots', 'joomla_javascript', 'joomla_url_structure'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "wizard.waltherarms.com",
+      "total_patterns": 5,
+      "found_patterns": "{'media_vendor', 'generator', 'joomla_script_options', 'joomla_structure', 'component_finder'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "bensguide.gpo.gov",
+      "total_patterns": 5,
+      "found_patterns": "{'mootools_core', 'joomla_script_options', 'joomla_disallow_rules', 'joomla_directory_structure', 'generator_comment'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    },
+    {
+      "url": "https://macroscope.ca.fujitsu.com/en/",
+      "total_patterns": 4,
+      "found_patterns": "{'joomla_script_options', 'joomla_directories', 'media', 'generator'}",
+      "found_expected": "set()",
+      "found_discriminators": "set()",
+      "expected_completeness": 0.0,
+      "discriminator_completeness": 0.0
+    }
+  ],
+  "average_completeness": 0.0,
+  "average_discriminator_completeness": 0.0
+}

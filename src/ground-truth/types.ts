@@ -22,6 +22,7 @@ export interface DiscriminativeFeature {
     cms: string;
     confidence: number;
     type: 'script-src' | 'html-content' | 'meta-tag' | 'header' | 'dom-structure';
+    hybridPatternName: string; // Standard hybrid format: {source}_{indicator}_{cms}[:{instance}]
 }
 
 export interface GroundTruthOptions {
