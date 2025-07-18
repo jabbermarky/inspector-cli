@@ -4,10 +4,11 @@ import { getConfig, ConfigValidator } from '../utils/config.js';
 import { withRetryOpenAI } from '../utils/retry.js';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs/promises';
 import { detectModelProvider, ModelProvider } from './model-providers.js';
 import { PerformanceTimer, DetailedTimingMetrics } from '../utils/performance.js';
-import { withOpenAIResponseCache, withGeminiResponseCache, globalResponseCache, CacheStats } from './response-cache.js';
+import { withOpenAIResponseCache, withGeminiResponseCache, withClaudeResponseCache, globalResponseCache, CacheStats } from './response-cache.js';
 
 const logger = createModuleLogger('learn-llm-integration');
 
@@ -42,6 +43,21 @@ function getGeminiClient(): GoogleGenerativeAI {
   return geminiClient;
 }
 
+// Lazy initialization of Claude client
+let claudeClient: Anthropic | null = null;
+
+function getClaudeClient(): Anthropic {
+  if (!claudeClient) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    }
+    claudeClient = new Anthropic({ apiKey });
+    logger.debug('Claude client initialized for learn command');
+  }
+  return claudeClient;
+}
+
 /**
  * Perform LLM analysis routing to appropriate provider based on model
  */
@@ -71,6 +87,16 @@ export async function performLLMAnalysis(
         );
     }
     
+    if (modelInfo.provider === 'claude') {
+        return withClaudeResponseCache(
+            performClaudeAnalysis,
+            data,
+            prompt,
+            model,
+            'cms-detection'
+        );
+    }
+    
     // Default to OpenAI with caching
     return withOpenAIResponseCache(
         performOpenAIAnalysis,
@@ -79,6 +105,115 @@ export async function performLLMAnalysis(
         model,
         'single'
     );
+}
+
+/**
+ * Perform LLM analysis using Claude API
+ */
+async function performClaudeAnalysis(
+    data: EnhancedDataCollection, 
+    prompt: string, 
+    model: string
+): Promise<LLMResponse> {
+    const timer = new PerformanceTimer('Claude API Call', {
+        model,
+        url: data.url,
+        promptLength: prompt.length
+    });
+
+    try {
+        const claude = getClaudeClient();
+        
+        logger.info('Calling Claude API for learn analysis', { 
+            model, 
+            url: data.url,
+            promptLength: prompt.length
+        });
+        
+        timer.checkpoint('api-call-start');
+        
+        const response = await claude.messages.create({
+            model: model,
+            max_tokens: 4000,
+            temperature: 0.1,
+            system: "You are an expert web technology analyst. Always return valid JSON.",
+            messages: [
+                { role: "user", content: prompt }
+            ]
+        });
+        
+        timer.checkpoint('api-call-complete');
+        
+        if (!response.content || response.content.length === 0) {
+            throw new Error('Invalid response from Claude API - no content returned');
+        }
+        
+        const rawResponse = response.content[0].type === 'text' ? response.content[0].text : '';
+        const tokenUsage = {
+            totalTokens: (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0),
+            promptTokens: response.usage?.input_tokens || 0,
+            completionTokens: response.usage?.output_tokens || 0
+        };
+        
+        logger.debug('Claude API response received', { 
+            url: data.url,
+            model,
+            responseLength: rawResponse.length,
+            tokensUsed: tokenUsage.totalTokens,
+            promptTokens: tokenUsage.promptTokens,
+            completionTokens: tokenUsage.completionTokens
+        });
+        
+        timer.checkpoint('response-parsing-start');
+        
+        // Parse JSON response
+        const parseResult = parseAndValidateResponse(rawResponse);
+        
+        timer.checkpoint('response-parsing-complete');
+        
+        const timingMetrics = timer.end({
+            tokensUsed: tokenUsage.totalTokens,
+            responseLength: rawResponse.length
+        });
+        
+        const llmResponse: LLMResponse = {
+            rawResponse,
+            parsedJson: parseResult.json,
+            parseErrors: parseResult.errors,
+            validationStatus: parseResult.status,
+            tokenUsage,
+            timingMetrics: {
+                apiCallDurationMs: timingMetrics.durationMs,
+                networkLatencyMs: timingMetrics.metadata?.checkpoints?.['api-call-completeMs'] as number,
+                processingLatencyMs: timingMetrics.metadata?.checkpoints?.['response-parsing-completeMs'] as number,
+                checkpoints: timingMetrics.metadata?.checkpoints as Record<string, number>
+            }
+        };
+        
+        logger.info('Claude analysis completed successfully', { 
+            url: data.url,
+            model,
+            validationStatus: llmResponse.validationStatus,
+            totalTokens: llmResponse.tokenUsage?.totalTokens,
+            parseErrors: llmResponse.parseErrors.length,
+            apiCallDurationMs: llmResponse.timingMetrics?.apiCallDurationMs
+        });
+        
+        return llmResponse;
+        
+    } catch (error) {
+        const timingMetrics = timer.end({
+            errorOccurred: true,
+            errorMessage: (error as Error).message
+        });
+        
+        logger.error('Claude analysis failed', { 
+            url: data.url, 
+            model,
+            apiCallDurationMs: timingMetrics.durationMs
+        }, error as Error);
+        throw error;
+    }
 }
 
 /**
@@ -393,7 +528,34 @@ export function estimateTokensAndCost(prompt: string, model: string): { tokens: 
     let costPerInputToken = 0.00003; // Default GPT-4o pricing
     let costPerOutputToken = 0.00006; // Default GPT-4o pricing
     
-    if (model.includes('gpt-4o')) {
+    if (model.includes('claude-4-opus')) {
+        costPerInputToken = 0.00001500; // $15.00 per 1M input tokens
+        costPerOutputToken = 0.00007500; // $75.00 per 1M output tokens
+    } else if (model.includes('claude-4-sonnet')) {
+        costPerInputToken = 0.00000300; // $3.00 per 1M input tokens
+        costPerOutputToken = 0.00001500; // $15.00 per 1M output tokens
+    } else if (model.includes('claude-3.5-haiku')) {
+        costPerInputToken = 0.00000080; // $0.80 per 1M input tokens
+        costPerOutputToken = 0.00000400; // $4.00 per 1M output tokens
+    } else if (model.includes('claude-3.5-sonnet')) {
+        costPerInputToken = 0.00000300; // $3.00 per 1M input tokens
+        costPerOutputToken = 0.00001500; // $15.00 per 1M output tokens
+    } else if (model.includes('claude-3-opus')) {
+        costPerInputToken = 0.00001500; // $15.00 per 1M input tokens
+        costPerOutputToken = 0.00007500; // $75.00 per 1M output tokens
+    } else if (model.includes('claude-3-sonnet')) {
+        costPerInputToken = 0.00000300; // $3.00 per 1M input tokens
+        costPerOutputToken = 0.00001500; // $15.00 per 1M output tokens
+    } else if (model.includes('claude-3-haiku')) {
+        costPerInputToken = 0.00000025; // $0.25 per 1M input tokens
+        costPerOutputToken = 0.00000125; // $1.25 per 1M output tokens
+    } else if (model.includes('o1-preview')) {
+        costPerInputToken = 0.00001500; // $15.00 per 1M input tokens
+        costPerOutputToken = 0.00006000; // $60.00 per 1M output tokens
+    } else if (model.includes('o1-mini')) {
+        costPerInputToken = 0.00000300; // $3.00 per 1M input tokens
+        costPerOutputToken = 0.00001200; // $12.00 per 1M output tokens
+    } else if (model.includes('gpt-4o')) {
         costPerInputToken = 0.00000250; // $2.50 per 1M input tokens
         costPerOutputToken = 0.00001000; // $10.00 per 1M output tokens
     } else if (model.includes('gpt-4-turbo')) {

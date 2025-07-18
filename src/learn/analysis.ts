@@ -16,16 +16,48 @@ export function generateAnalysisId(): string {
 }
 
 /**
+ * Extract token usage from OpenAI error message
+ */
+function extractTokenUsageFromError(errorMessage: string): { totalTokens: number; promptTokens: number; completionTokens: number } {
+    // Pattern for token limit errors: "your messages resulted in 141203 tokens"
+    const tokenPattern = /your messages resulted in (\d+) tokens/;
+    const match = errorMessage.match(tokenPattern);
+    
+    if (match) {
+        const totalTokens = parseInt(match[1], 10);
+        return {
+            totalTokens,
+            promptTokens: totalTokens, // All tokens were in the prompt since completion failed
+            completionTokens: 0
+        };
+    }
+    
+    // Pattern for alternative format: "you requested 129542 tokens (125446 in the messages, 4096 in the completion)"
+    const alternativePattern = /you requested (\d+) tokens \((\d+) in the messages, (\d+) in the completion\)/;
+    const altMatch = errorMessage.match(alternativePattern);
+    
+    if (altMatch) {
+        return {
+            totalTokens: parseInt(altMatch[1], 10),
+            promptTokens: parseInt(altMatch[2], 10),
+            completionTokens: parseInt(altMatch[3], 10)
+        };
+    }
+    
+    // Default fallback
+    return { totalTokens: 0, promptTokens: 0, completionTokens: 0 };
+}
+
+/**
  * Process single URL for learn analysis
  */
 export async function processLearnAnalysis(url: string, options: LearnOptions): Promise<LearnResult> {
     const analysisId = generateAnalysisId();
+    let data: EnhancedDataCollection | undefined;
     
     try {
         logger.info('Starting learn analysis', { url, analysisId, options });
-        
         // Step 1: Get data (collect fresh with fallback or retrieve existing)
-        let data: EnhancedDataCollection;
         if (options.collectData) {
             logger.info('Collecting fresh data with fallback', { url, forceFresh: options.forceFresh });
             data = await collectEnhancedDataWithFallback(url, options.forceFresh, options.headed);
@@ -176,6 +208,63 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
         
     } catch (error) {
         logger.error('Learn analysis failed', { url, analysisId }, error as Error);
+        
+        // If we have collected data but LLM analysis failed, save the raw data for later analysis
+        if (data) {
+            try {
+                logger.info('Saving raw data for failed analysis', { url, analysisId });
+                
+                // Extract token usage from error message
+                const tokenUsage = extractTokenUsageFromError((error as Error).message);
+                
+                // Create a minimal analysis result with just the collected data
+                const failedAnalysisResult: AnalysisResult = {
+                    metadata: {
+                        analysisId,
+                        url,
+                        timestamp: new Date().toISOString(),
+                        model: options.model || 'gpt-4o',
+                        promptTemplate: options.promptTemplate || 'cms-detection',
+                        promptVersion: '1.0',
+                        dataSource: determineDataSource(options, data),
+                        tokenCount: tokenUsage.totalTokens,
+                        estimatedCost: calculateActualCost(tokenUsage, options.model || 'gpt-4o'),
+                        timingMetrics: {},
+                        analysisStatus: 'failed',
+                        failureReason: (error as Error).message
+                    },
+                    inputData: {
+                        url: data.url,
+                        collectionMetadata: {
+                            timestamp: data.timestamp,
+                            enhanced: true
+                        },
+                        enhancedData: data
+                    },
+                    llmResponse: {
+                        rawResponse: '',
+                        parsedJson: null,
+                        parseErrors: [(error as Error).message],
+                        validationStatus: 'failed' as const,
+                        tokenUsage: extractTokenUsageFromError((error as Error).message)
+                    },
+                    analysis: {
+                        technologyDetected: 'Unknown (Analysis Failed)',
+                        confidence: 0,
+                        keyPatterns: [],
+                        implementablePatterns: [],
+                        analysisNotes: [`Analysis failed: ${(error as Error).message}`]
+                    }
+                };
+                
+                await storeAnalysisResult(failedAnalysisResult);
+                logger.info('Raw data saved for failed analysis', { url, analysisId });
+                
+            } catch (storageError) {
+                logger.error('Failed to save raw data for failed analysis', { url, analysisId }, storageError as Error);
+            }
+        }
+        
         return { 
             url, 
             success: false, 

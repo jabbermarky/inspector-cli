@@ -527,3 +527,29 @@ export async function withGeminiResponseCache(
   
   return response;
 }
+
+/**
+ * Wrapper function to add caching to Claude analysis
+ */
+export async function withClaudeResponseCache(
+  analysisFunction: (data: EnhancedDataCollection, prompt: string, model: string) => Promise<LLMResponse>,
+  data: EnhancedDataCollection,
+  prompt: string,
+  model: string,
+  phase?: string,
+  customTTL?: number
+): Promise<LLMResponse> {
+  // Check cache first
+  const cachedResponse = await globalResponseCache.get(prompt, model, data, phase);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Cache miss - perform analysis
+  const response = await analysisFunction(data, prompt, model);
+  
+  // Cache the response
+  await globalResponseCache.set(prompt, model, data, response, phase, customTTL);
+  
+  return response;
+}

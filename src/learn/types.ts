@@ -95,7 +95,7 @@ export interface LLMResponse {
     rawResponse: string;
     parsedJson: any;
     parseErrors: string[];
-    validationStatus: 'valid' | 'invalid' | 'partial' | 'placeholder';
+    validationStatus: 'valid' | 'invalid' | 'partial' | 'placeholder' | 'failed';
     tokenUsage?: {
         totalTokens: number;
         promptTokens: number;
@@ -136,6 +136,7 @@ export interface AnalysisResult {
         technologyDetected: string;
         keyPatterns: string[];
         implementablePatterns: string[];
+        analysisNotes?: string[];
     };
 }
 
@@ -157,6 +158,9 @@ export interface AnalysisMetadata {
         networkLatencyMs?: number;
         processingLatencyMs?: number;
     };
+    // Fields for failed analyses
+    analysisStatus?: 'success' | 'failed';
+    failureReason?: string;
 }
 
 export interface IndexEntry {

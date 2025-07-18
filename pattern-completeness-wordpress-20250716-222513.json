@@ -1,9 +1,0 @@
-{
-  "cms": "wordpress",
-  "total_sites": 0,
-  "expected_patterns": "{'js_localize_script_wordpress', 'css_includes_wordpress', 'url_api_wordpress', 'robots_disallow_wordpress:wp_admin', 'url_admin_wordpress:ajax', 'header_api_wordpress', 'url_includes_wordpress', 'url_content_wordpress', 'meta_generator_wordpress', 'url_api_wordpress:rest', 'js_emoji_release_wordpress', 'css_block_library_wordpress', 'js_embed_wordpress', 'file_login_wordpress'}",
-  "discriminator_patterns": "{'css_includes_wordpress', 'url_api_wordpress', 'url_admin_wordpress:ajax', 'url_content_wordpress', 'meta_generator_wordpress', 'url_api_wordpress:rest', 'js_emoji_release_wordpress', 'js_embed_wordpress'}",
-  "site_results": [],
-  "average_completeness": 0,
-  "average_discriminator_completeness": 0
-}

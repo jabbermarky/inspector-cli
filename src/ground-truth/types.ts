@@ -21,7 +21,7 @@ export interface DiscriminativeFeature {
     description: string;
     cms: string;
     confidence: number;
-    type: 'script-src' | 'html-content' | 'meta-tag' | 'header' | 'dom-structure';
+    type: 'script-src' | 'html-content' | 'meta-tag' | 'header' | 'dom-structure' | 'robots-txt';
     hybridPatternName: string; // Standard hybrid format: {source}_{indicator}_{cms}[:{instance}]
 }
 
