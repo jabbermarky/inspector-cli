@@ -47,6 +47,11 @@ export async function analyzeMetaTags(
     
     // Process each meta tag
     for (const metaTag of dataPoint.metaTags) {
+      // Skip null or invalid meta tags
+      if (!metaTag || typeof metaTag !== 'object') {
+        continue;
+      }
+      
       // Create consistent key format
       let metaKey;
       if (metaTag.name) {
@@ -83,9 +88,9 @@ export async function analyzeMetaTags(
       valueStats.sites.add(dataPoint.url);
       valueStats.cmsSources.add(detectedCms);
       
-      // Add example URL (limit to 5)
+      // Add example content (limit to 5)
       if (valueStats.examples.length < 5) {
-        valueStats.examples.push(dataPoint.url);
+        valueStats.examples.push(metaValue);
       }
     }
   }

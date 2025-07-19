@@ -17,6 +17,11 @@ export interface CollectionResult {
  * Leverages existing DataStorage class
  */
 export async function collectData(options: Required<FrequencyOptions>): Promise<CollectionResult> {
+  // Validate data source
+  if (options.dataSource !== 'cms-analysis') {
+    throw new Error(`Data source ${options.dataSource} not supported`);
+  }
+  
   const storage = new DataStorage(options.dataDir);
   await storage.initialize();
   

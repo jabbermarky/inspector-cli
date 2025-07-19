@@ -67,6 +67,14 @@ function generateLearnRecommendations(input: RecommendationInput): LearnRecommen
           frequency: totalFrequency,
           diversity
         });
+      } else if (shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency)) {
+        // Even though not currently filtered, recommend keeping it unfiltered
+        recommendToKeep.push({
+          pattern: headerName,
+          reason: getKeepReason(totalFrequency, diversity, maxFrequency),
+          frequency: totalFrequency,
+          diversity
+        });
       }
     } else {
       // Should this header be kept (unfiltered)?
@@ -119,7 +127,7 @@ function generateDetectCmsRecommendations(input: RecommendationInput): DetectCms
       }
       
       // Look for overly generic patterns (high frequency, low confidence)
-      if (pattern.frequency > 0.7 && pattern.confidence < 0.3) {
+      if (pattern.frequency > 0.3 && pattern.confidence < 0.5) {
         patternsToRefine.push({
           pattern: pattern.pattern,
           issue: 'Too generic - appears in most sites',
@@ -155,15 +163,34 @@ function generateGroundTruthRecommendations(input: RecommendationInput): GroundT
   
   const potentialNewRules: GroundTruthRecommendations['potentialNewRules'] = [];
   
-  // Look for high-confidence, CMS-specific patterns
+  // Look for high-confidence, CMS-specific patterns in headers
   for (const [headerName, patterns] of headerPatterns.entries()) {
     for (const pattern of patterns) {
       if (pattern.confidence > 0.8 && pattern.frequency < 0.2) {
         const strongestCms = Object.entries(pattern.cmsCorrelation)
           .filter(([cms]) => cms !== 'Unknown')
-          .sort(([, a], [, b]) => b - a)[0];
+          .sort(([, a], [, b]) => (b as number) - (a as number))[0];
         
-        if (strongestCms && strongestCms[1] > 0.8) {
+        if (strongestCms && (strongestCms[1] as number) > 0.8) {
+          potentialNewRules.push({
+            pattern: pattern.pattern,
+            confidence: pattern.confidence,
+            suggestedRule: `Sites with "${pattern.pattern}" are likely ${strongestCms[0]}`
+          });
+        }
+      }
+    }
+  }
+  
+  // Look for high-confidence, CMS-specific patterns in meta tags
+  for (const [metaName, patterns] of metaPatterns.entries()) {
+    for (const pattern of patterns) {
+      if (pattern.confidence > 0.8 && pattern.frequency < 0.2) {
+        const strongestCms = Object.entries(pattern.cmsCorrelation)
+          .filter(([cms]) => cms !== 'Unknown')
+          .sort(([, a], [, b]) => (b as number) - (a as number))[0];
+        
+        if (strongestCms && (strongestCms[1] as number) > 0.8) {
           potentialNewRules.push({
             pattern: pattern.pattern,
             confidence: pattern.confidence,

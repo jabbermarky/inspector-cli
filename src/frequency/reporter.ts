@@ -45,11 +45,11 @@ function formatAsHuman(result: FrequencyResult): string {
   let output = `# Frequency Analysis Report
 
 ## Summary
-- **Total Sites Analyzed**: ${metadata.totalSites}
-- **Valid Sites**: ${metadata.validSites}
-- **Filtered Out**: ${metadata.filteredSites}
-- **Analysis Date**: ${new Date(metadata.analysisDate).toLocaleString()}
-- **Min Occurrences Threshold**: ${metadata.options.minOccurrences}
+- Total Sites Analyzed: ${metadata.totalSites}
+- Valid Sites: ${metadata.validSites}
+- Filtered Out: ${metadata.filteredSites}
+- Analysis Date: ${new Date(metadata.analysisDate).toLocaleString()}
+- Min Occurrences Threshold: ${metadata.options.minOccurrences}
 
 `;
 
@@ -80,8 +80,8 @@ Filter Reasons:
   
   for (const [headerName, data] of sortedHeaders) {
     output += `### ${headerName}
-- **Frequency**: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- **Unique Values**: ${data.values.length}
+- Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
+- Unique Values: ${data.values.length}
 
 Top Values:
 `;
@@ -102,8 +102,8 @@ Top Values:
   
   for (const [tagKey, data] of sortedMetaTags) {
     output += `### ${tagKey}
-- **Frequency**: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- **Example Values**: ${data.values.map(v => v.value).slice(0, 3).join(', ')}
+- Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
+- Example Values: ${data.values.map(v => v.value).slice(0, 3).join(', ')}
 
 `;
   }
@@ -119,8 +119,8 @@ Top Values:
   
   for (const [pattern, data] of sortedScripts) {
     output += `### ${pattern}
-- **Frequency**: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- **Examples**: ${data.examples.slice(0, 2).join(', ')}
+- Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
+- Examples: ${data.examples.slice(0, 2).join(', ')}
 
 `;
   }
@@ -137,14 +137,14 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
 #### Recommend to Filter:
 `;
     for (const rec of recommendations.learn.recommendToFilter) {
-      output += `- **${rec.pattern}**: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
+      output += `- ${rec.pattern}: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
     }
 
     output += `
 #### Recommend to Keep:
 `;
     for (const rec of recommendations.learn.recommendToKeep) {
-      output += `- **${rec.pattern}**: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
+      output += `- ${rec.pattern}: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
     }
 
     output += `
@@ -158,7 +158,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
         .sort(([, a], [, b]) => b - a)[0];
       
       if (topCms) {
-        output += `- **${opp.pattern}**: ${Math.round(opp.frequency * 100)}% frequency, ${Math.round(topCms[1] * 100)}% correlation with ${topCms[0]}\n`;
+        output += `- ${opp.pattern}: ${Math.round(opp.frequency * 100)}% frequency, ${Math.round(topCms[1] * 100)}% correlation with ${topCms[0]}\n`;
       }
     }
 
@@ -166,7 +166,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
 #### Patterns to Refine:
 `;
     for (const refine of recommendations.detectCms.patternsToRefine) {
-      output += `- **${refine.pattern}**: ${refine.issue} (${Math.round(refine.currentFrequency * 100)}% frequency)\n`;
+      output += `- ${refine.pattern}: ${refine.issue} (${Math.round(refine.currentFrequency * 100)}% frequency)\n`;
     }
 
     output += `
@@ -234,7 +234,10 @@ Total headers analyzed: **${Object.keys(headers).length}**
     const topValuePercent = topValue ? Math.round(topValue.frequency * 100) : 0;
     const topValueDisplay = topValue ? escapeMarkdownTableCell(topValue.value) : 'N/A';
     
-    output += `| \`${headerName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${data.values.length} | \`${topValueDisplay}\` | ${topValuePercent}% |\n`;
+    // Extract just the header name (before colon) for display
+    const displayName = headerName.split(':')[0];
+    
+    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${data.values.length} | \`${topValueDisplay}\` | ${topValuePercent}% |\n`;
   }
 
   // Meta Tags as Table
@@ -460,23 +463,30 @@ function formatScriptPatternsByClassification(scripts: FrequencyResult['scripts'
 function formatAsCSV(result: FrequencyResult): string {
   let csv = 'Type,Pattern,Frequency,Occurrences,TotalSites,Examples\n';
   
+  // Helper function to escape CSV values
+  const escapeCSV = (value: string): string => {
+    return `"${value.replace(/"/g, '""')}"`;
+  };
+  
   // Headers
   for (const [headerName, data] of Object.entries(result.headers)) {
     for (const value of data.values) {
-      csv += `Header,"${headerName}:${value.value}",${value.frequency},${value.occurrences},${data.totalSites},"${value.examples.join('; ')}"\n`;
+      // If headerName already ends with the value, use as-is, otherwise append value
+      const pattern = headerName.endsWith(`:${value.value}`) ? headerName : `${headerName}:${value.value}`;
+      csv += `Header,${escapeCSV(pattern)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV(value.examples.join('; '))}\n`;
     }
   }
   
   // Meta Tags
   for (const [tagKey, data] of Object.entries(result.metaTags)) {
     for (const value of data.values) {
-      csv += `MetaTag,"${tagKey}:${value.value}",${value.frequency},${value.occurrences},${data.totalSites},"${value.examples.join('; ')}"\n`;
+      csv += `MetaTag,${escapeCSV(`${tagKey}:${value.value}`)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV(value.examples.join('; '))}\n`;
     }
   }
   
   // Scripts
   for (const [pattern, data] of Object.entries(result.scripts)) {
-    csv += `Script,"${pattern}",${data.frequency},${data.occurrences},${data.totalSites},"${data.examples.join('; ')}"\n`;
+    csv += `Script,${escapeCSV(pattern)},${data.frequency},${data.occurrences},${data.totalSites},${escapeCSV(data.examples.join('; '))}\n`;
   }
   
   return csv;

@@ -1,4 +1,7 @@
 # CLAUDE.md
+see @readme.md for inspector-cli overview and @package.json for available npm commands for this project.
+see @docs/test-troubleshooting-workflow.md for troubleshooting assistance.
+see @docs/CODE_QUALITY.md for code quality guidelines.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -8,6 +11,7 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 
 ## Development Philosophy
 - Don't make assumptions.
+- Be systematic.
 - If you don't understand completely, ask questions until you do.
 - KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
 - Clarify assumptions by asking clarifying questions before coding
@@ -20,10 +24,12 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 ## Important Paths
 - /plans contains all planning documents
 - /docs contains all general documents
-- /reports contains the output of various tests and analyses
-- /tools contains custom utilities and tools made for various purposes
-- /scripts same as tools
+- /reports contains the output of various tests and analyses (gitignored)
+- /tools contains custom utilities and tools made for various purposes (gitignored)
+- /scripts contains temporary debug and utility scripts (gitignored)
 - /data contains data files that we keep around
+
+**Note:** The `/reports`, `/tools`, and `/scripts` directories are gitignored as they contain temporary files, debug scripts, and generated reports that should not be in version control.
 
 ## Development Commands
 
@@ -33,9 +39,9 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - `npm run run` - Run TypeScript compiler in watch mode for development
 
 ### Testing
-**Unit Tests (Jest)**
-- `npm test` - Run Jest unit tests for core functionality
-- `npm run test:watch` - Run Jest tests in watch mode for development  
+**Unit Tests (Vitest)**
+- `npm test` - Run Vitest unit tests for core functionality
+- `npm run test:watch` - Run Vitest tests in watch mode for development  
 - `npm run test:coverage` - Run tests with coverage reporting and HTML reports
 
 **Integration Tests (Shell Scripts)**
@@ -125,6 +131,49 @@ node dist/index.js detect-cms good-duda.csv --collect-data
 ### CLI Help
 ```bash
 node dist/index.js detect-cms --help  # Show available options
+```
+
+### Frequency Analysis Command
+**Analyze pattern frequency across collected CMS data:**
+
+```bash
+# Basic frequency analysis (requires 100+ sites by default)
+node dist/index.js frequency
+
+# With custom minimum sites threshold
+node dist/index.js frequency --min-sites 10
+
+# Output formats
+node dist/index.js frequency --output json --output-file frequency.json
+node dist/index.js frequency --output csv --output-file frequency.csv
+node dist/index.js frequency --output markdown --output-file frequency.md
+
+# Include filter recommendations
+node dist/index.js frequency --include-recommendations
+
+# Full options
+node dist/index.js frequency --help
+```
+
+### Learn Command with Discriminative Filtering
+**Train AI models with filtered data to reduce token usage:**
+
+```bash
+# Basic learning (applies conservative filtering by default)
+node dist/index.js learn <url>
+
+# Filtering levels
+node dist/index.js learn <url> --filter-level none      # No filtering
+node dist/index.js learn <url> --filter-level minimal   # ~2% reduction
+node dist/index.js learn <url> --filter-level conservative # ~5% reduction (default)
+node dist/index.js learn <url> --filter-level moderate  # ~10% reduction  
+node dist/index.js learn <url> --filter-level aggressive # ~20% reduction
+
+# Custom filtering
+node dist/index.js learn <url> --filter-level custom \
+  --filter-headers "server,date" \
+  --filter-meta "viewport,charset" \
+  --filter-tracking
 ```
 
 ## Unit Testing Patterns (CRITICAL - Use Centralized test-utils)

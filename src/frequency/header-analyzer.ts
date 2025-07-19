@@ -49,8 +49,8 @@ export async function analyzeHeaders(
       const normalizedHeaderName = normalizeHeaderName(headerName);
       const normalizedHeaderValue = normalizeHeaderValue(headerValue);
       
-      // Skip empty values
-      if (!normalizedHeaderValue) continue;
+      // Handle empty values by marking them as <empty>
+      const finalHeaderValue = normalizedHeaderValue || '<empty>';
       
       // Initialize header tracking
       if (!headerStats.has(normalizedHeaderName)) {
@@ -60,15 +60,15 @@ export async function analyzeHeaders(
       const headerMap = headerStats.get(normalizedHeaderName)!;
       
       // Initialize value tracking
-      if (!headerMap.has(normalizedHeaderValue)) {
-        headerMap.set(normalizedHeaderValue, {
+      if (!headerMap.has(finalHeaderValue)) {
+        headerMap.set(finalHeaderValue, {
           count: 0,
           examples: [],
           cmsSources: new Set()
         });
       }
       
-      const valueStats = headerMap.get(normalizedHeaderValue)!;
+      const valueStats = headerMap.get(finalHeaderValue)!;
       valueStats.count++;
       valueStats.cmsSources.add(detectedCms);
       
@@ -139,8 +139,13 @@ function normalizeHeaderName(headerName: string): string {
 /**
  * Normalize header values (trim, handle encoding)
  */
-function normalizeHeaderValue(headerValue: string): string {
+function normalizeHeaderValue(headerValue: string | string[]): string {
   if (!headerValue) return '';
+  
+  // Handle array values (like set-cookie)
+  if (Array.isArray(headerValue)) {
+    return headerValue.join('; ');
+  }
   
   let normalized = headerValue.trim();
   

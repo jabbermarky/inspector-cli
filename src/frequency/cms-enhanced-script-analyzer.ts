@@ -322,9 +322,29 @@ function generateCMSDetectionRecommendations(
   cmsSites: Map<string, DetectionDataPoint[]>
 ): CMSDetectionRecommendations {
   
-  const newPatterns = [];
-  const patternRefinements = [];
-  const deprecatedPatterns = [];
+  const newPatterns: Array<{
+    pattern: string;
+    category: string;
+    confidence: number;
+    cms: string;
+    reasoning: string;
+    examples: string[];
+  }> = [];
+  
+  const patternRefinements: Array<{
+    pattern: string;
+    currentConfidence: number;
+    recommendedConfidence: number;
+    reasoning: string;
+    affectedCMS: string[];
+  }> = [];
+  
+  const deprecatedPatterns: Array<{
+    pattern: string;
+    reason: string;
+    cms: string;
+    replacement?: string;
+  }> = [];
   
   for (const [category, categoryPatterns] of patterns.entries()) {
     for (const pattern of categoryPatterns) {
