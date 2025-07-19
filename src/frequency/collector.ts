@@ -151,42 +151,171 @@ function isBotDetectionPage(dataPoint: DetectionDataPoint): boolean {
   const content = dataPoint.htmlContent?.toLowerCase() || '';
   const title = dataPoint.metaTags?.find(tag => tag.name === 'title')?.content?.toLowerCase() || '';
   
-  const botDetectionIndicators = [
-    'cloudflare',
-    'captcha',
-    'bot detection',
-    'please verify',
+  // For 403/503 status codes, check if it's a bot detection page
+  if (dataPoint.statusCode === 403 || dataPoint.statusCode === 503) {
+    const securityPageIndicators = [
+      'cloudflare',
+      'security check',
+      'access denied',
+      'bot detection'
+    ];
+    
+    if (securityPageIndicators.some(indicator => title.includes(indicator))) {
+      return true;
+    }
+  }
+  
+  // More specific patterns that indicate actual bot challenges
+  const titleBotIndicators = [
+    'attention required',
+    'just a moment',
+    'checking your browser',
+    'please wait',
+    'one more step',
+    'verify you are human',
     'security check',
-    'access denied',
-    'blocked',
-    'suspicious activity'
+    'access denied'
   ];
   
-  return botDetectionIndicators.some(indicator => 
-    content.includes(indicator) || title.includes(indicator)
-  );
+  // Check title first - most reliable
+  if (titleBotIndicators.some(indicator => title.includes(indicator))) {
+    return true;
+  }
+  
+  // For content, look for specific bot challenge patterns, not just keywords
+  const contentBotPatterns = [
+    'cloudflare ray id',
+    'cf-ray',
+    'please complete the security check',
+    'please verify you are human',
+    'complete the captcha',
+    'suspicious activity has been detected',
+    'enable javascript and cookies',
+    'this process is automatic',
+    'your browser will redirect',
+    'ddos protection by cloudflare'
+  ];
+  
+  return contentBotPatterns.some(pattern => content.includes(pattern));
 }
 
 /**
  * Check if data point represents an error page
+ * Improved version with reduced false positives
  */
 function isErrorPage(dataPoint: DetectionDataPoint): boolean {
-  const content = dataPoint.htmlContent?.toLowerCase() || '';
-  const title = dataPoint.metaTags?.find(tag => tag.name === 'title')?.content?.toLowerCase() || '';
+  // HTTP error status codes are definitive - always filter these
+  if (dataPoint.statusCode >= 400) {
+    return true;
+  }
   
-  const errorIndicators = [
-    '404',
-    '500',
+  // For HTTP 200 responses, use more restrictive content analysis
+  if (dataPoint.statusCode !== 200) {
+    return false; // Only check content for successful responses
+  }
+  
+  const title = dataPoint.metaTags?.find(tag => tag.name === 'title')?.content?.toLowerCase() || '';
+  const htmlContent = dataPoint.htmlContent || '';
+  const contentLower = htmlContent.toLowerCase();
+  
+  // High-confidence error indicators in page title
+  const titleErrorPatterns = [
+    'page not found',
+    'error 404',
+    'error 500', 
+    '404 not found',
+    '404 error',
     'not found',
-    'error',
-    'maintenance',
+    'site maintenance',
     'temporarily unavailable',
-    'under construction'
+    'under construction',
+    'this page could not be found',
+    'the requested url was not found'
   ];
   
-  return errorIndicators.some(indicator => 
-    content.includes(indicator) || title.includes(indicator)
-  );
+  // Check title first - most reliable indicator
+  const titleHasError = titleErrorPatterns.some(pattern => title.includes(pattern));
+  if (titleHasError) {
+    return true;
+  }
+  
+  // Remove potentially problematic content before checking
+  const cleanedContent = removeExcludedSections(htmlContent);
+  const cleanedLower = cleanedContent.toLowerCase();
+  
+  // More specific patterns that require word boundaries or context
+  const contextualErrorPatterns = [
+    /\b404\s+(page\s+)?not\s+found\b/,
+    /\berror\s+404\b/,
+    /\berror\s+500\b/,
+    /\bpage\s+not\s+found\b/,
+    /\bsite\s+maintenance\b/,
+    /\btemporarily\s+unavailable\b/,
+    /\bunder\s+construction\b/
+  ];
+  
+  // Check for contextual error patterns
+  const contentHasError = contextualErrorPatterns.some(pattern => pattern.test(cleanedLower));
+  
+  // Additional check: if page is very short and has error indicators, likely an error
+  const isShortPage = cleanedContent.length < 1000;
+  const hasSimpleErrorIndicator = cleanedLower.includes('404') || cleanedLower.includes('not found');
+  
+  if (isShortPage && hasSimpleErrorIndicator && !hasExcludedContext(cleanedContent)) {
+    return true;
+  }
+  
+  return contentHasError;
+}
+
+/**
+ * Remove sections that commonly contain false positive triggers
+ */
+function removeExcludedSections(htmlContent: string): string {
+  if (!htmlContent) return '';
+  
+  let cleaned = htmlContent;
+  
+  // Remove script tags and their content
+  cleaned = cleaned.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  
+  // Remove style tags and their content
+  cleaned = cleaned.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Remove common analytics patterns
+  cleaned = cleaned.replace(/gtag\([^)]*\)/gi, '');
+  cleaned = cleaned.replace(/ga\([^)]*\)/gi, '');
+  cleaned = cleaned.replace(/dataLayer[^;]*;/gi, '');
+  
+  // Remove CSS class and ID references that might contain numbers
+  cleaned = cleaned.replace(/class="[^"]*\b(404|500)\b[^"]*"/gi, '');
+  cleaned = cleaned.replace(/id="[^"]*\b(404|500)\b[^"]*"/gi, '');
+  
+  // Remove font family declarations
+  cleaned = cleaned.replace(/font-family:[^;]*[45]00[^;]*;/gi, '');
+  
+  return cleaned;
+}
+
+/**
+ * Check if content has excluded context that suggests false positive
+ */
+function hasExcludedContext(content: string): boolean {
+  const excludedContexts = [
+    'font-weight',
+    'font-family',
+    'css',
+    'javascript',
+    'analytics',
+    'gtag',
+    'dataLayer',
+    'class=',
+    'id=',
+    'itemid'
+  ];
+  
+  const contentLower = content.toLowerCase();
+  return excludedContexts.some(context => contentLower.includes(context));
 }
 
 /**
