@@ -5,6 +5,7 @@ import { performLLMAnalysis, formatPrompt, estimateTokensAndCost } from './llm-i
 import { storeAnalysisResult } from './storage.js';
 import { CMS_DETECTION_PROMPT } from '../prompts.js';
 import { performPhasedAnalysis, PhasedAnalysisConfig } from '../utils/cms/phased-analysis.js';
+import { applyDiscriminativeFilters } from './filtering.js';
 
 const logger = createModuleLogger('learn-analysis');
 
@@ -72,11 +73,24 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
             }
         }
         
-        // Step 2: Format prompt
-        const promptTemplate = options.promptTemplate === 'cms-detection' ? CMS_DETECTION_PROMPT : CMS_DETECTION_PROMPT;
-        const prompt = formatPrompt(promptTemplate, data);
+        // Step 2: Apply discriminative filtering (if enabled)
+        let processedData = data;
+        if (options.filteringOptions) {
+            logger.info('Applying discriminative filtering', { 
+                url, 
+                filterLevel: options.filteringOptions.level,
+                originalHeaders: Object.keys(data.httpHeaders).length,
+                originalMetaTags: data.metaTags.length,
+                originalScripts: data.scripts.length
+            });
+            processedData = applyDiscriminativeFilters(data, options.filteringOptions);
+        }
         
-        // Step 3: Handle dry run
+        // Step 3: Format prompt
+        const promptTemplate = options.promptTemplate === 'cms-detection' ? CMS_DETECTION_PROMPT : CMS_DETECTION_PROMPT;
+        const prompt = formatPrompt(promptTemplate, processedData);
+        
+        // Step 4: Handle dry run
         if (options.dryRun) {
             console.log('=== DRY RUN MODE ===');
             console.log('URL:', url);
@@ -87,28 +101,28 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
             return { url, success: true, analysisId };
         }
         
-        // Step 4: Cost estimation
+        // Step 5: Cost estimation
         if (options.costEstimate) {
             const { tokens, cost } = estimateTokensAndCost(prompt, options.model || 'gpt-4o');
             console.log(`Estimated tokens: ${tokens}`);
             console.log(`Estimated cost: $${cost.toFixed(4)}`);
         }
         
-        // Step 5: Perform LLM analysis (single-phase or two-phase)
+        // Step 6: Perform LLM analysis (single-phase or two-phase)
         let llmResponse;
         
         if (options.phasedAnalysis) {
             logger.info('Performing two-phase LLM analysis', { url, model: options.model || 'gpt-4o' });
             
-            // Convert data to string format for phased analysis
+            // Convert processed data to string format for phased analysis
             const dataString = JSON.stringify({
-                url: data.url,
-                htmlContent: data.htmlContent,
-                scripts: data.scripts,
-                metaTags: data.metaTags,
-                httpHeaders: data.httpHeaders,
-                robotsTxt: data.robotsTxt,
-                domStructure: data.domStructure
+                url: processedData.url,
+                htmlContent: processedData.htmlContent,
+                scripts: processedData.scripts,
+                metaTags: processedData.metaTags,
+                httpHeaders: processedData.httpHeaders,
+                robotsTxt: processedData.robotsTxt,
+                domStructure: processedData.domStructure
             }, null, 2);
             
             const phasedConfig: PhasedAnalysisConfig = {
@@ -156,13 +170,13 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
             }
         } else {
             logger.info('Performing single-phase LLM analysis', { url, model: options.model || 'gpt-4o' });
-            llmResponse = await performLLMAnalysis(data, prompt, options.model || 'gpt-4o');
+            llmResponse = await performLLMAnalysis(processedData, prompt, options.model || 'gpt-4o');
         }
         
-        // Step 6: Extract insights from LLM response
+        // Step 7: Extract insights from LLM response
         const analysisInsights = extractAnalysisInsights(llmResponse);
         
-        // Step 7: Create analysis result
+        // Step 8: Create analysis result
         const analysisResult: AnalysisResult = {
             metadata: {
                 analysisId,
@@ -174,21 +188,28 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
                 dataSource: determineDataSource(options, data),
                 tokenCount: llmResponse.tokenUsage?.totalTokens || 0,
                 estimatedCost: calculateActualCost(llmResponse.tokenUsage, options.model || 'gpt-4o'),
-                timingMetrics: extractTimingMetrics(llmResponse)
+                timingMetrics: extractTimingMetrics(llmResponse),
+                filteringApplied: options.filteringOptions ? {
+                    level: options.filteringOptions.level,
+                    removedHeaders: options.filteringOptions.removeGenericHeaders,
+                    removedMetaTags: options.filteringOptions.removeUniversalMetaTags,
+                    removedTracking: options.filteringOptions.removeTrackingScripts,
+                    removedLibraries: options.filteringOptions.removeCommonLibraries
+                } : undefined
             },
             inputData: {
-                url: data.url, // Use normalized URL from data collection
+                url: processedData.url, // Use normalized URL from filtered data
                 collectionMetadata: {
-                    timestamp: data.timestamp,
+                    timestamp: processedData.timestamp,
                     enhanced: true
                 },
-                enhancedData: data
+                enhancedData: processedData // Store the filtered data that was actually analyzed
             },
             llmResponse,
             analysis: analysisInsights
         };
         
-        // Step 7: Store result
+        // Step 9: Store result
         await storeAnalysisResult(analysisResult);
         
         logger.info('Learn analysis completed successfully', { url, analysisId });
@@ -209,10 +230,16 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
     } catch (error) {
         logger.error('Learn analysis failed', { url, analysisId }, error as Error);
         
-        // If we have collected data but LLM analysis failed, save the raw data for later analysis
+        // If we have collected data but LLM analysis failed, save the processed data for later analysis
         if (data) {
             try {
-                logger.info('Saving raw data for failed analysis', { url, analysisId });
+                logger.info('Saving processed data for failed analysis', { url, analysisId });
+                
+                // Apply same filtering that would have been used
+                let processedDataForStorage = data;
+                if (options.filteringOptions) {
+                    processedDataForStorage = applyDiscriminativeFilters(data, options.filteringOptions);
+                }
                 
                 // Extract token usage from error message
                 const tokenUsage = extractTokenUsageFromError((error as Error).message);
@@ -231,15 +258,22 @@ export async function processLearnAnalysis(url: string, options: LearnOptions): 
                         estimatedCost: calculateActualCost(tokenUsage, options.model || 'gpt-4o'),
                         timingMetrics: {},
                         analysisStatus: 'failed',
-                        failureReason: (error as Error).message
+                        failureReason: (error as Error).message,
+                        filteringApplied: options.filteringOptions ? {
+                            level: options.filteringOptions.level,
+                            removedHeaders: options.filteringOptions.removeGenericHeaders,
+                            removedMetaTags: options.filteringOptions.removeUniversalMetaTags,
+                            removedTracking: options.filteringOptions.removeTrackingScripts,
+                            removedLibraries: options.filteringOptions.removeCommonLibraries
+                        } : undefined
                     },
                     inputData: {
-                        url: data.url,
+                        url: processedDataForStorage.url,
                         collectionMetadata: {
-                            timestamp: data.timestamp,
+                            timestamp: processedDataForStorage.timestamp,
                             enhanced: true
                         },
-                        enhancedData: data
+                        enhancedData: processedDataForStorage
                     },
                     llmResponse: {
                         rawResponse: '',

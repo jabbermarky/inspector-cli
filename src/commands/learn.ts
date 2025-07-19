@@ -43,6 +43,12 @@ program
     .option('--cache-stats', 'Display response cache statistics')
     .option('--cache-clear', 'Clear the response cache')
     .option('--cache-report', 'Generate detailed cache performance report')
+    .option('--filter-level <level>', 'Discriminative filtering level: conservative, aggressive')
+    .option('--filter-headers', 'Remove generic HTTP headers (server, cache-control, etc.)')
+    .option('--filter-meta-tags', 'Remove universal meta tags (viewport, robots, etc.)')
+    .option('--filter-tracking', 'Remove tracking scripts (Google Analytics, Facebook Pixel, etc.)')
+    .option('--filter-libraries', 'Remove common libraries (jQuery, Bootstrap, etc.)')
+    .option('--no-filtering', 'Disable all discriminative filtering')
     .option('--bulk-file <path>', '[DEPRECATED] Perform bulk analysis using uploaded data file')
     .option('--generate-bulk-data <path>', '[DEPRECATED] Generate bulk data file from URLs for later analysis')
     .action(async (input, options: LearnOptions) => {
@@ -79,6 +85,56 @@ program
             
             // Ensure learn directory structure exists
             await ensureLearnDirectoryStructure();
+            
+            // Parse filtering options from CLI flags
+            const anyOptions = options as any; // Commander.js uses kebab-case to camelCase conversion
+            const hasExplicitFlags = anyOptions.filterHeaders || anyOptions.filterMetaTags || anyOptions.filterTracking || anyOptions.filterLibraries;
+            const hasPresetLevel = anyOptions.filterLevel && ['conservative', 'aggressive'].includes(anyOptions.filterLevel);
+            const shouldApplyFiltering = !anyOptions.noFiltering && (hasExplicitFlags || hasPresetLevel);
+            
+            if (shouldApplyFiltering) {
+                if (hasExplicitFlags) {
+                    // Custom filtering - use explicit flags
+                    options.filteringOptions = {
+                        level: 'custom',
+                        removeGenericHeaders: anyOptions.filterHeaders,
+                        removeUniversalMetaTags: anyOptions.filterMetaTags,
+                        removeTrackingScripts: anyOptions.filterTracking,
+                        removeCommonLibraries: anyOptions.filterLibraries
+                    };
+                } else {
+                    // Preset level - apply automatically
+                    options.filteringOptions = {
+                        level: anyOptions.filterLevel
+                    };
+                }
+                
+                console.log(`📝 Discriminative filtering enabled (${options.filteringOptions.level} level)`);
+                const enabledFilters = [];
+                if (options.filteringOptions.removeGenericHeaders) enabledFilters.push('generic headers');
+                if (options.filteringOptions.removeUniversalMetaTags) enabledFilters.push('universal meta tags');
+                if (options.filteringOptions.removeTrackingScripts) enabledFilters.push('tracking scripts');
+                if (options.filteringOptions.removeCommonLibraries) enabledFilters.push('common libraries');
+                
+                // For preset levels, show what will be applied
+                if (options.filteringOptions.level === 'conservative') {
+                    enabledFilters.push('generic headers', 'universal meta tags');
+                } else if (options.filteringOptions.level === 'aggressive') {
+                    enabledFilters.push('generic headers', 'universal meta tags', 'tracking scripts', 'common libraries');
+                }
+                
+                if (enabledFilters.length > 0) {
+                    console.log(`   Filtering: ${[...new Set(enabledFilters)].join(', ')}`);
+                }
+                
+                logger.info('Discriminative filtering enabled', {
+                    level: options.filteringOptions.level,
+                    removeGenericHeaders: options.filteringOptions.removeGenericHeaders,
+                    removeUniversalMetaTags: options.filteringOptions.removeUniversalMetaTags,
+                    removeTrackingScripts: options.filteringOptions.removeTrackingScripts,
+                    removeCommonLibraries: options.filteringOptions.removeCommonLibraries
+                });
+            }
             
             // Handle deprecated bulk data generation
             if (options.generateBulkData) {

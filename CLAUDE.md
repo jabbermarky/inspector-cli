@@ -8,6 +8,7 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 
 ## Development Philosophy
 - Don't make assumptions.
+- If you don't understand completely, ask questions until you do.
 - KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
 - Clarify assumptions by asking clarifying questions before coding
 - When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
@@ -15,6 +16,14 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 ## Module and Import Conventions
 
 - This project uses ES modules ("type": "module" in package.json) - always use import syntax, never require()
+
+## Important Paths
+- /plans contains all planning documents
+- /docs contains all general documents
+- /reports contains the output of various tests and analyses
+- /tools contains custom utilities and tools made for various purposes
+- /scripts same as tools
+- /data contains data files that we keep around
 
 ## Development Commands
 
@@ -121,57 +130,3 @@ node dist/index.js detect-cms --help  # Show available options
 ## Unit Testing Patterns (CRITICAL - Use Centralized test-utils)
 
 **IMPORTANT**: Always use the centralized test-utils system located in `src/test-utils/`. This eliminates duplicate mock code and ensures consistency across all tests.
-
-### 🎯 Quick Start Pattern
-
-**✅ ALWAYS use this pattern for new tests:**
-
-```typescript
-// Mock dependencies BEFORE other imports (at top level)
-jest.mock('../../../logger.js', () => ({
-    createModuleLogger: jest.fn(() => ({
-        debug: jest.fn(),
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        apiCall: jest.fn(),
-        apiResponse: jest.fn(),
-        performance: jest.fn()
-    }))
-}));
-
-// Add other mocks as needed (retry, config, etc.)
-jest.mock('../../../retry.js', () => ({
-    withRetry: jest.fn().mockImplementation(async (fn: any) => await fn())
-}));
-
-import { jest } from '@jest/globals';
-import { YourClassUnderTest } from '../../your-module.js';
-import { setupCMSDetectionTests } from '@test-utils';  // Choose appropriate setup
-
-describe('Your Test Suite', () => {
-    setupCMSDetectionTests();  // Provides beforeEach/afterEach patterns
-    
-    // Your test variables
-    let instance: YourClassUnderTest;
-    let mockPage: any;
-    
-    beforeEach(() => {
-        // Test-specific setup (setup function handles common cleanup)
-        instance = new YourClassUnderTest();
-        mockPage = {
-            content: jest.fn(),
-            goto: jest.fn(),
-            evaluate: jest.fn()
-        } as any;
-    });
-    
-    it('should do something', async () => {
-        // Your test logic
-        const result = await instance.someMethod(mockPage, 'test-url');
-        expect(result).toBeDefined();
-    });
-});
-```
-```
-```

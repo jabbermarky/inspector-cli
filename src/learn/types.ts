@@ -1,3 +1,12 @@
+export interface FilteringOptions {
+    level: 'conservative' | 'aggressive' | 'custom';
+    removeGenericHeaders?: boolean;
+    removeUniversalMetaTags?: boolean;
+    removeTrackingScripts?: boolean;
+    removeCommonLibraries?: boolean;
+    customFilters?: string[];
+}
+
 export interface LearnOptions {
     collectData?: boolean;
     forceFresh?: boolean;
@@ -18,6 +27,14 @@ export interface LearnOptions {
     cacheStats?: boolean;
     cacheClear?: boolean;
     cacheReport?: boolean;
+    filteringOptions?: FilteringOptions;
+    // CLI filtering options (converted to filteringOptions)
+    filterLevel?: 'conservative' | 'aggressive';
+    filterHeaders?: boolean;
+    filterMetaTags?: boolean;
+    filterTracking?: boolean;
+    filterLibraries?: boolean;
+    noFiltering?: boolean;
 }
 
 export interface LearnResult {
@@ -157,6 +174,14 @@ export interface AnalysisMetadata {
         totalDurationMs?: number;
         networkLatencyMs?: number;
         processingLatencyMs?: number;
+    };
+    // Filtering information
+    filteringApplied?: {
+        level: 'conservative' | 'aggressive' | 'custom';
+        removedHeaders?: boolean;
+        removedMetaTags?: boolean;
+        removedTracking?: boolean;
+        removedLibraries?: boolean;
     };
     // Fields for failed analyses
     analysisStatus?: 'success' | 'failed';

@@ -46,6 +46,13 @@ export default [
     ignores: [
       'dist/**',
       'node_modules/**',
+      'tools/**',
+      'scripts/**',
+      'reports/**',
+      'plans/**',
+      'docs/**',
+      'data/**',
+      'tmp/**',
       '*.js.map',
       'coverage/**',
       '.nyc_output/**',
