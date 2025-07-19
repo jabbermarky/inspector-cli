@@ -4,7 +4,7 @@ import { EnhancedDataCollection, FilteringOptions, Script, MetaTag } from './typ
 const logger = createModuleLogger('discriminative-filtering');
 
 // Pattern definitions for filtering
-const GENERIC_HTTP_HEADERS = new Set([
+export const GENERIC_HTTP_HEADERS = new Set([
     'server',           // Apache, nginx, IIS - not discriminative
     'content-type',     // text/html - universal
     'cache-control',    // Standard caching headers
