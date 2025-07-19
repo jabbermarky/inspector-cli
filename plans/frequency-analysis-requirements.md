@@ -223,3 +223,341 @@ Based on the requirements analysis, the following parameters will be configurabl
 5. **Minimum Thresholds**: 100 sites total, 5 occurrences per pattern
 6. **CMS Analysis**: Deferred until ground-truth data available
 7. **Advanced Features**: Co-occurrence, temporal analysis deferred to future iterations
+
+## Implementation Architecture
+
+### File Structure
+
+Following the established pattern of learn and ground-truth commands:
+
+```
+src/
+├── commands/
+│   └── frequency.ts          # Thin command implementation
+├── frequency/                # Feature folder
+│   ├── index.ts             # Main exports
+│   ├── types.ts             # TypeScript interfaces and types
+│   ├── analyzer.ts          # Core frequency analysis logic
+│   ├── collector.ts         # Data collection from cms-analysis files
+│   ├── normalizer.ts        # Header/value normalization logic
+│   ├── recommender.ts       # Filter recommendation engine
+│   ├── reporter.ts          # Output formatting (JSON, CSV, human-readable)
+│   └── __tests__/           # Test files
+│       ├── analyzer.test.ts
+│       ├── collector.test.ts
+│       ├── normalizer.test.ts
+│       ├── recommender.test.ts
+│       └── reporter.test.ts
+```
+
+### Command Implementation
+
+The `src/commands/frequency.ts` file should be thin, following the pattern of other commands:
+
+```typescript
+// Pseudo-code structure
+export const frequency = new Command()
+  .name('frequency')
+  .description('Analyze frequency of headers and meta tags across collected sites')
+  .option('--min-sites <number>', 'Minimum sites required for analysis', '100')
+  .option('--min-occurrences <number>', 'Minimum occurrences to include in report', '5')
+  .option('--output <format>', 'Output format: json, csv, human', 'human')
+  .option('--output-file <path>', 'Save output to file')
+  .option('--filter-recommendations', 'Include filter recommendations', true)
+  .option('--page-type <type>', 'Analyze specific page type: all, mainpage, robots', 'all')
+  .action(async (options) => {
+    // Thin wrapper that delegates to frequency module
+    const result = await analyzeFrequency(options);
+    // Handle output
+  });
+```
+
+### Core Module Responsibilities
+
+#### `analyzer.ts`
+- Main orchestration of frequency analysis
+- Coordinate data collection, normalization, analysis, and reporting
+- Calculate frequency metrics and statistics
+
+#### `collector.ts`
+- Read and parse files from `data/cms-analysis/`
+- Handle deduplication (latest capture per site)
+- Filter out bad data (bot detection, errors)
+- Extract headers and meta tags
+
+#### `normalizer.ts`
+- Lowercase normalization for headers and values
+- Handle encoding variations
+- Trim whitespace
+- Future: version normalization logic
+
+#### `recommender.ts`
+- Analyze current discriminative filters
+- Review detect-cms patterns
+- Review ground-truth rules
+- Generate recommendations based on frequency data
+
+#### `reporter.ts`
+- Format output as JSON, CSV, or human-readable
+- Generate recommendation reports
+- Handle file output if specified
+
+### Data Flow
+
+```mermaid
+graph TD
+    A[frequency command] --> B[collector.ts]
+    B --> C[Read cms-analysis files]
+    C --> D[Filter & Deduplicate]
+    D --> E[normalizer.ts]
+    E --> F[Normalize headers/values]
+    F --> G[analyzer.ts]
+    G --> H[Calculate frequencies]
+    H --> I[recommender.ts]
+    I --> J[Generate recommendations]
+    J --> K[reporter.ts]
+    K --> L[Output results]
+```
+
+### Integration Points
+
+1. **Discriminative Filtering**: Read from `src/learn/filtering.ts` to analyze current filters
+2. **Detect-CMS Patterns**: Read from CMS detection pattern files
+3. **Ground-Truth Rules**: Read from ground-truth detection logic
+4. **Data Source**: Read from `data/cms-analysis/` directory
+
+### Existing Function Inventory (Required Before Implementation)
+
+**CRITICAL**: Before implementing any new data collection or processing functionality, conduct a comprehensive inventory of existing functions that may be reusable.
+
+#### Required Inventory Areas
+
+1. **Data Collection Functions**
+   - Search codebase for functions that read from `data/cms-analysis/` or similar directories
+   - Identify existing file parsing, JSON handling, and data loading utilities
+   - Document any existing deduplication or data filtering logic
+
+2. **Data Processing Functions**
+   - Look for existing header normalization functions
+   - Find any meta tag parsing or processing utilities
+   - Identify existing pattern matching or analysis functions
+
+3. **CMS Detection Functions**
+   - Inventory current detect-cms pattern matching logic
+   - Document how existing ground-truth functions work
+   - Identify any shared utilities between commands
+
+4. **Reporting and Output Functions**
+   - Find existing JSON, CSV, or report generation utilities
+   - Look for file output handling functions
+   - Check for existing formatting or display utilities
+
+#### Implementation Decision Tree
+
+```
+For each required functionality:
+├── Does equivalent function exist?
+│   ├── Yes → Is it immediately usable?
+│   │   ├── Yes → Use existing function
+│   │   └── No → STOP and ask questions about:
+│   │       ├── Whether to modify existing function
+│   │       ├── Whether to create wrapper/adapter
+│   │       └── Whether to create new function
+│   └── No → Create new function following established patterns
+```
+
+#### Documentation Requirements
+
+Before any implementation:
+1. **Create inventory document** listing all relevant existing functions
+2. **Document reuse decisions** for each piece of functionality
+3. **Identify gaps** where new functions are needed
+4. **Note any concerns** about modifying existing functions
+
+This inventory ensures we:
+- Avoid duplicating existing functionality
+- Maintain consistency with established patterns
+- Leverage existing battle-tested code
+- Make informed decisions about when to reuse vs. create new
+
+### Testing Strategy
+
+Given that frequency analysis will inform critical decisions about filtering and detection patterns, comprehensive testing is essential for reliability and accuracy.
+
+#### Test Categories
+
+##### 1. Unit Tests (High Coverage Required)
+Each module must have extensive unit tests with edge case coverage:
+
+**collector.ts**
+- File parsing accuracy (various JSON structures)
+- Deduplication logic (multiple captures per site)
+- Data quality filtering (bot detection, error pages)
+- Edge cases: malformed JSON, missing fields, empty values
+- Performance: large dataset handling
+
+**normalizer.ts**
+- Header name normalization (case, whitespace, encoding)
+- Value normalization (case, special characters)
+- Edge cases: null values, Unicode, very long values
+- Consistency: same input always produces same output
+
+**analyzer.ts**
+- Frequency calculation accuracy
+- Statistical metrics correctness
+- Minimum threshold enforcement
+- Edge cases: empty datasets, single site, all identical values
+
+**recommender.ts**
+- Current filter detection accuracy
+- Recommendation logic validation
+- Threshold-based decision making
+- Integration with existing pattern files
+
+**reporter.ts**
+- Output format correctness (JSON, CSV, human-readable)
+- Data integrity across formats
+- File output functionality
+- Large dataset formatting
+
+##### 2. Integration Tests (End-to-End Accuracy)
+Test the complete analysis pipeline with known datasets:
+
+```typescript
+// Example integration test structure
+describe('Frequency Analysis Pipeline', () => {
+  it('should produce accurate results for known dataset', async () => {
+    // Given: curated test dataset with known patterns
+    const testData = loadTestDataset('wordpress-drupal-mix');
+    
+    // When: running full analysis
+    const result = await analyzeFrequency({
+      minSites: 10,
+      minOccurrences: 2,
+      dataSource: testData
+    });
+    
+    // Then: verify expected patterns
+    expect(result.headers['x-powered-by'].frequency).toBe(0.4); // 4/10 sites
+    expect(result.headers['x-powered-by'].values['wordpress']).toBe(0.2);
+    expect(result.recommendations.learn.toFilter).toContain('server');
+  });
+});
+```
+
+##### 3. Data Validation Tests
+Ensure analysis handles real-world data accurately:
+
+**Test Fixtures Required:**
+```
+src/frequency/__tests__/fixtures/
+├── known-wordpress-sites.json     # 20 verified WordPress sites
+├── known-drupal-sites.json        # 20 verified Drupal sites
+├── known-shopify-sites.json       # 20 verified Shopify sites
+├── mixed-platforms.json           # 50 sites across platforms
+├── edge-cases.json                # Malformed, empty, error pages
+└── large-dataset.json             # 500+ sites for performance testing
+```
+
+**Validation Requirements:**
+- Known WordPress sites should show WordPress-specific patterns
+- Known Drupal sites should show Drupal-specific patterns
+- Mixed datasets should show expected frequency distributions
+- Edge cases should be handled gracefully without crashes
+
+##### 4. Accuracy Verification Tests
+Critical tests to ensure analysis reliability:
+
+```typescript
+describe('Analysis Accuracy', () => {
+  it('should correctly identify discriminative vs non-discriminative patterns', () => {
+    // Test with patterns we know are discriminative
+    const discriminative = ['x-powered-by: WordPress', 'x-generator: Drupal'];
+    const generic = ['server: Apache', 'cache-control: no-cache'];
+    
+    // Verify discriminative patterns get low universality scores
+    // Verify generic patterns get high universality scores
+  });
+  
+  it('should produce consistent results across multiple runs', () => {
+    // Same input should always produce identical output
+  });
+  
+  it('should handle deduplication correctly', () => {
+    // Multiple captures of same site should use only latest
+  });
+});
+```
+
+##### 5. Performance Tests
+Ensure the system scales with real datasets:
+
+```typescript
+describe('Performance', () => {
+  it('should handle 1000+ sites within reasonable time', async () => {
+    const startTime = Date.now();
+    await analyzeFrequency({ dataSource: largeDat Dataset });
+    const duration = Date.now() - startTime;
+    expect(duration).toBeLessThan(30000); // 30 seconds max
+  });
+  
+  it('should use memory efficiently', () => {
+    // Monitor memory usage during large dataset processing
+  });
+});
+```
+
+##### 6. Recommendation Validation Tests
+Test the recommendation engine against known good/bad patterns:
+
+```typescript
+describe('Recommendation Engine', () => {
+  it('should recommend filtering for known generic headers', () => {
+    const result = analyzeWithKnownData();
+    expect(result.recommendations.learn.toFilter).toContain('server');
+    expect(result.recommendations.learn.toFilter).toContain('cache-control');
+  });
+  
+  it('should preserve known discriminative headers', () => {
+    const result = analyzeWithKnownData();
+    expect(result.recommendations.learn.toKeep).toContain('x-powered-by');
+    expect(result.recommendations.learn.toKeep).toContain('x-generator');
+  });
+  
+  it('should identify new pattern opportunities', () => {
+    // Test with dataset containing patterns not in current detect-cms
+  });
+});
+```
+
+#### Test Data Requirements
+
+**Ground Truth Datasets:**
+- Manually verified CMS classifications for 200+ sites
+- Known header/meta tag patterns for each CMS type
+- Edge cases: custom CMSs, hybrid setups, static sites
+
+**Quality Assurance:**
+- All test datasets must be manually verified
+- Regular updates as web technologies evolve
+- Version control for test data with change tracking
+
+#### Continuous Validation
+
+**Regression Testing:**
+- Run full test suite on every code change
+- Compare results against baseline "golden" datasets
+- Alert on unexpected changes in frequency patterns
+
+**Data Drift Detection:**
+- Monitor when real-world data differs significantly from test expectations
+- Flag when new patterns emerge that aren't in test datasets
+
+#### Success Criteria
+
+Tests must demonstrate:
+1. **Accuracy**: 99%+ correct frequency calculations
+2. **Consistency**: Identical results across multiple runs
+3. **Reliability**: Graceful handling of malformed data
+4. **Performance**: Sub-30s analysis of 1000+ sites
+5. **Recommendation Quality**: Recommendations align with manual expert analysis
