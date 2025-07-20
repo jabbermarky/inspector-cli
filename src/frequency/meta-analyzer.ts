@@ -1,5 +1,5 @@
 import { createModuleLogger } from '../utils/logger.js';
-import type { DetectionDataPoint, FrequencyOptions } from './types.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-meta-analyzer');
 
@@ -17,7 +17,7 @@ export interface MetaPattern {
  */
 export async function analyzeMetaTags(
   dataPoints: DetectionDataPoint[], 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): Promise<Map<string, MetaPattern[]>> {
   
   logger.info('Starting meta tag frequency analysis', { 

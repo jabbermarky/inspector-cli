@@ -151,6 +151,14 @@ node dist/index.js frequency --output markdown --output-file frequency.md
 # Include filter recommendations
 node dist/index.js frequency --include-recommendations
 
+# Temporal filtering options
+node dist/index.js frequency --last-days 0                    # Today only
+node dist/index.js frequency --last-days 1                    # Yesterday and today
+node dist/index.js frequency --last-days 7                    # Last 7 days + today
+node dist/index.js frequency --date-start 2024-01-01          # From specific date
+node dist/index.js frequency --date-end 2024-12-31            # Until specific date
+node dist/index.js frequency --date-start 2024-01-01 --date-end 2024-01-31  # Date range
+
 # Full options
 node dist/index.js frequency --help
 ```

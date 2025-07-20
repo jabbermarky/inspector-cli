@@ -15,9 +15,63 @@ program
   .option('--no-recommendations', 'Exclude filter recommendations')
   .option('--page-type <type>', 'Analyze specific page type: all, mainpage, robots', 'all')
   .option('--data-dir <path>', 'Data directory path', './data/cms-analysis')
+  .option('--date-start <date>', 'Filter captures from this date (YYYY-MM-DD)')
+  .option('--date-end <date>', 'Filter captures until this date (YYYY-MM-DD)')
+  .option('--last-days <number>', 'Filter captures: 0=today only, 1=yesterday+today, 2=last 2 days+today, etc.')
   .action(async (options) => {
     try {
       logger.info('Starting frequency analysis command', { options });
+      
+      // Parse date range options
+      let dateRange: { start?: Date; end?: Date } | undefined;
+      
+      if (options.lastDays) {
+        const days = parseInt(options.lastDays, 10);
+        if (isNaN(days) || days < 0) {
+          throw new Error('Last days must be a non-negative number (0 = today only, 1 = yesterday and today, etc.)');
+        }
+        
+        const end = new Date();
+        // Set to end of current day
+        end.setHours(23, 59, 59, 999);
+        
+        const start = new Date();
+        if (days === 0) {
+          // Today only - start at beginning of today
+          start.setHours(0, 0, 0, 0);
+        } else {
+          // Go back N days from start of today
+          start.setDate(start.getDate() - days);
+          start.setHours(0, 0, 0, 0);
+        }
+        
+        dateRange = { start, end };
+      } else if (options.dateStart || options.dateEnd) {
+        dateRange = {};
+        
+        if (options.dateStart) {
+          const startDate = new Date(options.dateStart);
+          if (isNaN(startDate.getTime())) {
+            throw new Error('Invalid start date format. Use YYYY-MM-DD');
+          }
+          dateRange.start = startDate;
+        }
+        
+        if (options.dateEnd) {
+          const endDate = new Date(options.dateEnd);
+          if (isNaN(endDate.getTime())) {
+            throw new Error('Invalid end date format. Use YYYY-MM-DD');
+          }
+          // Set to end of day
+          endDate.setHours(23, 59, 59, 999);
+          dateRange.end = endDate;
+        }
+        
+        // Validate date range
+        if (dateRange.start && dateRange.end && dateRange.start > dateRange.end) {
+          throw new Error('Start date must be before end date');
+        }
+      }
       
       const frequencyOptions: FrequencyOptions = {
         minSites: parseInt(options.minSites, 10),
@@ -26,7 +80,8 @@ program
         outputFile: options.outputFile,
         includeRecommendations: options.recommendations !== false,
         pageType: options.pageType,
-        dataDir: options.dataDir
+        dataDir: options.dataDir,
+        dateRange
       };
       
       // Validate options

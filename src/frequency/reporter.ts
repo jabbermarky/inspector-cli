@@ -1,13 +1,13 @@
 import { writeFile } from 'fs/promises';
 import { createModuleLogger } from '../utils/logger.js';
-import type { FrequencyResult, FrequencyOptions } from './types.js';
+import type { FrequencyResult, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-reporter');
 
 /**
  * Format and output frequency analysis results
  */
-export async function formatOutput(result: FrequencyResult, options: Required<FrequencyOptions>): Promise<void> {
+export async function formatOutput(result: FrequencyResult, options: FrequencyOptionsWithDefaults): Promise<void> {
   logger.info('Formatting output', { format: options.output, file: options.outputFile });
   
   let content: string;

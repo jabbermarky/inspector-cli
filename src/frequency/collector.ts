@@ -1,6 +1,6 @@
 import { createModuleLogger } from '../utils/logger.js';
 import { DataStorage } from '../utils/cms/analysis/storage.js';
-import type { DetectionDataPoint, FrequencyOptions } from './types.js';
+import type { DetectionDataPoint, FrequencyOptions, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-collector');
 
@@ -16,7 +16,7 @@ export interface CollectionResult {
  * Collect data from existing storage with quality filtering
  * Leverages existing DataStorage class
  */
-export async function collectData(options: Required<FrequencyOptions>): Promise<CollectionResult> {
+export async function collectData(options: FrequencyOptionsWithDefaults): Promise<CollectionResult> {
   // Validate data source
   if (options.dataSource !== 'cms-analysis') {
     throw new Error(`Data source ${options.dataSource} not supported`);
@@ -55,17 +55,33 @@ export async function collectData(options: Required<FrequencyOptions>): Promise<
  */
 function filterDataPoints(
   dataPoints: DetectionDataPoint[], 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): { validDataPoints: DetectionDataPoint[]; filteringReport: CollectionResult['filteringReport'] } {
   
   const filterReasons: Record<string, number> = {
     'bot-detection': 0,
     'error-page': 0,
     'insufficient-data': 0,
-    'invalid-url': 0
+    'invalid-url': 0,
+    'date-range': 0
   };
   
   const validDataPoints = dataPoints.filter(dataPoint => {
+    // Check date range filter first
+    if (options.dateRange) {
+      const timestamp = new Date(dataPoint.timestamp);
+      
+      if (options.dateRange.start && timestamp < options.dateRange.start) {
+        filterReasons['date-range']++;
+        return false;
+      }
+      
+      if (options.dateRange.end && timestamp > options.dateRange.end) {
+        filterReasons['date-range']++;
+        return false;
+      }
+    }
+    
     // Check for bot detection pages
     if (isBotDetectionPage(dataPoint)) {
       filterReasons['bot-detection']++;

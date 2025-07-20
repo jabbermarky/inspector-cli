@@ -119,7 +119,8 @@ describe('Frequency Collector', () => {
           metaTags: [],
           httpHeaders: { 'server': 'Apache', 'content-type': 'text/html' },
           htmlContent: '<html><body>Good WordPress site with sufficient content for analysis purposes and additional text to ensure we meet the 100 character minimum requirement for filtering.</body></html>',
-          timestamp: '2024-01-01T00:00:00Z'
+          timestamp: '2024-01-01T00:00:00Z',
+          statusCode: 200
         },
         {
           url: 'https://bot-detected.com',
@@ -127,8 +128,9 @@ describe('Frequency Collector', () => {
           scripts: [],
           metaTags: [],
           httpHeaders: {},
-          htmlContent: 'cloudflare bot detection page',
-          timestamp: '2024-01-01T01:00:00Z'
+          htmlContent: 'cloudflare ray id: abc123 - please complete the security check',
+          timestamp: '2024-01-01T01:00:00Z',
+          statusCode: 403
         }
       ];
       

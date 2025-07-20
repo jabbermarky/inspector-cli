@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { formatOutput } from '../reporter.js';
 import { writeFile } from 'fs/promises';
-import type { FrequencyResult, FrequencyOptions } from '../types.js';
+import type { FrequencyResult, FrequencyOptionsWithDefaults } from '../types.js';
 import { setupCommandTests } from '@test-utils';
 
 // Mock dependencies
@@ -146,7 +146,7 @@ describe('Frequency Reporter', () => {
     }
   });
   
-  const createTestOptions = (overrides: Partial<FrequencyOptions> = {}): Required<FrequencyOptions> => ({
+  const createTestOptions = (overrides: Partial<FrequencyOptionsWithDefaults> = {}): FrequencyOptionsWithDefaults => ({
     dataSource: 'cms-analysis',
     dataDir: './data',
     minSites: 10,

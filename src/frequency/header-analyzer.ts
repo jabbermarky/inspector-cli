@@ -1,5 +1,5 @@
 import { createModuleLogger } from '../utils/logger.js';
-import type { DetectionDataPoint, FrequencyOptions } from './types.js';
+import type { DetectionDataPoint, FrequencyOptions, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-header-analyzer');
 
@@ -17,7 +17,7 @@ export interface HeaderPattern {
  */
 export async function analyzeHeaders(
   dataPoints: DetectionDataPoint[], 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): Promise<Map<string, HeaderPattern[]>> {
   
   logger.info('Starting header frequency analysis', { 

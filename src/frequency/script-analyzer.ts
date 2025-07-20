@@ -1,6 +1,6 @@
 import { DetectionDataPoint } from '../utils/cms/analysis/types.js';
 import { createModuleLogger } from '../utils/logger.js';
-import type { FrequencyOptions } from './types.js';
+import type { FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('script-analyzer');
 
@@ -16,7 +16,7 @@ export interface ScriptPattern {
  */
 export async function analyzeScripts(
   dataPoints: DetectionDataPoint[], 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): Promise<Map<string, ScriptPattern[]>> {
   logger.info('Starting direct script analysis', { 
     sites: dataPoints.length,

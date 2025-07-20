@@ -6,7 +6,7 @@ import { analyzeHeaders } from './header-analyzer.js';
 import { analyzeMetaTags } from './meta-analyzer.js';
 import { generateRecommendations } from './recommender.js';
 import { formatOutput } from './reporter.js';
-import type { FrequencyOptions, FrequencyResult, DetectionDataPoint } from './types.js';
+import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
 
@@ -16,8 +16,8 @@ const logger = createModuleLogger('frequency-analyzer');
 export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<FrequencyResult> {
   const startTime = performance.now();
   
-  // Set defaults
-  const opts: Required<FrequencyOptions> = {
+  // Set defaults  
+  const opts: FrequencyOptionsWithDefaults = {
     dataSource: 'cms-analysis',
     dataDir: './data/cms-analysis',
     minSites: 100,
@@ -72,13 +72,17 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     }
     
     // Step 5: Format results
+    // Calculate temporal range
+    const temporalRange = calculateTemporalRange(dataPoints);
+    
     const result: FrequencyResult = {
       metadata: {
         totalSites: dataPoints.length + filteringReport.sitesFilteredOut,
         validSites: dataPoints.length,
         filteredSites: filteringReport.sitesFilteredOut,
         analysisDate: new Date().toISOString(),
-        options: opts
+        options: opts,
+        temporalRange
       },
       
       headers: formatHeaderData(headerPatterns, dataPoints.length, opts),
@@ -114,7 +118,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
 function formatHeaderData(
   headerPatterns: Map<string, any[]>, 
   totalSites: number, 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): FrequencyResult['headers'] {
   const result: FrequencyResult['headers'] = {};
   
@@ -165,7 +169,7 @@ function sanitizeExample(example: string): string {
 function formatMetaTagData(
   metaPatterns: Map<string, any[]>, 
   totalSites: number, 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): FrequencyResult['metaTags'] {
   const result: FrequencyResult['metaTags'] = {};
   
@@ -207,7 +211,7 @@ function formatMetaTagData(
 function formatScriptData(
   scriptPatterns: Map<string, any[]>, 
   totalSites: number, 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): FrequencyResult['scripts'] {
   const result: FrequencyResult['scripts'] = {};
   
@@ -230,4 +234,59 @@ function formatScriptData(
   }
   
   return result;
+}
+
+/**
+ * Calculate temporal range from data points
+ */
+function calculateTemporalRange(dataPoints: DetectionDataPoint[]) {
+  if (dataPoints.length === 0) {
+    return undefined;
+  }
+  
+  // Filter out data points without valid timestamps
+  const validTimestamps = dataPoints
+    .filter(dp => dp.timestamp)
+    .map(dp => new Date(dp.timestamp))
+    .filter(date => !isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  
+  // If no valid timestamps, return undefined
+  if (validTimestamps.length === 0) {
+    return undefined;
+  }
+  
+  const earliest = validTimestamps[0];
+  const latest = validTimestamps[validTimestamps.length - 1];
+  
+  // Calculate human-readable time span
+  const timeDiff = latest.getTime() - earliest.getTime();
+  const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  
+  let timeSpan: string;
+  if (days === 0 && hours === 0) {
+    timeSpan = 'less than 1 hour';
+  } else if (days === 0) {
+    timeSpan = `${hours} hour${hours !== 1 ? 's' : ''}`;
+  } else if (days === 1) {
+    timeSpan = '1 day';
+  } else if (days < 7) {
+    timeSpan = `${days} days`;
+  } else if (days < 30) {
+    const weeks = Math.floor(days / 7);
+    timeSpan = `${weeks} week${weeks !== 1 ? 's' : ''}`;
+  } else if (days < 365) {
+    const months = Math.floor(days / 30);
+    timeSpan = `${months} month${months !== 1 ? 's' : ''}`;
+  } else {
+    const years = Math.floor(days / 365);
+    timeSpan = `${years} year${years !== 1 ? 's' : ''}`;
+  }
+  
+  return {
+    earliestCapture: earliest.toISOString(),
+    latestCapture: latest.toISOString(),
+    timeSpan
+  };
 }

@@ -1,6 +1,9 @@
 // Re-export DetectionDataPoint type for convenience
 export type { DetectionDataPoint } from '../utils/cms/analysis/types.js';
 
+// Type for options with all required except dateRange  
+export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> & Pick<FrequencyOptions, 'dateRange'>;
+
 export interface FrequencyOptions {
   // Data source options
   dataSource?: 'cms-analysis' | 'learn';
@@ -10,6 +13,12 @@ export interface FrequencyOptions {
   minSites?: number;
   minOccurrences?: number;
   pageType?: 'all' | 'mainpage' | 'robots';
+  
+  // Temporal filtering options
+  dateRange?: {
+    start?: Date;
+    end?: Date;
+  };
   
   // Output options
   output?: 'json' | 'csv' | 'human' | 'markdown';
@@ -27,6 +36,11 @@ export interface FrequencyResult {
     filteredSites: number;
     analysisDate: string;
     options: FrequencyOptions;
+    temporalRange?: {
+      earliestCapture: string;
+      latestCapture: string;
+      timeSpan: string; // human readable like "3 days" or "2 weeks"
+    };
   };
   
   headers: HeaderFrequencyData;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { analyzeFrequency } from '../analyzer.js';
-import type { FrequencyOptions } from '../types.js';
+import type { FrequencyOptionsWithDefaults } from '../types.js';
 import { setupCommandTests } from '@test-utils';
 
 // Mock all dependencies
@@ -95,7 +95,7 @@ describe('Frequency Analyzer', () => {
   
   describe('Full Analysis Pipeline', () => {
     it('should orchestrate complete frequency analysis', async () => {
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -157,7 +157,7 @@ describe('Frequency Analyzer', () => {
         }
       });
       
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 10,
@@ -173,7 +173,7 @@ describe('Frequency Analyzer', () => {
     });
     
     it('should skip recommendations when not requested', async () => {
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -192,7 +192,7 @@ describe('Frequency Analyzer', () => {
     });
     
     it('should format output when file specified', async () => {
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -215,7 +215,7 @@ describe('Frequency Analyzer', () => {
     it('should handle errors gracefully', async () => {
       mockCollectData.mockRejectedValue(new Error('Collection failed'));
       
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -258,7 +258,7 @@ describe('Frequency Analyzer', () => {
       
       mockAnalyzeHeaders.mockResolvedValue(mockHeaderPatterns);
       
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -316,7 +316,7 @@ describe('Frequency Analyzer', () => {
       
       mockAnalyzeMetaTags.mockResolvedValue(mockMetaPatterns);
       
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -368,7 +368,7 @@ describe('Frequency Analyzer', () => {
       
       mockAnalyzeScripts.mockResolvedValue(mockScriptPatterns);
       
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,
@@ -401,7 +401,7 @@ describe('Frequency Analyzer', () => {
   
   describe('Performance Tracking', () => {
     it('should track execution time', async () => {
-      const options: Required<FrequencyOptions> = {
+      const options: FrequencyOptionsWithDefaults = {
         dataSource: 'cms-analysis',
         dataDir: './data/cms-analysis',
         minSites: 1,

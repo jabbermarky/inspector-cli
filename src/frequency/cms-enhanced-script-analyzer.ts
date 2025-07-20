@@ -1,6 +1,6 @@
 import { DetectionDataPoint } from '../utils/cms/analysis/types.js';
 import { createModuleLogger } from '../utils/logger.js';
-import type { FrequencyOptions } from './types.js';
+import type { FrequencyOptionsWithDefaults } from './types.js';
 import { ScriptPattern } from './script-analyzer.js';
 
 const logger = createModuleLogger('cms-enhanced-script-analyzer');
@@ -44,7 +44,7 @@ export interface CMSDetectionRecommendations {
  */
 export async function analyzeCMSCorrelatedScripts(
   dataPoints: DetectionDataPoint[], 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): Promise<{
   patterns: Map<string, CMSCorrelatedPattern[]>;
   recommendations: CMSDetectionRecommendations;
@@ -105,7 +105,7 @@ function groupSitesByCMS(dataPoints: DetectionDataPoint[]): Map<string, Detectio
  */
 async function analyzePatternsByCMS(
   cmsSites: Map<string, DetectionDataPoint[]>, 
-  options: Required<FrequencyOptions>
+  options: FrequencyOptionsWithDefaults
 ): Promise<Map<string, CMSCorrelatedPattern[]>> {
   const patterns = new Map<string, CMSCorrelatedPattern[]>();
   

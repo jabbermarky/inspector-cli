@@ -1,6 +1,6 @@
 import { createModuleLogger } from '../utils/logger.js';
 import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
-import type { DetectionDataPoint, FrequencyOptions, LearnRecommendations, DetectCmsRecommendations, GroundTruthRecommendations } from './types.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults, LearnRecommendations, DetectCmsRecommendations, GroundTruthRecommendations } from './types.js';
 import type { HeaderPattern } from './header-analyzer.js';
 
 const logger = createModuleLogger('frequency-recommender');
@@ -10,7 +10,7 @@ export interface RecommendationInput {
   metaPatterns: Map<string, any[]>;
   scriptPatterns: Map<string, any[]>;
   dataPoints: DetectionDataPoint[];
-  options: Required<FrequencyOptions>;
+  options: FrequencyOptionsWithDefaults;
 }
 
 /**
