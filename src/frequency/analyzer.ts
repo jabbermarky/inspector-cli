@@ -7,6 +7,8 @@ import { analyzeMetaTags } from './meta-analyzer.js';
 import { generateRecommendations } from './recommender.js';
 import { formatOutput } from './reporter.js';
 import { analyzeDatasetBias } from './bias-detector.js';
+import { batchAnalyzeHeaders, generateSemanticInsights } from './semantic-analyzer.js';
+import { analyzeVendorPresence, inferTechnologyStack } from './vendor-patterns.js';
 import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
@@ -63,7 +65,24 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     logger.info('Performing dataset bias analysis');
     const biasAnalysis = await analyzeDatasetBias(dataPoints, opts);
     
-    // Step 5: Generate recommendations if requested (now bias-aware)
+    // Step 5: Perform semantic analysis of headers
+    logger.info('Performing semantic analysis of headers');
+    const uniqueHeaders = Array.from(new Set(
+      Object.keys(headerPatterns).map(h => h.toLowerCase())
+    ));
+    const headerAnalyses = batchAnalyzeHeaders(uniqueHeaders);
+    const semanticInsights = generateSemanticInsights(headerAnalyses);
+    const vendorStats = analyzeVendorPresence(uniqueHeaders);
+    const technologyStack = inferTechnologyStack(uniqueHeaders);
+    
+    const semanticAnalysis = {
+      headerAnalyses,
+      insights: semanticInsights,
+      vendorStats,
+      technologyStack
+    };
+    
+    // Step 6: Generate recommendations if requested (now bias-aware and semantic-aware)
     let recommendations;
     if (opts.includeRecommendations) {
       logger.info('Generating bias-aware filter recommendations');
@@ -77,7 +96,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       });
     }
     
-    // Step 6: Format results
+    // Step 7: Format results
     // Calculate temporal range
     const temporalRange = calculateTemporalRange(dataPoints);
     
@@ -97,7 +116,8 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       
       ...(recommendations && { recommendations }),
       filteringReport,
-      biasAnalysis
+      biasAnalysis,
+      semanticAnalysis
     };
     
     const duration = performance.now() - startTime;
@@ -106,7 +126,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       totalPatterns: Object.keys(result.headers).length + Object.keys(result.metaTags).length
     });
     
-    // Step 7: Output results if file specified
+    // Step 8: Output results if file specified
     if (opts.outputFile) {
       await formatOutput(result, opts);
     }

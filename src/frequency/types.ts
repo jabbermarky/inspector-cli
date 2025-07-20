@@ -5,6 +5,19 @@ export type { DetectionDataPoint } from '../utils/cms/analysis/types.js';
 import type { DatasetBiasAnalysis, CMSDistribution, HeaderCMSCorrelation } from './bias-detector.js';
 export type { DatasetBiasAnalysis, CMSDistribution, HeaderCMSCorrelation };
 
+// Import and re-export semantic analysis types
+import type { 
+  HeaderSemanticAnalysis, 
+  HeaderCategory, 
+  HeaderPrimaryCategory,
+  SemanticInsights 
+} from './semantic-analyzer.js';
+export type { HeaderSemanticAnalysis, HeaderCategory, HeaderPrimaryCategory, SemanticInsights };
+
+// Import and re-export vendor pattern types
+import type { VendorPattern, VendorStats, TechnologyStack } from './vendor-patterns.js';
+export type { VendorPattern, VendorStats, TechnologyStack };
+
 // Type for options with all required except dateRange  
 export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> & Pick<FrequencyOptions, 'dateRange'>;
 
@@ -63,6 +76,13 @@ export interface FrequencyResult {
   };
   
   biasAnalysis?: DatasetBiasAnalysis;
+  
+  semanticAnalysis?: {
+    headerAnalyses: Map<string, HeaderSemanticAnalysis>;
+    insights: SemanticInsights;
+    vendorStats: VendorStats;
+    technologyStack: TechnologyStack;
+  };
 }
 
 export interface HeaderFrequencyData {
