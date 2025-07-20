@@ -1,6 +1,10 @@
 // Re-export DetectionDataPoint type for convenience
 export type { DetectionDataPoint } from '../utils/cms/analysis/types.js';
 
+// Import and re-export bias analysis types
+import type { DatasetBiasAnalysis, CMSDistribution, HeaderCMSCorrelation } from './bias-detector.js';
+export type { DatasetBiasAnalysis, CMSDistribution, HeaderCMSCorrelation };
+
 // Type for options with all required except dateRange  
 export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> & Pick<FrequencyOptions, 'dateRange'>;
 
@@ -57,6 +61,8 @@ export interface FrequencyResult {
     sitesFilteredOut: number;
     filterReasons: Record<string, number>;
   };
+  
+  biasAnalysis?: DatasetBiasAnalysis;
 }
 
 export interface HeaderFrequencyData {

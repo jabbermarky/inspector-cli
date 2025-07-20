@@ -1,5 +1,6 @@
 import { createModuleLogger } from '../utils/logger.js';
 import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
+import { analyzeDatasetBias, type DatasetBiasAnalysis, type HeaderCMSCorrelation } from './bias-detector.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults, LearnRecommendations, DetectCmsRecommendations, GroundTruthRecommendations } from './types.js';
 import type { HeaderPattern } from './header-analyzer.js';
 
@@ -11,6 +12,7 @@ export interface RecommendationInput {
   scriptPatterns: Map<string, any[]>;
   dataPoints: DetectionDataPoint[];
   options: FrequencyOptionsWithDefaults;
+  biasAnalysis?: DatasetBiasAnalysis;
 }
 
 /**
@@ -23,11 +25,23 @@ export async function generateRecommendations(input: RecommendationInput): Promi
 }> {
   logger.info('Generating filter and detection recommendations');
   
-  const learnRecommendations = generateLearnRecommendations(input);
-  const detectCmsRecommendations = generateDetectCmsRecommendations(input);
-  const groundTruthRecommendations = generateGroundTruthRecommendations(input);
+  // Perform bias analysis if not provided
+  let biasAnalysis = input.biasAnalysis;
+  if (!biasAnalysis) {
+    logger.info('Performing dataset bias analysis');
+    biasAnalysis = await analyzeDatasetBias(input.dataPoints, input.options);
+  }
   
-  logger.info('Recommendation generation complete');
+  // Generate bias-aware recommendations
+  const inputWithBias = { ...input, biasAnalysis };
+  const learnRecommendations = generateLearnRecommendations(inputWithBias);
+  const detectCmsRecommendations = generateDetectCmsRecommendations(inputWithBias);
+  const groundTruthRecommendations = generateGroundTruthRecommendations(inputWithBias);
+  
+  logger.info('Recommendation generation complete', {
+    biasWarnings: biasAnalysis.biasWarnings.length,
+    concentrationScore: biasAnalysis.concentrationScore
+  });
   
   return {
     learn: learnRecommendations,
@@ -37,10 +51,10 @@ export async function generateRecommendations(input: RecommendationInput): Promi
 }
 
 /**
- * Generate recommendations for learn command filtering
+ * Generate recommendations for learn command filtering with bias awareness
  */
-function generateLearnRecommendations(input: RecommendationInput): LearnRecommendations {
-  const { headerPatterns, options } = input;
+function generateLearnRecommendations(input: RecommendationInput & { biasAnalysis: DatasetBiasAnalysis }): LearnRecommendations {
+  const { headerPatterns, options, biasAnalysis } = input;
   
   // Get currently filtered headers from discriminative filtering
   const currentlyFiltered = Array.from(GENERIC_HTTP_HEADERS);
@@ -48,40 +62,65 @@ function generateLearnRecommendations(input: RecommendationInput): LearnRecommen
   const recommendToFilter: LearnRecommendations['recommendToFilter'] = [];
   const recommendToKeep: LearnRecommendations['recommendToKeep'] = [];
   
-  // Analyze each header for filtering recommendations
+  // Analyze each header for filtering recommendations using bias analysis
   for (const [headerName, patterns] of headerPatterns.entries()) {
     const isCurrentlyFiltered = currentlyFiltered.includes(headerName);
+    const correlation = biasAnalysis.headerCorrelations.get(headerName);
     
     // Calculate overall frequency and diversity for this header
     const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
     const diversity = patterns.length; // Number of unique values
     const maxFrequency = Math.max(...patterns.map(p => p.frequency));
     
-    // Recommendation logic
+    // Use bias-aware logic if correlation data is available, otherwise fall back to original logic
+    const useBiasAware = correlation !== undefined;
+    
     if (!isCurrentlyFiltered) {
       // Should this header be filtered?
-      if (shouldFilterHeader(headerName, totalFrequency, diversity, maxFrequency)) {
+      const shouldFilter = useBiasAware 
+        ? shouldFilterHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
+        : shouldFilterHeader(headerName, totalFrequency, diversity, maxFrequency);
+      
+      if (shouldFilter) {
+        const reason = useBiasAware 
+          ? getFilterReasonBiasAware(correlation, totalFrequency, diversity)
+          : getFilterReason(totalFrequency, diversity, maxFrequency);
         recommendToFilter.push({
           pattern: headerName,
-          reason: getFilterReason(totalFrequency, diversity, maxFrequency),
+          reason,
           frequency: totalFrequency,
           diversity
         });
-      } else if (shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency)) {
-        // Even though not currently filtered, recommend keeping it unfiltered
-        recommendToKeep.push({
-          pattern: headerName,
-          reason: getKeepReason(totalFrequency, diversity, maxFrequency),
-          frequency: totalFrequency,
-          diversity
-        });
+      } else {
+        const shouldKeep = useBiasAware
+          ? shouldKeepHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
+          : shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency);
+        
+        if (shouldKeep) {
+          const reason = useBiasAware
+            ? getKeepReasonBiasAware(correlation, totalFrequency, diversity)
+            : getKeepReason(totalFrequency, diversity, maxFrequency);
+          recommendToKeep.push({
+            pattern: headerName,
+            reason,
+            frequency: totalFrequency,
+            diversity
+          });
+        }
       }
     } else {
-      // Should this header be kept (unfiltered)?
-      if (shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency)) {
+      // Should this currently filtered header be kept (unfiltered)?
+      const shouldKeep = useBiasAware
+        ? shouldKeepHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
+        : shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency);
+      
+      if (shouldKeep) {
+        const reason = useBiasAware
+          ? getKeepReasonBiasAware(correlation, totalFrequency, diversity)
+          : getKeepReason(totalFrequency, diversity, maxFrequency);
         recommendToKeep.push({
           pattern: headerName,
-          reason: getKeepReason(totalFrequency, diversity, maxFrequency),
+          reason,
           frequency: totalFrequency,
           diversity
         });
@@ -89,9 +128,20 @@ function generateLearnRecommendations(input: RecommendationInput): LearnRecommen
     }
   }
   
-  // Sort recommendations by frequency (most important first)
-  recommendToFilter.sort((a, b) => b.frequency - a.frequency);
-  recommendToKeep.sort((a, b) => a.frequency - b.frequency);
+  // Sort recommendations by bias-adjusted frequency and platform specificity
+  recommendToFilter.sort((a, b) => {
+    const aCorr = biasAnalysis.headerCorrelations.get(a.pattern);
+    const bCorr = biasAnalysis.headerCorrelations.get(b.pattern);
+    if (!aCorr || !bCorr) return b.frequency - a.frequency;
+    return bCorr.biasAdjustedFrequency - aCorr.biasAdjustedFrequency;
+  });
+  
+  recommendToKeep.sort((a, b) => {
+    const aCorr = biasAnalysis.headerCorrelations.get(a.pattern);
+    const bCorr = biasAnalysis.headerCorrelations.get(b.pattern);
+    if (!aCorr || !bCorr) return a.frequency - b.frequency;
+    return bCorr.platformSpecificity - aCorr.platformSpecificity;
+  });
   
   return {
     currentlyFiltered: currentlyFiltered as string[],
@@ -255,4 +305,141 @@ function getKeepReason(frequency: number, diversity: number, maxFrequency: numbe
   if (maxFrequency < 0.2) return `Low frequency (${Math.round(maxFrequency * 100)}%) suggests discriminative value`;
   if (diversity <= 3) return `Low diversity (${diversity} values) suggests specific platforms`;
   return 'Potentially discriminative pattern worth preserving';
+}
+
+/**
+ * Bias-aware filtering recommendation logic
+ */
+function shouldFilterHeaderBiasAware(
+  headerName: string, 
+  correlation: HeaderCMSCorrelation, 
+  frequency: number, 
+  diversity: number
+): boolean {
+  // Skip if recommendation confidence is low due to bias
+  if (correlation.recommendationConfidence === 'low') return false;
+  
+  // Check if header appears to be truly generic (not platform-specific)
+  if (correlation.platformSpecificity < 0.3 && correlation.biasAdjustedFrequency > 0.7) {
+    return true;
+  }
+  
+  // Check for generic request ID patterns
+  const genericPatterns = ['request-id', 'trace-id', 'timestamp', 'correlation-id'];
+  if (genericPatterns.some(pattern => headerName.includes(pattern)) && correlation.platformSpecificity < 0.5) {
+    return true;
+  }
+  
+  // High diversity + high bias-adjusted frequency = likely non-discriminative
+  if (diversity > 20 && correlation.biasAdjustedFrequency > 0.5) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Bias-aware keep recommendation logic
+ */
+function shouldKeepHeaderBiasAware(
+  headerName: string, 
+  correlation: HeaderCMSCorrelation, 
+  frequency: number, 
+  diversity: number
+): boolean {
+  // High platform specificity suggests discriminative value
+  if (correlation.platformSpecificity > 0.7) {
+    return true;
+  }
+  
+  // Platform-specific header name patterns
+  const platformPatterns = ['powered-by', 'generator', 'cms', 'framework'];
+  if (platformPatterns.some(pattern => headerName.includes(pattern))) {
+    return true;
+  }
+  
+  // Platform prefix patterns (d-, x-wix-, x-wp-, etc.)
+  if (isPlatformPrefixHeader(headerName) && correlation.platformSpecificity > 0.5) {
+    return true;
+  }
+  
+  // Low bias-adjusted frequency but reasonable platform specificity
+  if (correlation.biasAdjustedFrequency < 0.3 && correlation.platformSpecificity > 0.4) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Get bias-aware filtering reason
+ */
+function getFilterReasonBiasAware(
+  correlation: HeaderCMSCorrelation, 
+  frequency: number, 
+  diversity: number
+): string {
+  if (correlation.biasWarning) {
+    return `Bias-adjusted: ${correlation.biasWarning}`;
+  }
+  
+  if (correlation.biasAdjustedFrequency > 0.8) {
+    return `Truly generic (${Math.round(correlation.biasAdjustedFrequency * 100)}% bias-adjusted frequency)`;
+  }
+  
+  if (diversity > 20 && correlation.platformSpecificity < 0.3) {
+    return `High diversity (${diversity} values) with low platform specificity`;
+  }
+  
+  return `Generic across platforms (${Math.round(correlation.biasAdjustedFrequency * 100)}% adjusted frequency)`;
+}
+
+/**
+ * Get bias-aware keep reason
+ */
+function getKeepReasonBiasAware(
+  correlation: HeaderCMSCorrelation, 
+  frequency: number, 
+  diversity: number
+): string {
+  if (correlation.platformSpecificity > 0.7) {
+    return `High platform specificity (${Math.round(correlation.platformSpecificity * 100)}%)`;
+  }
+  
+  if (correlation.biasWarning && correlation.platformSpecificity > 0.5) {
+    return `Platform-specific despite dataset bias`;
+  }
+  
+  const topCMS = Object.entries(correlation.perCMSFrequency)
+    .filter(([cms]) => cms !== 'Unknown')
+    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+  
+  if (topCMS && topCMS[1].frequency > 0.8) {
+    return `Strong correlation with ${topCMS[0]} (${Math.round(topCMS[1].frequency * 100)}%)`;
+  }
+  
+  return `Potentially discriminative (${Math.round(correlation.biasAdjustedFrequency * 100)}% adjusted frequency)`;
+}
+
+/**
+ * Check if header follows platform prefix patterns
+ */
+function isPlatformPrefixHeader(headerName: string): boolean {
+  const platformPrefixes = [
+    'd-',           // Duda
+    'x-wix-',       // Wix
+    'x-wp-',        // WordPress
+    'x-shopify-',   // Shopify
+    'x-drupal-',    // Drupal
+    'x-joomla-',    // Joomla
+    'x-ghost-',     // Ghost
+    'x-squarespace-', // Squarespace
+    'x-webflow-',   // Webflow
+    'x-kong-',      // Kong Gateway
+    'x-nf-',        // Netlify
+    'x-vercel-',    // Vercel
+    'x-bz-'         // Unknown platform
+  ];
+  
+  return platformPrefixes.some(prefix => headerName.toLowerCase().startsWith(prefix));
 }

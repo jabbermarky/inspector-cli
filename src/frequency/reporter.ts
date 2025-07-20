@@ -40,7 +40,7 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
  * Format results as human-readable report
  */
 function formatAsHuman(result: FrequencyResult): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport } = result;
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis } = result;
   
   let output = `# Frequency Analysis Report
 
@@ -67,6 +67,28 @@ Filter Reasons:
       }
     }
     output += '\n';
+  }
+
+  // Dataset Bias Analysis
+  if (biasAnalysis) {
+    output += `## Dataset Quality Assessment
+
+**CMS Distribution:**
+`;
+    for (const [cms, data] of Object.entries(biasAnalysis.cmsDistribution)) {
+      const distribution = data as { count: number; percentage: number; sites: string[] };
+      output += `- ${cms}: ${distribution.count} sites (${Math.round(distribution.percentage)}%)\n`;
+    }
+    
+    output += `\n**Dataset Concentration Score:** ${Math.round(biasAnalysis.concentrationScore * 100)}% (0% = perfectly balanced, 100% = single platform)\n\n`;
+    
+    if (biasAnalysis.biasWarnings.length > 0) {
+      output += `**⚠️ Dataset Quality Warnings:**\n`;
+      for (const warning of biasAnalysis.biasWarnings) {
+        output += `- ${warning}\n`;
+      }
+      output += '\n';
+    }
   }
 
   // HTTP Headers
@@ -192,7 +214,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
  * Format results as markdown with tables
  */
 function formatAsMarkdown(result: FrequencyResult): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport } = result;
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis } = result;
   
   let output = `# Frequency Analysis Report
 
@@ -220,6 +242,37 @@ Sites filtered out: ${filteringReport.sitesFilteredOut}
       }
     }
     output += '\n';
+  }
+
+  // Dataset Bias Analysis
+  if (biasAnalysis) {
+    output += `## Dataset Quality Assessment
+
+### CMS Distribution
+
+| CMS | Sites | Percentage |
+|-----|-------|------------|
+`;
+    
+    const sortedCMS = Object.entries(biasAnalysis.cmsDistribution)
+      .sort(([, a], [, b]) => (b as any).count - (a as any).count);
+      
+    for (const [cms, data] of sortedCMS) {
+      const distribution = data as { count: number; percentage: number; sites: string[] };
+      output += `| ${cms} | ${distribution.count} | ${Math.round(distribution.percentage)}% |\n`;
+    }
+    
+    output += `\n**Dataset Concentration Score:** ${Math.round(biasAnalysis.concentrationScore * 100)}%  
+*(0% = perfectly balanced across platforms, 100% = single platform dominance)*\n\n`;
+    
+    if (biasAnalysis.biasWarnings.length > 0) {
+      output += `### ⚠️ Dataset Quality Warnings
+\n`;
+      for (const warning of biasAnalysis.biasWarnings) {
+        output += `- **${warning}**\n`;
+      }
+      output += `\n**Impact:** These warnings indicate potential bias in recommendations. Headers appearing frequently may be platform-specific rather than truly generic.\n\n`;
+    }
   }
 
   // HTTP Headers as Table

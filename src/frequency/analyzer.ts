@@ -6,6 +6,7 @@ import { analyzeHeaders } from './header-analyzer.js';
 import { analyzeMetaTags } from './meta-analyzer.js';
 import { generateRecommendations } from './recommender.js';
 import { formatOutput } from './reporter.js';
+import { analyzeDatasetBias } from './bias-detector.js';
 import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
@@ -58,20 +59,25 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     logger.info('Analyzing HTTP headers');
     const headerPatterns = await analyzeHeaders(dataPoints, opts);
     
-    // Step 4: Generate recommendations if requested
+    // Step 4: Perform dataset bias analysis
+    logger.info('Performing dataset bias analysis');
+    const biasAnalysis = await analyzeDatasetBias(dataPoints, opts);
+    
+    // Step 5: Generate recommendations if requested (now bias-aware)
     let recommendations;
     if (opts.includeRecommendations) {
-      logger.info('Generating filter recommendations');
+      logger.info('Generating bias-aware filter recommendations');
       recommendations = await generateRecommendations({
         headerPatterns,
         metaPatterns,
         scriptPatterns,
         dataPoints,
-        options: opts
+        options: opts,
+        biasAnalysis
       });
     }
     
-    // Step 5: Format results
+    // Step 6: Format results
     // Calculate temporal range
     const temporalRange = calculateTemporalRange(dataPoints);
     
@@ -90,7 +96,8 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       scripts: formatScriptData(scriptPatterns, dataPoints.length, opts),
       
       ...(recommendations && { recommendations }),
-      filteringReport
+      filteringReport,
+      biasAnalysis
     };
     
     const duration = performance.now() - startTime;
@@ -99,7 +106,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       totalPatterns: Object.keys(result.headers).length + Object.keys(result.metaTags).length
     });
     
-    // Step 6: Output results if file specified
+    // Step 7: Output results if file specified
     if (opts.outputFile) {
       await formatOutput(result, opts);
     }
