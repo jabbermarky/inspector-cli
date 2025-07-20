@@ -1,8 +1,18 @@
 import { writeFile } from 'fs/promises';
 import { createModuleLogger } from '../utils/logger.js';
-import type { FrequencyResult, FrequencyOptionsWithDefaults } from './types.js';
+import type { FrequencyResult, FrequencyOptionsWithDefaults, HeaderCooccurrence } from './types.js';
 
 const logger = createModuleLogger('frequency-reporter');
+
+/**
+ * Custom JSON replacer to handle Map objects properly in JSON serialization
+ */
+function mapReplacer(key: string, value: any): any {
+  if (value instanceof Map) {
+    return Object.fromEntries(value);
+  }
+  return value;
+}
 
 /**
  * Format and output frequency analysis results
@@ -14,7 +24,7 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
   
   switch (options.output) {
     case 'json':
-      content = JSON.stringify(result, null, 2);
+      content = JSON.stringify(result, mapReplacer, 2);
       break;
     case 'csv':
       content = formatAsCSV(result);
@@ -40,7 +50,7 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
  * Format results as human-readable report
  */
 function formatAsHuman(result: FrequencyResult): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis } = result;
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
   
   let output = `# Frequency Analysis Report
 
@@ -211,6 +221,341 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
     }
   }
 
+  // Co-occurrence Analytics
+  if (cooccurrenceAnalysis) {
+    output += `\n## Header Co-occurrence Analytics
+
+**Technology Stack Signatures:** ${cooccurrenceAnalysis.technologySignatures.length} discovered
+
+`;
+    
+    // Technology Stack Signatures
+    if (cooccurrenceAnalysis.technologySignatures.length > 0) {
+      output += `### Technology Stack Signatures\n\n`;
+      
+      for (const signature of cooccurrenceAnalysis.technologySignatures.slice(0, 10)) {
+        output += `#### ${signature.name} Stack\n`;
+        output += `- **Vendor**: ${signature.vendor}\n`;
+        output += `- **Category**: ${signature.category}\n`;
+        output += `- **Required Headers**: ${signature.requiredHeaders.join(', ')}\n`;
+        output += `- **Optional Headers**: ${signature.optionalHeaders.join(', ')}\n`;
+        output += `- **Sites**: ${signature.sites.length} sites\n`;
+        output += `- **Confidence**: ${Math.round(signature.confidence * 100)}%\n`;
+        output += `- **Occurrences**: ${signature.occurrenceCount}\n`
+        
+        output += `\n`;
+      }
+    }
+    
+    // Platform Header Combinations
+    if (cooccurrenceAnalysis.platformCombinations.length > 0) {
+      output += `### Platform-Specific Header Combinations\n\n`;
+      
+      const topCombinations = cooccurrenceAnalysis.platformCombinations
+        .sort((a, b) => b.strength - a.strength)
+        .slice(0, 15);
+      
+      for (const combo of topCombinations) {
+        output += `- **${combo.platform}**: ${combo.headerGroup.join(' + ')} `;
+        output += `(${Math.round(combo.frequency * 100)}%, Strength: ${combo.strength.toFixed(3)})\n`;
+      }
+      output += `\n`;
+    }
+    
+    // High Correlation Pairs
+    const highCorrelationPairs = cooccurrenceAnalysis.cooccurrences
+      .filter((h: HeaderCooccurrence) => h.mutualInformation > 0.3)
+      .sort((a: HeaderCooccurrence, b: HeaderCooccurrence) => b.mutualInformation - a.mutualInformation)
+      .slice(0, 20);
+    
+    if (highCorrelationPairs.length > 0) {
+      output += `### High Correlation Header Pairs\n\n`;
+      output += `Headers with strong co-occurrence patterns (Mutual Information > 0.3):\n\n`;
+      
+      for (const pair of highCorrelationPairs) {
+        output += `- **${pair.header1}** ↔ **${pair.header2}**: `;
+        output += `${pair.cooccurrenceCount} sites `;
+        output += `(${Math.round(pair.cooccurrenceFrequency * 100)}%, MI: ${pair.mutualInformation.toFixed(3)})\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Mutual Exclusivity Analysis
+    const exclusivePairs = cooccurrenceAnalysis.cooccurrences
+      .filter((h: HeaderCooccurrence) => h.cooccurrenceCount === 0 && h.cooccurrenceFrequency === 0)
+      .sort((a: HeaderCooccurrence, b: HeaderCooccurrence) => (b.conditionalProbability + a.conditionalProbability) - (a.conditionalProbability + b.conditionalProbability))
+      .slice(0, 10);
+    
+    if (exclusivePairs.length > 0) {
+      output += `### Mutually Exclusive Header Patterns\n\n`;
+      output += `Headers that never appear together (potential platform isolation):\n\n`;
+      
+      for (const pair of exclusivePairs) {
+        output += `- **${pair.header1}** vs **${pair.header2}**: `;
+        output += `(0 sites overlap)\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Summary insights
+    output += `### Co-occurrence Insights\n\n`;
+    output += `- **Total Header Pairs Analyzed**: ${cooccurrenceAnalysis.cooccurrences.length}\n`;
+    output += `- **Technology Stacks Identified**: ${cooccurrenceAnalysis.technologySignatures.length}\n`;
+    output += `- **Platform Combinations**: ${cooccurrenceAnalysis.platformCombinations.length}\n`;
+    output += `- **High Correlation Pairs**: ${highCorrelationPairs.length} (MI > 0.3)\n`;
+    output += `- **Mutually Exclusive Pairs**: ${exclusivePairs.length}\n\n`;
+  }
+
+  // Semantic Analysis Insights
+  if (semanticAnalysis) {
+    output += `\n## Semantic Header Analysis
+
+**Headers Analyzed:** ${semanticAnalysis.headerAnalyses.size} headers with semantic classification
+
+`;
+    
+    // Category Distribution
+    output += `### Header Category Distribution\n\n`;
+    
+    const sortedCategories = semanticAnalysis.insights.topCategories
+      .sort((a, b) => b.count - a.count);
+    
+    for (const category of sortedCategories) {
+      if (category.count > 0) {
+        output += `- **${category.category}**: ${category.count} headers (${Math.round(category.percentage)}%)\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Vendor Distribution
+    if (semanticAnalysis.insights.topVendors.length > 0) {
+      output += `### Technology Vendor Distribution\n\n`;
+      
+      const topVendors = semanticAnalysis.insights.topVendors
+        .filter(v => v.count > 1) // Only show vendors with multiple headers
+        .slice(0, 15);
+      
+      for (const vendor of topVendors) {
+        output += `- **${vendor.vendor}**: ${vendor.count} headers (${Math.round(vendor.percentage)}%)\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Naming Convention Analysis
+    output += `### Naming Convention Compliance\n\n`;
+    
+    const conventions = Object.entries(semanticAnalysis.insights.namingConventions)
+      .sort(([, a], [, b]) => b - a);
+    
+    // Calculate total from all convention counts
+    const totalConventionHeaders = Object.values(semanticAnalysis.insights.namingConventions)
+      .reduce((sum, count) => sum + count, 0);
+    
+    for (const [convention, count] of conventions) {
+      if (count > 0) {
+        const percentage = Math.round((count / totalConventionHeaders) * 100);
+        output += `- **${convention}**: ${count} headers (${percentage}%)\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Pattern Type Distribution
+    output += `### Header Pattern Types\n\n`;
+    
+    const patternTypes = Object.entries(semanticAnalysis.insights.patternTypes)
+      .sort(([, a], [, b]) => b - a);
+    
+    // Calculate total from all pattern type counts
+    const totalPatternHeaders = Object.values(semanticAnalysis.insights.patternTypes)
+      .reduce((sum, count) => sum + count, 0);
+    
+    for (const [type, count] of patternTypes) {
+      if (count > 0) {
+        const percentage = Math.round((count / totalPatternHeaders) * 100);
+        output += `- **${type}**: ${count} headers (${percentage}%)\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Technology Stack Summary
+    if (semanticAnalysis.technologyStack) {
+      output += `### Technology Stack Summary\n\n`;
+      
+      if (semanticAnalysis.technologyStack.cdn && semanticAnalysis.technologyStack.cdn.length > 0) {
+        output += `**CDN Services:** ${semanticAnalysis.technologyStack.cdn.join(', ')}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.cms) {
+        output += `**CMS Platform:** ${semanticAnalysis.technologyStack.cms}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.framework) {
+        output += `**Framework:** ${semanticAnalysis.technologyStack.framework}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.analytics && semanticAnalysis.technologyStack.analytics.length > 0) {
+        output += `**Analytics Services:** ${semanticAnalysis.technologyStack.analytics.join(', ')}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.ecommerce) {
+        output += `**E-commerce Platform:** ${semanticAnalysis.technologyStack.ecommerce}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.hosting) {
+        output += `**Hosting Provider:** ${semanticAnalysis.technologyStack.hosting}\n\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.security && semanticAnalysis.technologyStack.security.length > 0) {
+        output += `**Security Services:** ${semanticAnalysis.technologyStack.security.join(', ')}\n\n`;
+      }
+      
+      output += `**Stack Confidence:** ${Math.round(semanticAnalysis.technologyStack.confidence * 100)}%\n`;
+      output += `*(Higher scores indicate more diverse technology usage across the dataset)*\n\n`;
+    }
+    
+    // Vendor Statistics
+    if (semanticAnalysis.vendorStats) {
+      output += `### Vendor Analysis\n\n`;
+      output += `- **Total Headers Analyzed**: ${semanticAnalysis.vendorStats.totalHeaders}\n`;
+      output += `- **Headers with Vendor Detection**: ${semanticAnalysis.vendorStats.vendorHeaders}\n`;
+      output += `- **Vendor Coverage**: ${Math.round(semanticAnalysis.vendorStats.vendorCoverage)}%\n\n`;
+      
+      if (semanticAnalysis.vendorStats.vendorDistribution.length > 0) {
+        output += `**Top Vendors by Header Count:**\n`;
+        for (const vendor of semanticAnalysis.vendorStats.vendorDistribution.slice(0, 8)) {
+          output += `- ${vendor.vendor}: ${vendor.headerCount} headers (${Math.round(vendor.percentage)}%)\n`;
+        }
+        output += `\n`;
+      }
+    }
+  }
+
+  // Pattern Discovery Analysis
+  if (patternDiscoveryAnalysis) {
+    output += `\n## Pattern Discovery Analysis
+
+**Discovered Patterns:** ${patternDiscoveryAnalysis.discoveredPatterns.length} patterns found
+
+`;
+    
+    // Discovered Patterns
+    if (patternDiscoveryAnalysis.discoveredPatterns.length > 0) {
+      output += `### Discovered Header Patterns\n\n`;
+      
+      const topPatterns = patternDiscoveryAnalysis.discoveredPatterns
+        .sort((a, b) => b.frequency - a.frequency)
+        .slice(0, 15);
+      
+      for (const pattern of topPatterns) {
+        output += `#### ${pattern.pattern} (${pattern.type})\n`;
+        output += `- **Frequency**: ${Math.round(pattern.frequency * 100)}% (${pattern.sites.length} sites)\n`;
+        output += `- **Confidence**: ${Math.round(pattern.confidence * 100)}%\n`;
+        output += `- **Examples**: ${pattern.examples.slice(0, 3).join(', ')}\n`;
+        
+        if (pattern.potentialVendor) {
+          output += `- **Potential Vendor**: ${pattern.potentialVendor}\n`;
+        }
+        
+        if (pattern.cmsCorrelation) {
+          const topCms = Object.entries(pattern.cmsCorrelation)
+            .filter(([cms]) => cms !== 'Unknown')
+            .sort(([, a], [, b]) => b - a)[0];
+          if (topCms && topCms[1] > 0.5) {
+            output += `- **CMS Correlation**: ${Math.round(topCms[1] * 100)}% ${topCms[0]}\n`;
+          }
+        }
+        
+        output += `\n`;
+      }
+    }
+    
+    // Emerging Vendors
+    if (patternDiscoveryAnalysis.emergingVendors.length > 0) {
+      output += `### Emerging Vendor Patterns\n\n`;
+      
+      for (const vendor of patternDiscoveryAnalysis.emergingVendors.slice(0, 8)) {
+        output += `#### ${vendor.vendorName}\n`;
+        output += `- **Patterns**: ${vendor.patterns.length} discovered\n`;
+        output += `- **Sites**: ${vendor.sites.length} sites\n`;
+        output += `- **Confidence**: ${Math.round(vendor.confidence * 100)}%\n`;
+        output += `- **Naming Convention**: ${vendor.characteristics.namingConvention}\n`;
+        
+        if (vendor.characteristics.commonPrefixes.length > 0) {
+          output += `- **Common Prefixes**: ${vendor.characteristics.commonPrefixes.join(', ')}\n`;
+        }
+        
+        if (vendor.characteristics.semanticCategories.length > 0) {
+          output += `- **Categories**: ${vendor.characteristics.semanticCategories.join(', ')}\n`;
+        }
+        
+        output += `\n`;
+      }
+    }
+    
+    // Pattern Evolution
+    if (patternDiscoveryAnalysis.patternEvolution.length > 0) {
+      output += `### Pattern Evolution Trends\n\n`;
+      
+      for (const evolution of patternDiscoveryAnalysis.patternEvolution.slice(0, 10)) {
+        output += `#### ${evolution.pattern}\n`;
+        output += `- **Evolution Type**: ${evolution.evolutionType}\n`;
+        output += `- **Confidence**: ${Math.round(evolution.confidence * 100)}%\n`;
+        output += `- **Versions**: ${evolution.versions.length} tracked\n`;
+        
+        if (evolution.versions.length > 0) {
+          const latestVersion = evolution.versions[evolution.versions.length - 1];
+          output += `- **Latest Pattern**: ${latestVersion.pattern}\n`;
+          output += `- **Latest Frequency**: ${Math.round(latestVersion.frequency * 100)}%\n`;
+        }
+        
+        output += `\n`;
+      }
+    }
+    
+    // Semantic Anomalies
+    if (patternDiscoveryAnalysis.semanticAnomalies.length > 0) {
+      output += `### Semantic Anomalies\n\n`;
+      output += `Headers with unexpected categorization patterns:\n\n`;
+      
+      const highConfidenceAnomalies = patternDiscoveryAnalysis.semanticAnomalies
+        .filter(a => a.confidence > 0.6)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 12);
+      
+      for (const anomaly of highConfidenceAnomalies) {
+        output += `- **${anomaly.headerName}**: Expected ${anomaly.expectedCategory}, got ${anomaly.actualCategory} `;
+        output += `(${Math.round(anomaly.confidence * 100)}% confidence)\n`;
+        output += `  - Reason: ${anomaly.reason}\n`;
+        output += `  - Sites: ${anomaly.sites.slice(0, 3).join(', ')}\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Pattern Discovery Insights
+    if (patternDiscoveryAnalysis.insights.length > 0) {
+      output += `### Pattern Discovery Insights\n\n`;
+      
+      for (const insight of patternDiscoveryAnalysis.insights) {
+        output += `- ${insight}\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Summary
+    output += `### Pattern Discovery Summary\n\n`;
+    output += `- **Total Patterns Discovered**: ${patternDiscoveryAnalysis.discoveredPatterns.length}\n`;
+    output += `- **Emerging Vendors Detected**: ${patternDiscoveryAnalysis.emergingVendors.length}\n`;
+    output += `- **Pattern Evolution Trends**: ${patternDiscoveryAnalysis.patternEvolution.length}\n`;
+    output += `- **Semantic Anomalies**: ${patternDiscoveryAnalysis.semanticAnomalies.length}\n`;
+    
+    const prefixPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'prefix').length;
+    const suffixPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'suffix').length;
+    const containsPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'contains').length;
+    const regexPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'regex').length;
+    
+    output += `- **Pattern Types**: ${prefixPatterns} prefix, ${suffixPatterns} suffix, ${containsPatterns} contains, ${regexPatterns} regex\n\n`;
+  }
+
   return output;
 }
 
@@ -218,7 +563,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
  * Format results as markdown with tables
  */
 function formatAsMarkdown(result: FrequencyResult): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis } = result;
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
   
   let output = `# Frequency Analysis Report
 
@@ -438,6 +783,362 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
     for (const rule of recommendations.groundTruth.potentialNewRules) {
       const confPercent = Math.round(rule.confidence * 100);
       output += `- ${rule.suggestedRule} (${confPercent}% confidence)\n`;
+    }
+  }
+
+  // Co-occurrence Analytics  
+  if (cooccurrenceAnalysis) {
+    output += `\n## Header Co-occurrence Analytics\n\n`;
+    output += `**Technology Stack Signatures Discovered:** ${cooccurrenceAnalysis.technologySignatures.length}\n\n`;
+    
+    // Technology Stack Signatures Table
+    if (cooccurrenceAnalysis.technologySignatures.length > 0) {
+      output += `### Technology Stack Signatures\n\n`;
+      output += `| Name | Vendor | Category | Required Headers | Sites | Confidence |\n`;
+      output += `|------|--------|----------|------------------|-------|------------|\n`;
+      
+      for (const signature of cooccurrenceAnalysis.technologySignatures.slice(0, 10)) {
+        const headers = signature.requiredHeaders.length > 3 
+          ? signature.requiredHeaders.slice(0, 3).join(', ') + `... (${signature.requiredHeaders.length} total)`
+          : signature.requiredHeaders.join(', ');
+        
+        output += `| ${signature.name} | ${signature.vendor} | ${signature.category} | `;
+        output += `${headers} | ${signature.sites.length} | `;
+        output += `${Math.round(signature.confidence * 100)}% |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // High Correlation Pairs Table
+    const highCorrelationPairs = cooccurrenceAnalysis.cooccurrences
+      .filter((h: HeaderCooccurrence) => h.mutualInformation > 0.3)
+      .sort((a: HeaderCooccurrence, b: HeaderCooccurrence) => b.mutualInformation - a.mutualInformation)
+      .slice(0, 15);
+    
+    if (highCorrelationPairs.length > 0) {
+      output += `### High Correlation Header Pairs\n\n`;
+      output += `Headers with strong co-occurrence patterns (Mutual Information > 0.3):\n\n`;
+      output += `| Header 1 | Header 2 | Co-occurrences | Frequency | Mutual Info |\n`;
+      output += `|----------|----------|----------------|-----------|-------------|\n`;
+      
+      for (const pair of highCorrelationPairs) {
+        output += `| ${pair.header1} | ${pair.header2} | `;
+        output += `${pair.cooccurrenceCount} | ${Math.round(pair.cooccurrenceFrequency * 100)}% | `;
+        output += `${pair.mutualInformation.toFixed(3)} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Platform Combinations Table
+    if (cooccurrenceAnalysis.platformCombinations.length > 0) {
+      output += `### Platform-Specific Header Combinations\n\n`;
+      output += `| Platform | Header Combination | Frequency | Strength |\n`;
+      output += `|----------|-------------------|-----------|----------|\n`;
+      
+      const topCombinations = cooccurrenceAnalysis.platformCombinations
+        .sort((a, b) => b.strength - a.strength)
+        .slice(0, 12);
+      
+      for (const combo of topCombinations) {
+        const headers = combo.headerGroup.length > 2 
+          ? combo.headerGroup.slice(0, 2).join(' + ') + `... (${combo.headerGroup.length})`
+          : combo.headerGroup.join(' + ');
+          
+        output += `| ${combo.platform} | ${headers} | `;
+        output += `${Math.round(combo.frequency * 100)}% | `;
+        output += `${combo.strength.toFixed(3)} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Mutual Exclusivity Table
+    const exclusivePairs = cooccurrenceAnalysis.cooccurrences
+      .filter((h: HeaderCooccurrence) => h.cooccurrenceCount === 0 && h.cooccurrenceFrequency === 0)
+      .sort((a: HeaderCooccurrence, b: HeaderCooccurrence) => (b.conditionalProbability + a.conditionalProbability) - (a.conditionalProbability + b.conditionalProbability))
+      .slice(0, 8);
+    
+    if (exclusivePairs.length > 0) {
+      output += `### Mutually Exclusive Header Patterns\n\n`;
+      output += `Headers that never appear together (potential platform isolation):\n\n`;
+      output += `| Header 1 | Header 2 | Header 1 Freq | Header 2 Freq | Overlap |\n`;
+      output += `|----------|----------|---------------|---------------|----------|\n`;
+      
+      for (const pair of exclusivePairs) {
+        output += `| ${pair.header1} | ${pair.header2} | `;
+        output += `N/A | N/A | 0 sites |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Summary Statistics
+    output += `### Co-occurrence Analysis Summary\n\n`;
+    output += `| Metric | Count |\n`;
+    output += `|--------|-------|\n`;
+    output += `| Total Header Pairs Analyzed | ${cooccurrenceAnalysis.cooccurrences.length} |\n`;
+    output += `| Technology Stacks Identified | ${cooccurrenceAnalysis.technologySignatures.length} |\n`;
+    output += `| Platform Combinations | ${cooccurrenceAnalysis.platformCombinations.length} |\n`;
+    output += `| High Correlation Pairs (MI > 0.3) | ${highCorrelationPairs.length} |\n`;
+    output += `| Mutually Exclusive Pairs | ${exclusivePairs.length} |\n`;
+    output += `\n`;
+  }
+
+  // Semantic Analysis Insights
+  if (semanticAnalysis) {
+    output += `\n## Semantic Header Analysis\n\n`;
+    output += `**Headers Analyzed:** ${semanticAnalysis.headerAnalyses.size} headers with semantic classification\n\n`;
+    
+    // Category Distribution Table
+    output += `### Header Category Distribution\n\n`;
+    output += `| Category | Headers | Percentage |\n`;
+    output += `|----------|---------|------------|\n`;
+    
+    const sortedCategories = semanticAnalysis.insights.topCategories
+      .sort((a, b) => b.count - a.count);
+    
+    for (const category of sortedCategories) {
+      if (category.count > 0) {
+        output += `| **${category.category}** | ${category.count} | ${Math.round(category.percentage)}% |\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Vendor Distribution Table
+    if (semanticAnalysis.insights.topVendors.length > 0) {
+      output += `### Technology Vendor Distribution\n\n`;
+      output += `| Vendor | Headers | Percentage |\n`;
+      output += `|--------|---------|------------|\n`;
+      
+      const topVendors = semanticAnalysis.insights.topVendors
+        .filter(v => v.count > 1) // Only show vendors with multiple headers
+        .slice(0, 20);
+      
+      for (const vendor of topVendors) {
+        output += `| **${vendor.vendor}** | ${vendor.count} | ${Math.round(vendor.percentage)}% |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Naming Convention Table
+    output += `### Naming Convention Compliance\n\n`;
+    output += `| Convention | Headers | Percentage |\n`;
+    output += `|------------|---------|------------|\n`;
+    
+    const conventions = Object.entries(semanticAnalysis.insights.namingConventions)
+      .sort(([, a], [, b]) => b - a);
+    
+    // Calculate total from all convention counts
+    const totalConventionHeaders = Object.values(semanticAnalysis.insights.namingConventions)
+      .reduce((sum, count) => sum + count, 0);
+    
+    for (const [convention, count] of conventions) {
+      if (count > 0) {
+        const percentage = Math.round((count / totalConventionHeaders) * 100);
+        output += `| **${convention}** | ${count} | ${percentage}% |\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Pattern Type Table
+    output += `### Header Pattern Types\n\n`;
+    output += `| Pattern Type | Headers | Percentage |\n`;
+    output += `|--------------|---------|------------|\n`;
+    
+    const patternTypes = Object.entries(semanticAnalysis.insights.patternTypes)
+      .sort(([, a], [, b]) => b - a);
+    
+    // Calculate total from all pattern type counts
+    const totalPatternHeaders = Object.values(semanticAnalysis.insights.patternTypes)
+      .reduce((sum, count) => sum + count, 0);
+    
+    for (const [type, count] of patternTypes) {
+      if (count > 0) {
+        const percentage = Math.round((count / totalPatternHeaders) * 100);
+        output += `| **${type}** | ${count} | ${percentage}% |\n`;
+      }
+    }
+    output += `\n`;
+    
+    // Technology Stack Table
+    if (semanticAnalysis.technologyStack) {
+      output += `### Technology Stack Summary\n\n`;
+      output += `| Technology Type | Technologies |\n`;
+      output += `|-----------------|--------------|\n`;
+      
+      if (semanticAnalysis.technologyStack.cdn && semanticAnalysis.technologyStack.cdn.length > 0) {
+        const cdns = semanticAnalysis.technologyStack.cdn.slice(0, 8).join(', ');
+        const cdnDisplay = semanticAnalysis.technologyStack.cdn.length > 8
+          ? `${cdns}... (+${semanticAnalysis.technologyStack.cdn.length - 8})`
+          : cdns;
+        output += `| **CDN Services** | ${cdnDisplay} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.cms) {
+        output += `| **CMS Platform** | ${semanticAnalysis.technologyStack.cms} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.framework) {
+        output += `| **Framework** | ${semanticAnalysis.technologyStack.framework} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.analytics && semanticAnalysis.technologyStack.analytics.length > 0) {
+        const analytics = semanticAnalysis.technologyStack.analytics.slice(0, 6).join(', ');
+        const analyticsDisplay = semanticAnalysis.technologyStack.analytics.length > 6
+          ? `${analytics}... (+${semanticAnalysis.technologyStack.analytics.length - 6})`
+          : analytics;
+        output += `| **Analytics Services** | ${analyticsDisplay} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.ecommerce) {
+        output += `| **E-commerce Platform** | ${semanticAnalysis.technologyStack.ecommerce} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.hosting) {
+        output += `| **Hosting Provider** | ${semanticAnalysis.technologyStack.hosting} |\n`;
+      }
+      
+      if (semanticAnalysis.technologyStack.security && semanticAnalysis.technologyStack.security.length > 0) {
+        output += `| **Security Services** | ${semanticAnalysis.technologyStack.security.join(', ')} |\n`;
+      }
+      
+      output += `\n**Stack Confidence:** ${Math.round(semanticAnalysis.technologyStack.confidence * 100)}%  \n`;
+      output += `*(Higher scores indicate more diverse technology usage across the dataset)*\n\n`;
+    }
+    
+    // Vendor Statistics Table
+    if (semanticAnalysis.vendorStats) {
+      output += `### Vendor Analysis Statistics\n\n`;
+      output += `| Metric | Value |\n`;
+      output += `|--------|-------|\n`;
+      output += `| Total Headers Analyzed | ${semanticAnalysis.vendorStats.totalHeaders} |\n`;
+      output += `| Headers with Vendor Detection | ${semanticAnalysis.vendorStats.vendorHeaders} |\n`;
+      output += `| Vendor Coverage | ${Math.round(semanticAnalysis.vendorStats.vendorCoverage)}% |\n`;
+      output += `\n`;
+      
+      if (semanticAnalysis.vendorStats.vendorDistribution.length > 0) {
+        output += `#### Top Vendors by Header Count\n\n`;
+        output += `| Vendor | Header Count | Percentage |\n`;
+        output += `|--------|--------------|------------|\n`;
+        
+        for (const vendor of semanticAnalysis.vendorStats.vendorDistribution.slice(0, 12)) {
+          output += `| **${vendor.vendor}** | ${vendor.headerCount} | ${Math.round(vendor.percentage)}% |\n`;
+        }
+        output += `\n`;
+      }
+    }
+  }
+
+  // Pattern Discovery Analysis
+  if (patternDiscoveryAnalysis) {
+    output += `\n## Pattern Discovery Analysis\n\n`;
+    output += `**Discovered Patterns:** ${patternDiscoveryAnalysis.discoveredPatterns.length} patterns found\n\n`;
+    
+    // Discovered Patterns Table
+    if (patternDiscoveryAnalysis.discoveredPatterns.length > 0) {
+      output += `### Discovered Header Patterns\n\n`;
+      output += `| Pattern | Type | Frequency | Sites | Confidence | Examples | Potential Vendor |\n`;
+      output += `|---------|------|-----------|-------|------------|----------|------------------|\n`;
+      
+      const topPatterns = patternDiscoveryAnalysis.discoveredPatterns
+        .sort((a, b) => b.frequency - a.frequency)
+        .slice(0, 20);
+      
+      for (const pattern of topPatterns) {
+        const examples = pattern.examples.slice(0, 2).join(', ');
+        const examplesDisplay = pattern.examples.length > 2 ? `${examples}... (+${pattern.examples.length - 2})` : examples;
+        const vendor = pattern.potentialVendor || 'N/A';
+        
+        output += `| \`${pattern.pattern}\` | ${pattern.type} | `;
+        output += `${Math.round(pattern.frequency * 100)}% | ${pattern.sites.length} | `;
+        output += `${Math.round(pattern.confidence * 100)}% | ${escapeMarkdownTableCell(examplesDisplay)} | `;
+        output += `${vendor} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Emerging Vendors Table
+    if (patternDiscoveryAnalysis.emergingVendors.length > 0) {
+      output += `### Emerging Vendor Patterns\n\n`;
+      output += `| Vendor | Patterns | Sites | Confidence | Naming Convention | Common Prefixes |\n`;
+      output += `|--------|----------|-------|------------|-------------------|-----------------|\n`;
+      
+      for (const vendor of patternDiscoveryAnalysis.emergingVendors.slice(0, 10)) {
+        const prefixes = vendor.characteristics.commonPrefixes.slice(0, 3).join(', ');
+        const prefixDisplay = vendor.characteristics.commonPrefixes.length > 3 
+          ? `${prefixes}... (+${vendor.characteristics.commonPrefixes.length - 3})`
+          : prefixes;
+        
+        output += `| **${vendor.vendorName}** | ${vendor.patterns.length} | `;
+        output += `${vendor.sites.length} | ${Math.round(vendor.confidence * 100)}% | `;
+        output += `${vendor.characteristics.namingConvention} | ${prefixDisplay} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Pattern Evolution Table
+    if (patternDiscoveryAnalysis.patternEvolution.length > 0) {
+      output += `### Pattern Evolution Trends\n\n`;
+      output += `| Pattern | Evolution Type | Confidence | Versions | Latest Frequency |\n`;
+      output += `|---------|----------------|------------|----------|------------------|\n`;
+      
+      for (const evolution of patternDiscoveryAnalysis.patternEvolution.slice(0, 12)) {
+        const latestVersion = evolution.versions[evolution.versions.length - 1];
+        const latestFreq = latestVersion ? Math.round(latestVersion.frequency * 100) + '%' : 'N/A';
+        
+        output += `| \`${evolution.pattern}\` | ${evolution.evolutionType} | `;
+        output += `${Math.round(evolution.confidence * 100)}% | ${evolution.versions.length} | `;
+        output += `${latestFreq} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Semantic Anomalies Table
+    if (patternDiscoveryAnalysis.semanticAnomalies.length > 0) {
+      output += `### Semantic Anomalies\n\n`;
+      output += `Headers with unexpected categorization patterns:\n\n`;
+      output += `| Header | Expected | Actual | Confidence | Reason |\n`;
+      output += `|--------|----------|--------|------------|--------|\n`;
+      
+      const highConfidenceAnomalies = patternDiscoveryAnalysis.semanticAnomalies
+        .filter(a => a.confidence > 0.6)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 15);
+      
+      for (const anomaly of highConfidenceAnomalies) {
+        output += `| \`${anomaly.headerName}\` | ${anomaly.expectedCategory} | `;
+        output += `${anomaly.actualCategory} | ${Math.round(anomaly.confidence * 100)}% | `;
+        output += `${escapeMarkdownTableCell(anomaly.reason)} |\n`;
+      }
+      output += `\n`;
+    }
+    
+    // Pattern Discovery Summary Table
+    output += `### Pattern Discovery Summary\n\n`;
+    output += `| Metric | Count |\n`;
+    output += `|--------|-------|\n`;
+    output += `| Total Patterns Discovered | ${patternDiscoveryAnalysis.discoveredPatterns.length} |\n`;
+    output += `| Emerging Vendors Detected | ${patternDiscoveryAnalysis.emergingVendors.length} |\n`;
+    output += `| Pattern Evolution Trends | ${patternDiscoveryAnalysis.patternEvolution.length} |\n`;
+    output += `| Semantic Anomalies | ${patternDiscoveryAnalysis.semanticAnomalies.length} |\n`;
+    
+    const prefixPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'prefix').length;
+    const suffixPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'suffix').length;
+    const containsPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'contains').length;
+    const regexPatterns = patternDiscoveryAnalysis.discoveredPatterns.filter(p => p.type === 'regex').length;
+    
+    output += `| Prefix Patterns | ${prefixPatterns} |\n`;
+    output += `| Suffix Patterns | ${suffixPatterns} |\n`;
+    output += `| Contains Patterns | ${containsPatterns} |\n`;
+    output += `| Regex Patterns | ${regexPatterns} |\n`;
+    output += `\n`;
+    
+    // Insights
+    if (patternDiscoveryAnalysis.insights.length > 0) {
+      output += `### Key Insights\n\n`;
+      
+      for (const insight of patternDiscoveryAnalysis.insights) {
+        output += `- ${insight}\n`;
+      }
+      output += `\n`;
     }
   }
 

@@ -69,9 +69,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     
     // Step 5: Perform semantic analysis of headers
     logger.info('Performing semantic analysis of headers');
-    const uniqueHeaders = Array.from(new Set(
-      Object.keys(headerPatterns).map(h => h.toLowerCase())
-    ));
+    const uniqueHeaders = Array.from(headerPatterns.keys()).map(h => h.toLowerCase());
     const headerAnalyses = batchAnalyzeHeaders(uniqueHeaders);
     const semanticInsights = generateSemanticInsights(headerAnalyses);
     const vendorStats = analyzeVendorPresence(uniqueHeaders);
