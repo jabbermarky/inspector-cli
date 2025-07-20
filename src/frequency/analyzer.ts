@@ -10,6 +10,7 @@ import { analyzeDatasetBias } from './bias-detector.js';
 import { batchAnalyzeHeaders, generateSemanticInsights } from './semantic-analyzer.js';
 import { analyzeVendorPresence, inferTechnologyStack } from './vendor-patterns.js';
 import { analyzeHeaderCooccurrence } from './co-occurrence-analyzer.js';
+import { discoverHeaderPatterns } from './pattern-discovery.js';
 import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
@@ -87,7 +88,11 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     logger.info('Performing co-occurrence pattern analysis');
     const cooccurrenceAnalysis = analyzeHeaderCooccurrence(dataPoints);
     
-    // Step 7: Generate recommendations if requested (now bias-aware, semantic-aware, and co-occurrence-aware)
+    // Step 7: Perform pattern discovery analysis
+    logger.info('Performing pattern discovery analysis');
+    const patternDiscoveryAnalysis = discoverHeaderPatterns(dataPoints);
+    
+    // Step 8: Generate recommendations if requested (now bias-aware, semantic-aware, co-occurrence-aware, and pattern-discovery-aware)
     let recommendations;
     if (opts.includeRecommendations) {
       logger.info('Generating bias-aware filter recommendations');
@@ -101,7 +106,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       });
     }
     
-    // Step 8: Format results
+    // Step 9: Format results
     // Calculate temporal range
     const temporalRange = calculateTemporalRange(dataPoints);
     
@@ -123,7 +128,8 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       filteringReport,
       biasAnalysis,
       semanticAnalysis,
-      cooccurrenceAnalysis
+      cooccurrenceAnalysis,
+      patternDiscoveryAnalysis
     };
     
     const duration = performance.now() - startTime;

@@ -27,6 +27,16 @@ import type {
 } from './co-occurrence-analyzer.js';
 export type { HeaderCooccurrence, TechnologyStackSignature, PlatformHeaderCombination, CooccurrenceAnalysis };
 
+// Import and re-export pattern discovery types
+import type { 
+  DiscoveredPattern, 
+  EmergingVendorPattern, 
+  PatternEvolution,
+  SemanticAnomaly,
+  PatternDiscoveryAnalysis 
+} from './pattern-discovery.js';
+export type { DiscoveredPattern, EmergingVendorPattern, PatternEvolution, SemanticAnomaly, PatternDiscoveryAnalysis };
+
 // Type for options with all required except dateRange  
 export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> & Pick<FrequencyOptions, 'dateRange'>;
 
@@ -94,6 +104,8 @@ export interface FrequencyResult {
   };
   
   cooccurrenceAnalysis?: CooccurrenceAnalysis;
+  
+  patternDiscoveryAnalysis?: PatternDiscoveryAnalysis;
 }
 
 export interface HeaderFrequencyData {
