@@ -9,6 +9,7 @@ import { formatOutput } from './reporter.js';
 import { analyzeDatasetBias } from './bias-detector.js';
 import { batchAnalyzeHeaders, generateSemanticInsights } from './semantic-analyzer.js';
 import { analyzeVendorPresence, inferTechnologyStack } from './vendor-patterns.js';
+import { analyzeHeaderCooccurrence } from './co-occurrence-analyzer.js';
 import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
@@ -82,7 +83,11 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       technologyStack
     };
     
-    // Step 6: Generate recommendations if requested (now bias-aware and semantic-aware)
+    // Step 6: Perform co-occurrence pattern analysis
+    logger.info('Performing co-occurrence pattern analysis');
+    const cooccurrenceAnalysis = analyzeHeaderCooccurrence(dataPoints);
+    
+    // Step 7: Generate recommendations if requested (now bias-aware, semantic-aware, and co-occurrence-aware)
     let recommendations;
     if (opts.includeRecommendations) {
       logger.info('Generating bias-aware filter recommendations');
@@ -96,7 +101,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       });
     }
     
-    // Step 7: Format results
+    // Step 8: Format results
     // Calculate temporal range
     const temporalRange = calculateTemporalRange(dataPoints);
     
@@ -117,7 +122,8 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       ...(recommendations && { recommendations }),
       filteringReport,
       biasAnalysis,
-      semanticAnalysis
+      semanticAnalysis,
+      cooccurrenceAnalysis
     };
     
     const duration = performance.now() - startTime;
@@ -126,7 +132,7 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       totalPatterns: Object.keys(result.headers).length + Object.keys(result.metaTags).length
     });
     
-    // Step 8: Output results if file specified
+    // Step 9: Output results if file specified
     if (opts.outputFile) {
       await formatOutput(result, opts);
     }

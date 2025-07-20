@@ -1,21 +1,16 @@
 {
-  "timestamp": "2025-07-20T15:58:07.836Z",
+  "timestamp": "2025-07-20T17:20:33.116Z",
   "summary": {
-    "totalSkipped": 2,
+    "totalSkipped": 1,
     "byReason": {
-      "DNS resolution failed": 2
+      "DNS timeout": 1
     }
   },
   "details": [
     {
-      "url": "http://katcr.co/",
-      "reason": "DNS resolution failed",
-      "error": "All DNS resolution attempts failed"
-    },
-    {
-      "url": "http://filmionlineizle.net/",
-      "reason": "DNS resolution failed",
-      "error": "All DNS resolution attempts failed"
+      "url": "https://maihoang.com.vn/",
+      "reason": "DNS timeout",
+      "error": "DNS timeout after 5000ms"
     }
   ]
 }

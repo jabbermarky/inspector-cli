@@ -18,6 +18,15 @@ export type { HeaderSemanticAnalysis, HeaderCategory, HeaderPrimaryCategory, Sem
 import type { VendorPattern, VendorStats, TechnologyStack } from './vendor-patterns.js';
 export type { VendorPattern, VendorStats, TechnologyStack };
 
+// Import and re-export co-occurrence analysis types
+import type { 
+  HeaderCooccurrence, 
+  TechnologyStackSignature, 
+  PlatformHeaderCombination,
+  CooccurrenceAnalysis 
+} from './co-occurrence-analyzer.js';
+export type { HeaderCooccurrence, TechnologyStackSignature, PlatformHeaderCombination, CooccurrenceAnalysis };
+
 // Type for options with all required except dateRange  
 export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> & Pick<FrequencyOptions, 'dateRange'>;
 
@@ -83,6 +92,8 @@ export interface FrequencyResult {
     vendorStats: VendorStats;
     technologyStack: TechnologyStack;
   };
+  
+  cooccurrenceAnalysis?: CooccurrenceAnalysis;
 }
 
 export interface HeaderFrequencyData {
