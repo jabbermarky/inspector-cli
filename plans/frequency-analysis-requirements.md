@@ -16,9 +16,13 @@ This document defines the requirements for implementing frequency analysis of di
 
 - **Source**: Use existing collected data from `data/cms-analysis/` directory (raw input data, not learn command output)
 - **Deduplication**: For sites with multiple captures, use only the last good/complete capture
-- **Temporal Tracking**: Record date/time of each capture for future filtering and trend analysis
-- **Page-Level Tracking**: Track which page from a site was analyzed (mainpage vs. robots.txt)
-- **Minimum Dataset Size**: Require at least 100 sites for statistically meaningful analysis
+- **Temporal Tracking**: ✅ COMPLETED - Record date/time of each capture for future filtering and trend analysis (implemented with --date-start, --date-end, --last-days options)
+- **Page-Level Tracking**: ✅ DATA COLLECTION COMPLETE - robots.txt headers already captured in dataPoint.robotsTxt.httpHeaders
+  🔄 IN PROGRESS - Analysis logic to process both mainpage and robots.txt headers
+  - Add CLI option: --page-type (all, mainpage, robots)
+  - Extend HeaderPattern to include pageDistribution field
+  - Update reports to show per-page-type breakdowns
+- **Minimum Dataset Size**: ✅ COMPLETED - Achieved 866+ valid sites (exceeds 100 site requirement)
 
 ### 2. Data Elements to Track
 
@@ -110,7 +114,7 @@ x-powered-by: WordPress
 
 #### 5.4 Automated Filter Recommendations
 
-The frequency analysis will provide recommendations for three commands:
+✅ COMPLETED - The frequency analysis provides recommendations for three commands:
 
 ##### 5.4.1 Current Usage Analysis
 - **Learn Command**: Identify which headers/meta tags are currently filtered by discriminative filtering
@@ -182,6 +186,30 @@ Potential New Rules:
 - **Filtering Capabilities**: Filter by date range
 - **Caching**: Cache computed frequencies for performance
 
+### 8. Performance Requirements
+
+Based on implementation experience:
+- Default 2-minute timeout insufficient for large datasets
+- Need configurable --timeout option
+- Memory-efficient processing for 1000+ sites
+- Progress indicators for long-running analysis
+
+### 9. Implementation Discoveries
+
+During Phase 1 implementation, we discovered:
+
+1. **Data Infrastructure Already Complete**: 
+   - robots.txt headers are collected in dataPoint.robotsTxt.httpHeaders
+   - No additional data collection needed for page-level tracking
+
+2. **Analysis Gap Identified**:
+   - Current header-analyzer.ts only processes dataPoint.httpHeaders (mainpage)
+   - robots.txt headers ignored despite being collected
+   
+3. **Performance Optimizations Needed**:
+   - Command timeout issues identified with large datasets
+   - Need configurable timeout via CLI option
+
 ## Configuration Parameters
 
 Based on the requirements analysis, the following parameters will be configurable:
@@ -192,12 +220,13 @@ Based on the requirements analysis, the following parameters will be configurabl
 
 ## Implementation Phases
 
-### Phase 1: Basic Frequency Analysis (Current)
-- Raw frequency counts for headers and meta tags
-- Value diversity metrics
-- Per-page-type breakdowns
-- Basic filtering and normalization
-- Automated filter recommendations (see section 5.4)
+### Phase 1: Basic Frequency Analysis (95% COMPLETE)
+✅ Raw frequency counts for headers and meta tags
+✅ Value diversity metrics
+✅ Temporal tracking with date range filtering
+✅ Basic filtering and normalization
+✅ Automated filter recommendations (see section 5.4)
+🔄 Per-page-type breakdowns (data collected, analysis in progress)
 
 ### Phase 2: Pattern Analysis (Future)
 - Co-occurrence patterns
@@ -385,6 +414,8 @@ This inventory ensures we:
 Given that frequency analysis will inform critical decisions about filtering and detection patterns, comprehensive testing is essential for reliability and accuracy.
 
 #### Test Categories
+
+**Testing Infrastructure**: Uses Vitest with centralized test-utils system in src/test-utils/ for consistent mocking patterns.
 
 ##### 1. Unit Tests (High Coverage Required)
 Each module must have extensive unit tests with edge case coverage:

@@ -81,10 +81,16 @@ Filter Reasons:
   for (const [headerName, data] of sortedHeaders) {
     output += `### ${headerName}
 - Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- Unique Values: ${data.values.length}
-
-Top Values:
-`;
+- Unique Values: ${data.values.length}`;
+    
+    // Add page distribution if available
+    if (data.pageDistribution) {
+      const mainPercent = Math.round(data.pageDistribution.mainpage * 100);
+      const robotsPercent = Math.round(data.pageDistribution.robots * 100);
+      output += `\n- Page Distribution: ${mainPercent}% mainpage, ${robotsPercent}% robots.txt`;
+    }
+    
+    output += `\n\nTop Values:\n`;
     for (const value of data.values.slice(0, 5)) {
       output += `  - \`${value.value}\`: ${Math.round(value.frequency * 100)}% (${value.occurrences} sites)\n`;
     }
@@ -221,8 +227,8 @@ Sites filtered out: ${filteringReport.sitesFilteredOut}
 
 Total headers analyzed: **${Object.keys(headers).length}**
 
-| Header | Frequency | Sites Using | Unique Values | Top Value | Top Value Usage |
-|--------|-----------|-------------|---------------|-----------|----------------|
+| Header | Frequency | Sites Using | Unique Values | Top Value | Top Value Usage | Page Distribution |
+|--------|-----------|-------------|---------------|-----------|-----------------|-------------------|
 `;
   
   const sortedHeaders = Object.entries(headers)
@@ -237,7 +243,15 @@ Total headers analyzed: **${Object.keys(headers).length}**
     // Extract just the header name (before colon) for display
     const displayName = headerName.split(':')[0];
     
-    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${data.values.length} | \`${topValueDisplay}\` | ${topValuePercent}% |\n`;
+    // Format page distribution
+    let pageDistDisplay = 'N/A';
+    if (data.pageDistribution) {
+      const mainPercent = Math.round(data.pageDistribution.mainpage * 100);
+      const robotsPercent = Math.round(data.pageDistribution.robots * 100);
+      pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
+    }
+    
+    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${data.values.length} | \`${topValueDisplay}\` | ${topValuePercent}% | ${pageDistDisplay} |\n`;
   }
 
   // Meta Tags as Table
@@ -281,18 +295,57 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
 
     output += `
 #### Recommend to Filter:
+
+| Header | Frequency | Sites Using | Unique Values | Top Value | Page Distribution | Recommendation |
+|--------|-----------|-------------|---------------|-----------|------------------|----------------|
 `;
     for (const rec of recommendations.learn.recommendToFilter) {
+      const headerData = headers[rec.pattern];
       const freqPercent = Math.round(rec.frequency * 100);
-      output += `- **\`${rec.pattern}\`**: ${rec.reason} (${freqPercent}% frequency, ${rec.diversity} values)\n`;
+      
+      if (headerData) {
+        const topValue = headerData.values[0];
+        const topValueDisplay = topValue ? escapeMarkdownTableCell(topValue.value) : 'N/A';
+        
+        let pageDistDisplay = 'N/A';
+        if (headerData.pageDistribution) {
+          const mainPercent = Math.round(headerData.pageDistribution.mainpage * 100);
+          const robotsPercent = Math.round(headerData.pageDistribution.robots * 100);
+          pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
+        }
+        
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | ${headerData.occurrences}/${headerData.totalSites} | ${rec.diversity} | \`${topValueDisplay}\` | ${pageDistDisplay} | ${rec.reason} |\n`;
+      } else {
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | N/A | ${rec.diversity} | N/A | N/A | ${rec.reason} |\n`;
+      }
     }
 
     output += `
+
 #### Recommend to Keep:
+
+| Header | Frequency | Sites Using | Unique Values | Top Value | Page Distribution | Recommendation |
+|--------|-----------|-------------|---------------|-----------|------------------|----------------|
 `;
     for (const rec of recommendations.learn.recommendToKeep) {
+      const headerData = headers[rec.pattern];
       const freqPercent = Math.round(rec.frequency * 100);
-      output += `- **\`${rec.pattern}\`**: ${rec.reason} (${freqPercent}% frequency, ${rec.diversity} values)\n`;
+      
+      if (headerData) {
+        const topValue = headerData.values[0];
+        const topValueDisplay = topValue ? escapeMarkdownTableCell(topValue.value) : 'N/A';
+        
+        let pageDistDisplay = 'N/A';
+        if (headerData.pageDistribution) {
+          const mainPercent = Math.round(headerData.pageDistribution.mainpage * 100);
+          const robotsPercent = Math.round(headerData.pageDistribution.robots * 100);
+          pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
+        }
+        
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | ${headerData.occurrences}/${headerData.totalSites} | ${rec.diversity} | \`${topValueDisplay}\` | ${pageDistDisplay} | ${rec.reason} |\n`;
+      } else {
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | N/A | ${rec.diversity} | N/A | N/A | ${rec.reason} |\n`;
+      }
     }
 
     output += `

@@ -63,7 +63,8 @@ function filterDataPoints(
     'error-page': 0,
     'insufficient-data': 0,
     'invalid-url': 0,
-    'date-range': 0
+    'date-range': 0,
+    'page-type': 0
   };
   
   const validDataPoints = dataPoints.filter(dataPoint => {
@@ -78,6 +79,19 @@ function filterDataPoints(
       
       if (options.dateRange.end && timestamp > options.dateRange.end) {
         filterReasons['date-range']++;
+        return false;
+      }
+    }
+    
+    // Check page type filter
+    if (options.pageType !== 'all') {
+      if (options.pageType === 'mainpage' && !hasMainpageData(dataPoint)) {
+        filterReasons['page-type']++;
+        return false;
+      }
+      
+      if (options.pageType === 'robots' && !hasRobotsTxtData(dataPoint)) {
+        filterReasons['page-type']++;
         return false;
       }
     }
@@ -361,4 +375,18 @@ function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Check if data point has mainpage data
+ */
+function hasMainpageData(dataPoint: DetectionDataPoint): boolean {
+  return !!(dataPoint.httpHeaders && Object.keys(dataPoint.httpHeaders).length > 0);
+}
+
+/**
+ * Check if data point has robots.txt data
+ */
+function hasRobotsTxtData(dataPoint: DetectionDataPoint): boolean {
+  return !!(dataPoint.robotsTxt?.httpHeaders && Object.keys(dataPoint.robotsTxt.httpHeaders).length > 0);
 }

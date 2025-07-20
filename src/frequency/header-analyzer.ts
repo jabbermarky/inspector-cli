@@ -9,6 +9,10 @@ export interface HeaderPattern {
   confidence: number;
   examples: string[];
   cmsCorrelation: Record<string, number>;
+  pageDistribution: {
+    mainpage: number;
+    robots: number;
+  };
 }
 
 /**
@@ -30,6 +34,10 @@ export async function analyzeHeaders(
     count: number;
     examples: string[];
     cmsSources: Set<string>;
+    pageCount: {
+      mainpage: number;
+      robots: number;
+    };
   }>>();
   
   // Process each data point
@@ -44,38 +52,12 @@ export async function analyzeHeaders(
       detectedCms = bestDetection?.cms || 'Unknown';
     }
     
-    // Process each header
-    for (const [headerName, headerValue] of Object.entries(dataPoint.httpHeaders)) {
-      const normalizedHeaderName = normalizeHeaderName(headerName);
-      const normalizedHeaderValue = normalizeHeaderValue(headerValue);
-      
-      // Handle empty values by marking them as <empty>
-      const finalHeaderValue = normalizedHeaderValue || '<empty>';
-      
-      // Initialize header tracking
-      if (!headerStats.has(normalizedHeaderName)) {
-        headerStats.set(normalizedHeaderName, new Map());
-      }
-      
-      const headerMap = headerStats.get(normalizedHeaderName)!;
-      
-      // Initialize value tracking
-      if (!headerMap.has(finalHeaderValue)) {
-        headerMap.set(finalHeaderValue, {
-          count: 0,
-          examples: [],
-          cmsSources: new Set()
-        });
-      }
-      
-      const valueStats = headerMap.get(finalHeaderValue)!;
-      valueStats.count++;
-      valueStats.cmsSources.add(detectedCms);
-      
-      // Add example URL (limit to 5)
-      if (valueStats.examples.length < 5) {
-        valueStats.examples.push(dataPoint.url);
-      }
+    // Process mainpage headers
+    processHeaders(dataPoint.httpHeaders, 'mainpage', detectedCms, dataPoint.url, headerStats);
+    
+    // Process robots.txt headers if available
+    if (dataPoint.robotsTxt?.httpHeaders) {
+      processHeaders(dataPoint.robotsTxt.httpHeaders, 'robots', detectedCms, dataPoint.url, headerStats);
     }
   }
   
@@ -103,12 +85,20 @@ export async function analyzeHeaders(
         // Calculate confidence based on discriminative value
         const confidence = calculateHeaderConfidence(frequency, stats.cmsSources.size);
         
+        // Calculate page distribution percentages
+        const totalPageCount = stats.pageCount.mainpage + stats.pageCount.robots;
+        const pageDistribution = {
+          mainpage: totalPageCount > 0 ? stats.pageCount.mainpage / totalPageCount : 0,
+          robots: totalPageCount > 0 ? stats.pageCount.robots / totalPageCount : 0
+        };
+        
         headerPatterns.push({
           pattern: `${headerName}:${headerValue}`,
           frequency,
           confidence,
           examples: stats.examples,
-          cmsCorrelation
+          cmsCorrelation,
+          pageDistribution
         });
       }
     }
@@ -160,6 +150,64 @@ function normalizeHeaderValue(headerValue: string | string[]): string {
   }
   
   return normalized;
+}
+
+/**
+ * Process headers from a specific page type (mainpage or robots.txt)
+ */
+function processHeaders(
+  headers: Record<string, string>, 
+  pageType: 'mainpage' | 'robots',
+  detectedCms: string,
+  url: string,
+  headerStats: Map<string, Map<string, {
+    count: number;
+    examples: string[];
+    cmsSources: Set<string>;
+    pageCount: {
+      mainpage: number;
+      robots: number;
+    };
+  }>>
+): void {
+  for (const [headerName, headerValue] of Object.entries(headers)) {
+    const normalizedHeaderName = normalizeHeaderName(headerName);
+    const normalizedHeaderValue = normalizeHeaderValue(headerValue);
+    
+    // Handle empty values by marking them as <empty>
+    const finalHeaderValue = normalizedHeaderValue || '<empty>';
+    
+    // Initialize header tracking
+    if (!headerStats.has(normalizedHeaderName)) {
+      headerStats.set(normalizedHeaderName, new Map());
+    }
+    
+    const headerMap = headerStats.get(normalizedHeaderName)!;
+    
+    // Initialize value tracking
+    if (!headerMap.has(finalHeaderValue)) {
+      headerMap.set(finalHeaderValue, {
+        count: 0,
+        examples: [],
+        cmsSources: new Set(),
+        pageCount: {
+          mainpage: 0,
+          robots: 0
+        }
+      });
+    }
+    
+    const valueStats = headerMap.get(finalHeaderValue)!;
+    valueStats.count++;
+    valueStats.cmsSources.add(detectedCms);
+    valueStats.pageCount[pageType]++;
+    
+    // Add example URL (limit to 5)
+    if (valueStats.examples.length < 5) {
+      const pageLabel = pageType === 'robots' ? 'robots.txt' : pageType;
+      valueStats.examples.push(`${url} (${pageLabel})`);
+    }
+  }
 }
 
 /**

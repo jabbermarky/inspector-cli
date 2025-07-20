@@ -140,11 +140,31 @@ function formatHeaderData(
       ).size;
       const headerFrequency = Math.min(1.0, uniqueSitesUsingHeader / totalSites);
       
+      // Calculate aggregated page distribution for this header across all its values
+      let aggregateMainpage = 0;
+      let aggregateRobots = 0;
+      let totalOccurrences = 0;
+      
+      for (const pattern of patterns) {
+        if (pattern.pageDistribution) {
+          const patternOccurrences = Math.round(pattern.frequency * totalSites);
+          aggregateMainpage += pattern.pageDistribution.mainpage * patternOccurrences;
+          aggregateRobots += pattern.pageDistribution.robots * patternOccurrences;
+          totalOccurrences += patternOccurrences;
+        }
+      }
+      
+      const pageDistribution = totalOccurrences > 0 ? {
+        mainpage: aggregateMainpage / totalOccurrences,
+        robots: aggregateRobots / totalOccurrences
+      } : undefined;
+      
       result[headerName] = {
         frequency: headerFrequency,
         occurrences: uniqueSitesUsingHeader,
         totalSites,
-        values
+        values,
+        ...(pageDistribution && { pageDistribution })
       };
     }
   }
