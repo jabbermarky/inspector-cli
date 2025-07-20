@@ -165,14 +165,18 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
 #### Recommend to Filter:
 `;
     for (const rec of recommendations.learn.recommendToFilter) {
-      output += `- ${rec.pattern}: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
+      const headerData = headers[rec.pattern];
+      const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
+      output += `- ${rec.pattern}: ${rec.reason} (${freqPercent}% frequency, ${rec.diversity} values)\n`;
     }
 
     output += `
 #### Recommend to Keep:
 `;
     for (const rec of recommendations.learn.recommendToKeep) {
-      output += `- ${rec.pattern}: ${rec.reason} (${Math.round(rec.frequency * 100)}% frequency, ${rec.diversity} values)\n`;
+      const headerData = headers[rec.pattern];
+      const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
+      output += `- ${rec.pattern}: ${rec.reason} (${freqPercent}% frequency, ${rec.diversity} values)\n`;
     }
 
     output += `
@@ -354,7 +358,7 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
 `;
     for (const rec of recommendations.learn.recommendToFilter) {
       const headerData = headers[rec.pattern];
-      const freqPercent = Math.round(rec.frequency * 100);
+      const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
       
       if (headerData) {
         const topValue = headerData.values[0];
@@ -382,7 +386,7 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
 `;
     for (const rec of recommendations.learn.recommendToKeep) {
       const headerData = headers[rec.pattern];
-      const freqPercent = Math.round(rec.frequency * 100);
+      const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
       
       if (headerData) {
         const topValue = headerData.values[0];

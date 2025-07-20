@@ -1,6 +1,6 @@
 import { createModuleLogger } from '../utils/logger.js';
 import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
-import { analyzeDatasetBias, type DatasetBiasAnalysis, type HeaderCMSCorrelation } from './bias-detector.js';
+import { analyzeDatasetBias, type DatasetBiasAnalysis, type HeaderCMSCorrelation, isEnterpriseInfrastructureHeader } from './bias-detector.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults, LearnRecommendations, DetectCmsRecommendations, GroundTruthRecommendations } from './types.js';
 import type { HeaderPattern } from './header-analyzer.js';
 
@@ -319,6 +319,17 @@ function shouldFilterHeaderBiasAware(
   // Skip if recommendation confidence is low due to bias
   if (correlation.recommendationConfidence === 'low') return false;
   
+  // Enterprise infrastructure headers should generally be filtered unless they show strong CMS correlation
+  if (isEnterpriseInfrastructureHeader(headerName)) {
+    const hasCMSCorrelation = Object.entries(correlation.perCMSFrequency)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .some(([, data]) => data.frequency > 0.8);
+    
+    if (!hasCMSCorrelation && correlation.biasAdjustedFrequency > 0.3) {
+      return true; // Filter infrastructure headers that don't show strong CMS correlation
+    }
+  }
+  
   // Check if header appears to be truly generic (not platform-specific)
   if (correlation.platformSpecificity < 0.3 && correlation.biasAdjustedFrequency > 0.7) {
     return true;
@@ -347,7 +358,20 @@ function shouldKeepHeaderBiasAware(
   frequency: number, 
   diversity: number
 ): boolean {
-  // High platform specificity suggests discriminative value
+  // Check if this is an enterprise infrastructure header that should NOT be kept as discriminative
+  if (isEnterpriseInfrastructureHeader(headerName)) {
+    // Enterprise infrastructure headers are generic across enterprise sites, not CMS-specific
+    // Only keep them if they show VERY strong CMS correlation despite being infrastructure
+    const hasCMSCorrelation = Object.entries(correlation.perCMSFrequency)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .some(([, data]) => data.frequency > 0.8);
+    
+    if (!hasCMSCorrelation) {
+      return false; // Don't recommend keeping generic infrastructure headers
+    }
+  }
+  
+  // High platform specificity suggests discriminative value (for non-infrastructure headers)
   if (correlation.platformSpecificity > 0.7) {
     return true;
   }
@@ -363,8 +387,10 @@ function shouldKeepHeaderBiasAware(
     return true;
   }
   
-  // Low bias-adjusted frequency but reasonable platform specificity
-  if (correlation.biasAdjustedFrequency < 0.3 && correlation.platformSpecificity > 0.4) {
+  // Low bias-adjusted frequency but reasonable platform specificity (for non-infrastructure)
+  if (!isEnterpriseInfrastructureHeader(headerName) && 
+      correlation.biasAdjustedFrequency < 0.3 && 
+      correlation.platformSpecificity > 0.4) {
     return true;
   }
   
@@ -379,6 +405,18 @@ function getFilterReasonBiasAware(
   frequency: number, 
   diversity: number
 ): string {
+  // Check if this is an infrastructure header
+  const headerName = correlation.headerName;
+  if (isEnterpriseInfrastructureHeader(headerName)) {
+    const hasCMSCorrelation = Object.entries(correlation.perCMSFrequency)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .some(([, data]) => data.frequency > 0.8);
+    
+    if (!hasCMSCorrelation) {
+      return `Enterprise infrastructure header - generic across large websites`;
+    }
+  }
+  
   if (correlation.biasWarning) {
     return `Bias-adjusted: ${correlation.biasWarning}`;
   }
@@ -402,20 +440,21 @@ function getKeepReasonBiasAware(
   frequency: number, 
   diversity: number
 ): string {
+  // Check for CMS-specific correlations first
+  const topCMS = Object.entries(correlation.perCMSFrequency)
+    .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+  
+  if (topCMS && topCMS[1].frequency > 0.8) {
+    return `Strong correlation with ${topCMS[0]} (${Math.round(topCMS[1].frequency * 100)}%)`;
+  }
+  
   if (correlation.platformSpecificity > 0.7) {
     return `High platform specificity (${Math.round(correlation.platformSpecificity * 100)}%)`;
   }
   
   if (correlation.biasWarning && correlation.platformSpecificity > 0.5) {
     return `Platform-specific despite dataset bias`;
-  }
-  
-  const topCMS = Object.entries(correlation.perCMSFrequency)
-    .filter(([cms]) => cms !== 'Unknown')
-    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
-  
-  if (topCMS && topCMS[1].frequency > 0.8) {
-    return `Strong correlation with ${topCMS[0]} (${Math.round(topCMS[1].frequency * 100)}%)`;
   }
   
   return `Potentially discriminative (${Math.round(correlation.biasAdjustedFrequency * 100)}% adjusted frequency)`;

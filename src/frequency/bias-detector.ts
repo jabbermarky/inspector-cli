@@ -72,7 +72,7 @@ export async function analyzeDatasetBias(
 }
 
 /**
- * Calculate CMS distribution in the dataset
+ * Calculate CMS distribution in the dataset with enhanced categorization
  */
 function calculateCMSDistribution(dataPoints: DetectionDataPoint[]): CMSDistribution {
   const cmsStats: Record<string, { count: number; sites: string[] }> = {};
@@ -85,6 +85,17 @@ function calculateCMSDistribution(dataPoints: DetectionDataPoint[]): CMSDistribu
       const bestDetection = dataPoint.detectionResults
         .sort((a, b) => b.confidence - a.confidence)[0];
       detectedCms = bestDetection?.cms || 'Unknown';
+    }
+    
+    // If no CMS detected, try to categorize the website type
+    if (detectedCms === 'Unknown') {
+      const category = calculateWebsiteCategory(dataPoint.httpHeaders, dataPoint.detectionResults);
+      if (category === 'enterprise') {
+        detectedCms = 'Enterprise'; // Separate enterprise sites from generic "Unknown"
+      } else if (category === 'cdn') {
+        detectedCms = 'CDN';
+      }
+      // Keep 'Unknown' for sites that don't clearly fit other categories
     }
     
     if (!cmsStats[detectedCms]) {
@@ -172,10 +183,10 @@ function analyzeHeaderCMSCorrelations(
   dataPoints: DetectionDataPoint[],
   cmsDistribution: CMSDistribution
 ): Map<string, HeaderCMSCorrelation> {
-  const headerStats = new Map<string, Map<string, number>>(); // header -> cms -> count
+  const headerStats = new Map<string, Map<string, Set<string>>>(); // header -> cms -> set of URLs
   const totalSites = dataPoints.length;
   
-  // Collect header-CMS correlations
+  // Collect header-CMS correlations (tracking unique sites, not occurrences)
   for (const dataPoint of dataPoints) {
     let detectedCms = 'Unknown';
     
@@ -185,12 +196,35 @@ function analyzeHeaderCMSCorrelations(
       detectedCms = bestDetection?.cms || 'Unknown';
     }
     
-    // Process mainpage headers
-    processHeadersForCorrelation(dataPoint.httpHeaders, detectedCms, headerStats);
+    // Collect unique headers from both mainpage and robots.txt for this site
+    const uniqueHeaders = new Set<string>();
     
-    // Process robots.txt headers
+    // Add mainpage headers
+    if (dataPoint.httpHeaders) {
+      for (const headerName of Object.keys(dataPoint.httpHeaders)) {
+        uniqueHeaders.add(headerName.toLowerCase().trim());
+      }
+    }
+    
+    // Add robots.txt headers
     if (dataPoint.robotsTxt?.httpHeaders) {
-      processHeadersForCorrelation(dataPoint.robotsTxt.httpHeaders, detectedCms, headerStats);
+      for (const headerName of Object.keys(dataPoint.robotsTxt.httpHeaders)) {
+        uniqueHeaders.add(headerName.toLowerCase().trim());
+      }
+    }
+    
+    // Record this site as having each unique header for this CMS
+    for (const headerName of uniqueHeaders) {
+      if (!headerStats.has(headerName)) {
+        headerStats.set(headerName, new Map());
+      }
+      
+      const cmsMap = headerStats.get(headerName)!;
+      if (!cmsMap.has(detectedCms)) {
+        cmsMap.set(detectedCms, new Set());
+      }
+      
+      cmsMap.get(detectedCms)!.add(dataPoint.url);
     }
   }
   
@@ -198,14 +232,15 @@ function analyzeHeaderCMSCorrelations(
   const correlations = new Map<string, HeaderCMSCorrelation>();
   
   for (const [headerName, cmsStats] of headerStats.entries()) {
-    const overallOccurrences = Array.from(cmsStats.values()).reduce((sum, count) => sum + count, 0);
+    const overallOccurrences = Array.from(cmsStats.values()).reduce((sum, urlSet) => sum + urlSet.size, 0);
     const overallFrequency = overallOccurrences / totalSites;
     
     const perCMSFrequency: Record<string, { frequency: number; occurrences: number; totalSitesForCMS: number }> = {};
     
     // Calculate per-CMS frequencies
     for (const [cms, distribution] of Object.entries(cmsDistribution)) {
-      const occurrencesInCMS = cmsStats.get(cms) || 0;
+      const urlSet = cmsStats.get(cms);
+      const occurrencesInCMS = urlSet ? urlSet.size : 0;
       const totalSitesForCMS = distribution.count;
       const frequency = totalSitesForCMS > 0 ? occurrencesInCMS / totalSitesForCMS : 0;
       
@@ -245,30 +280,6 @@ function analyzeHeaderCMSCorrelations(
   return correlations;
 }
 
-/**
- * Process headers for CMS correlation analysis
- */
-function processHeadersForCorrelation(
-  headers: Record<string, string> | undefined | null,
-  cms: string,
-  headerStats: Map<string, Map<string, number>>
-): void {
-  // Guard against undefined/null headers
-  if (!headers || typeof headers !== 'object') {
-    return;
-  }
-  
-  for (const headerName of Object.keys(headers)) {
-    const normalizedName = headerName.toLowerCase().trim();
-    
-    if (!headerStats.has(normalizedName)) {
-      headerStats.set(normalizedName, new Map());
-    }
-    
-    const cmsStats = headerStats.get(normalizedName)!;
-    cmsStats.set(cms, (cmsStats.get(cms) || 0) + 1);
-  }
-}
 
 /**
  * Calculate how specific a header is to particular platforms
@@ -363,4 +374,110 @@ function assessRecommendationConfidence(
   }
   
   return { recommendationConfidence, biasWarning };
+}
+
+/**
+ * Check if header is enterprise/infrastructure related (not CMS-specific)
+ */
+export function isEnterpriseInfrastructureHeader(headerName: string): boolean {
+  const enterprisePatterns = [
+    // Caching infrastructure
+    'pragma',
+    'cache-control',
+    'expires',
+    'age',
+    'etag',
+    'last-modified',
+    'if-modified-since',
+    'if-none-match',
+    
+    // CDN and load balancing
+    'via',
+    'x-cache',
+    'x-cache-hits',
+    'x-served-by',
+    'x-timer',
+    'cf-ray',
+    'cf-cache-status',
+    'x-amz-cf-id',
+    'x-amz-cf-pop',
+    'x-forwarded-for',
+    'x-real-ip',
+    
+    // Connection management
+    'connection',
+    'keep-alive',
+    'upgrade',
+    'transfer-encoding',
+    
+    // Enterprise security
+    'strict-transport-security',
+    'content-security-policy',
+    'x-content-type-options',
+    'x-frame-options',
+    'x-xss-protection',
+    'referrer-policy',
+    'permissions-policy',
+    'cross-origin-opener-policy',
+    'cross-origin-embedder-policy',
+    
+    // Generic server info
+    'server',
+    'content-type',
+    'content-length',
+    'content-encoding',
+    'content-language',
+    'accept-ranges',
+    'vary',
+    'date'
+  ];
+  
+  const normalized = headerName.toLowerCase().trim();
+  return enterprisePatterns.some(pattern => 
+    normalized === pattern || normalized.startsWith(pattern + ':')
+  );
+}
+
+/**
+ * Calculate website category based on headers and detection results
+ */
+export function calculateWebsiteCategory(
+  headers: Record<string, string> | undefined,
+  detectionResults: any[] | undefined
+): 'cms' | 'enterprise' | 'cdn' | 'unknown' {
+  // If CMS was detected with reasonable confidence, categorize as CMS
+  if (detectionResults && detectionResults.length > 0) {
+    const bestDetection = detectionResults
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    if (bestDetection && bestDetection.confidence > 0.3 && bestDetection.cms !== 'Unknown') {
+      return 'cms';
+    }
+  }
+  
+  if (!headers) return 'unknown';
+  
+  // Check for enterprise infrastructure patterns
+  const headerNames = Object.keys(headers).map(h => h.toLowerCase());
+  
+  // CDN indicators
+  const cdnHeaders = ['cf-ray', 'x-amz-cf-id', 'x-served-by', 'x-cache', 'via'];
+  const cdnCount = cdnHeaders.filter(h => headerNames.includes(h)).length;
+  
+  // Enterprise infrastructure indicators  
+  const enterpriseHeaders = ['x-frame-options', 'content-security-policy', 'strict-transport-security', 'x-content-type-options'];
+  const enterpriseCount = enterpriseHeaders.filter(h => headerNames.includes(h)).length;
+  
+  // Advanced caching indicators
+  const cachingHeaders = ['pragma', 'age', 'x-cache-hits', 'x-timer'];
+  const cachingCount = cachingHeaders.filter(h => headerNames.includes(h)).length;
+  
+  if (cdnCount >= 2 || cachingCount >= 2) {
+    return 'enterprise'; // Likely major website with CDN/enterprise infrastructure
+  }
+  
+  if (enterpriseCount >= 2) {
+    return 'enterprise'; // Advanced security headers suggest enterprise setup
+  }
+  
+  return 'unknown';
 }
