@@ -206,3 +206,7 @@ node dist/index.js learn <url> --filter-level custom \
 ## Unit Testing Patterns (CRITICAL - Use Centralized test-utils)
 
 **IMPORTANT**: Always use the centralized test-utils system located in `src/test-utils/`. This eliminates duplicate mock code and ensures consistency across all tests.
+
+## Personal Information
+
+- My name is Mark
