@@ -418,8 +418,9 @@ function shouldKeepHeaderBiasAware(
     return true;
   }
   
-  // Keep headers that show moderate CMS correlation
-  if (topCMS && topCMS[1].frequency > 0.5 && correlation.platformSpecificity > 0.3) {
+  // Keep headers that show moderate CMS correlation - but require higher platform specificity
+  // to avoid false positives from universally used headers that appear more in biased datasets
+  if (topCMS && topCMS[1].frequency > 0.6 && correlation.platformSpecificity > 0.45) {
     return true;
   }
   
