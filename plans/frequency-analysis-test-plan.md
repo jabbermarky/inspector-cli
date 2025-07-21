@@ -94,6 +94,135 @@ describe('Semantic Analysis Integration Flow', () => {
 - Frequency calculation accuracy
 - Error handling for malformed scripts
 
+#### 2.3 Bias-Aware Recommender Test Overhaul (CRITICAL)
+**File**: `src/frequency/__tests__/recommender-bias-aware.test.ts`
+
+**CRITICAL ISSUES IDENTIFIED**:
+- ❌ Hardcoded platformSpecificity values (0.75) don't match calculations (0.385)
+- ❌ 13+ instances of fabricated test data instead of real calculations
+- ❌ Missing platforms (Duda, Shopify, etc.) in coefficient of variation calculations
+- ❌ No validation against external ground truth data
+- ❌ Test creates false confidence by using incorrect mathematical values
+
+**Required Test Additions**:
+
+```typescript
+describe('Mathematical Calculation Validation', () => {
+  it('should calculate platform specificity using real coefficient of variation formula', () => {
+    // Test with known input data
+    const perCMSFrequency = {
+      'Joomla': { frequency: 0.88 },
+      'WordPress': { frequency: 0.40 },
+      'Drupal': { frequency: 0.43 }
+    };
+    
+    // Let the real function calculate - NO HARDCODED VALUES
+    const result = calculatePlatformSpecificity(perCMSFrequency);
+    
+    // Verify against manual calculation: (0.2195 / 0.57) = 0.385
+    expect(result).toBeCloseTo(0.385, 2);
+    expect(result).not.toEqual(0.75); // Expose the hardcoded value error
+  });
+
+  it('should include ALL platforms in specificity calculations', () => {
+    const perCMSFrequency = {
+      'Joomla': { frequency: 0.88 },
+      'WordPress': { frequency: 0.40 },
+      'Drupal': { frequency: 0.43 },
+      'Duda': { frequency: 0.30 },
+      'Shopify': { frequency: 0.35 },
+      'Unknown': { frequency: 0.25 }
+    };
+    
+    const result = calculatePlatformSpecificity(perCMSFrequency);
+    
+    // With more platforms, specificity should be ~0.47, not 0.385
+    expect(result).toBeCloseTo(0.47, 2);
+  });
+});
+
+describe('Ground Truth Validation', () => {
+  it('should validate universal headers against external data', () => {
+    // Test set-cookie against webtechsurvey.com data showing 21M+ sites use it
+    const setCookieCorrelation = analyzeHeader('set-cookie', realWorldData);
+    
+    // Should be flagged as universal, not platform-specific
+    expect(setCookieCorrelation.isUniversal).toBe(true);
+    expect(setCookieCorrelation.platformSpecificity).toBeLessThan(0.6);
+    expect(setCookieCorrelation.recommendAction).toBe('filter');
+  });
+
+  it('should validate platform-specific headers correctly', () => {
+    // Test x-pingback which is genuinely WordPress-specific
+    const xPingbackCorrelation = analyzeHeader('x-pingback', realWorldData);
+    
+    expect(xPingbackCorrelation.isUniversal).toBe(false);
+    expect(xPingbackCorrelation.platformSpecificity).toBeGreaterThan(0.8);
+    expect(xPingbackCorrelation.recommendAction).toBe('keep');
+  });
+});
+
+describe('Dataset Bias Detection', () => {
+  it('should detect sampling bias in frequency data', () => {
+    // Test case where high Joomla representation skews set-cookie frequency
+    const biasedDataset = createBiasedDataset({
+      'Joomla': 70,    // Overrepresented
+      'WordPress': 15,
+      'Drupal': 15
+    });
+    
+    const bias = detectDatasetBias(biasedDataset);
+    
+    expect(bias.concentrationScore).toBeGreaterThan(0.6);
+    expect(bias.biasWarnings).toContain('Dataset heavily skewed toward Joomla');
+    expect(bias.recommendationConfidence).toBe('low');
+  });
+});
+
+describe('Realistic Test Data Generation', () => {
+  it('should use calculated values not hardcoded ones', () => {
+    // Generate test data by running real calculation functions
+    const testData = generateTestData({
+      platforms: ['WordPress', 'Drupal', 'Joomla', 'Duda', 'Shopify'],
+      headerFrequencies: {
+        'set-cookie': { WordPress: 0.95, Drupal: 0.92, Joomla: 0.88, Duda: 0.85, Shopify: 0.90 }
+      }
+    });
+    
+    // Verify calculations match expected mathematical results
+    expect(testData.platformSpecificity).toBeCloseTo(0.08, 2); // Universal header
+    expect(testData.recommendAction).toBe('filter');
+  });
+});
+
+describe('Confidence Interval Testing', () => {
+  it('should adjust confidence based on dataset size', () => {
+    const smallDataset = generateTestData({ siteCount: 10 });
+    const largeDataset = generateTestData({ siteCount: 1000 });
+    
+    expect(smallDataset.recommendationConfidence).toBe('low');
+    expect(largeDataset.recommendationConfidence).toBe('high');
+  });
+});
+```
+
+**Test Data Strategy Overhaul**:
+```typescript
+// NEVER use hardcoded platformSpecificity values
+// ALWAYS calculate using real functions
+
+// ❌ WRONG - Fabricated data
+const badTest = {
+  platformSpecificity: 0.75 // Hardcoded lie
+};
+
+// ✅ RIGHT - Real calculation
+const goodTest = {
+  perCMSFrequency: realFrequencyData,
+  // Let calculatePlatformSpecificity() determine the value
+};
+```
+
 ### Phase 3: Edge Case and Error Handling (Medium Priority)
 
 #### 3.1 Data Validation Tests
@@ -173,7 +302,52 @@ expect(headerPatterns instanceof Map).toBe(true);
 expect(Array.from(headerPatterns.keys())).toContain('server');
 ```
 
+## URGENT: Bias-Aware Recommender Test Crisis
+
+### Impact Assessment
+**CRITICAL SEVERITY**: The current bias-aware recommender test suite has **ZERO mathematical validity**
+
+**Examples of Fabricated Data**:
+- Line 65: `platformSpecificity: 0.75` (claimed) vs `0.385` (actual calculation)
+- Line 78: `platformSpecificity: 0.72` (fabricated)
+- Line 91: `platformSpecificity: 0.95` (fabricated) 
+- **13+ instances** of hardcoded mathematical lies throughout the test
+
+**Production Impact**:
+- ✅ Tests pass with fabricated data
+- ❌ Production recommendations are mathematically incorrect
+- ❌ Universal headers like `set-cookie` incorrectly flagged as platform-specific
+- ❌ No validation against 21M+ websites using `set-cookie` (webtechsurvey.com)
+
+**Immediate Actions Required**:
+1. **STOP using current bias-aware recommender tests** - they provide false confidence
+2. **Audit all 13+ hardcoded `platformSpecificity` values** in the test file
+3. **Replace fabricated data with calculated values** using real functions
+4. **Add ground truth validation** against external web usage data
+5. **Include ALL platforms** (Duda, Shopify, etc.) in calculations, not just 3
+
 ## Test Execution Plan
+
+### PHASE 0: Emergency Bias-Aware Test Fix (Days 1-2)
+**HIGHEST PRIORITY - Must complete before any other testing**
+
+1. **Mathematical Calculation Audit**:
+   ```bash
+   # Find all hardcoded platformSpecificity values
+   grep -n "platformSpecificity:" src/frequency/__tests__/recommender-bias-aware.test.ts
+   # Expected: 13+ hardcoded values that need replacement
+   ```
+
+2. **Replace Fabricated Test Data**:
+   - Remove ALL hardcoded `platformSpecificity` values
+   - Use real `calculatePlatformSpecificity()` function calls
+   - Include complete platform coverage (6+ platforms, not 3)
+   - Add ground truth validation fixtures
+
+3. **Validation Against External Data**:
+   - Create test fixtures with webtechsurvey.com header usage data
+   - Validate universal headers (set-cookie: 21M+ sites) are correctly identified
+   - Validate platform-specific headers (x-pingback: WordPress only) are correctly identified
 
 ### Phase 1 Execution (Week 1)
 1. Create analyzer integration tests
@@ -248,4 +422,74 @@ src/frequency/__tests__/
 - **Performance Tests**: Load and scale testing
 - **Accuracy Tests**: Validation against known correct results
 
-This comprehensive test plan addresses the critical gaps that allowed the semantic analysis production bug to occur while establishing a robust testing foundation for the frequency analysis module.
+## CRITICAL SUMMARY: Test Plan Priority
+
+### Phase 0 (Emergency): Bias-Aware Recommender Test Crisis
+**Status**: 🚨 **CRITICAL** - Current tests provide false confidence with fabricated mathematical values
+
+**What's Broken**:
+- Test hardcodes `platformSpecificity: 0.75` but calculation yields `0.385`  
+- 13+ instances of mathematical lies in test data
+- Production recommendations are mathematically invalid
+- Universal headers incorrectly flagged as platform-specific
+
+**Fix Required**: Replace ALL hardcoded values with real calculations, add ground truth validation
+
+### Implementation Guidance
+
+#### Creating Valid Test Data
+```typescript
+// ✅ CORRECT: Use real calculation functions
+describe('Platform Specificity Calculation', () => {
+  it('should calculate specificity correctly for set-cookie', () => {
+    const realData = {
+      perCMSFrequency: {
+        'Joomla': { frequency: 0.88 },
+        'WordPress': { frequency: 0.40 },
+        'Drupal': { frequency: 0.43 },
+        'Duda': { frequency: 0.30 },      // Include ALL platforms
+        'Shopify': { frequency: 0.35 },
+        'Unknown': { frequency: 0.25 }
+      }
+    };
+    
+    // Let the REAL function calculate - never hardcode
+    const result = calculatePlatformSpecificity(realData.perCMSFrequency);
+    
+    // Test against manually verified calculation
+    expect(result).toBeCloseTo(0.47, 2); // NOT 0.75!
+    
+    // Verify recommendation logic
+    const recommendation = shouldKeepHeaderBiasAware('set-cookie', {
+      ...otherCorrelationData,
+      platformSpecificity: result  // Use calculated value
+    });
+    
+    expect(recommendation).toBe(false); // Universal header should be filtered
+  });
+});
+
+// ❌ WRONG: Never use fabricated mathematical values
+const brokenTest = {
+  platformSpecificity: 0.75  // Mathematical lie - creates false confidence
+};
+```
+
+#### Ground Truth Integration
+```typescript
+// Add external validation against known web usage data
+describe('Ground Truth Validation', () => {
+  const webTechSurveyData = {
+    'set-cookie': { sites: 21000000, percentage: 95.2 }, // webtechsurvey.com
+    'content-type': { sites: 22000000, percentage: 99.8 },
+    'x-pingback': { sites: 15000, percentage: 0.07 }     // WordPress only
+  };
+  
+  it('should correctly identify universal headers', () => {
+    // set-cookie used by 21M+ sites - should be flagged as universal
+    expect(analyzeHeader('set-cookie').isUniversal).toBe(true);
+  });
+});
+```
+
+This comprehensive test plan addresses both the critical bias-aware recommender mathematical crisis and the original semantic analysis production bug, establishing a robust foundation for the frequency analysis module with mathematical validity and real-world validation.
