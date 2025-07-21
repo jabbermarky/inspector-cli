@@ -100,6 +100,7 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
           const reason = useBiasAware
             ? getKeepReasonBiasAware(correlation, totalFrequency, diversity)
             : getKeepReason(totalFrequency, diversity, maxFrequency);
+          
           recommendToKeep.push({
             pattern: headerName,
             reason,
@@ -140,13 +141,56 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
     const aCorr = biasAnalysis.headerCorrelations.get(a.pattern);
     const bCorr = biasAnalysis.headerCorrelations.get(b.pattern);
     if (!aCorr || !bCorr) return a.frequency - b.frequency;
-    return bCorr.platformSpecificity - aCorr.platformSpecificity;
+    
+    // Primary sort: Platform specificity (higher first)
+    if (Math.abs(bCorr.platformSpecificity - aCorr.platformSpecificity) > 0.01) {
+      return bCorr.platformSpecificity - aCorr.platformSpecificity;
+    }
+    
+    // Secondary sort for ties: Prefer platform-prefix headers
+    const aIsPlatformPrefix = isPlatformPrefixHeader(a.pattern);
+    const bIsPlatformPrefix = isPlatformPrefixHeader(b.pattern);
+    if (aIsPlatformPrefix !== bIsPlatformPrefix) {
+      return bIsPlatformPrefix ? 1 : -1; // Platform prefix headers first
+    }
+    
+    // Tertiary sort: Higher frequency first
+    return b.frequency - a.frequency;
   });
+  
+  // Separate platform-specific headers from general recommendations
+  // Include both prefix-based headers AND bias-aware platform-specific headers
+  const platformSpecificHeaders = recommendToKeep.filter(r => {
+    const hasPrefix = isPlatformPrefixHeader(r.pattern);
+    const correlation = biasAnalysis.headerCorrelations.get(r.pattern);
+    const hasPlatformSpecificity = correlation && correlation.platformSpecificity > 0.8; // Very high threshold
+    
+    return hasPrefix || hasPlatformSpecificity;
+  });
+  const generalHeaders = recommendToKeep.filter(r => {
+    const hasPrefix = isPlatformPrefixHeader(r.pattern);
+    const correlation = biasAnalysis.headerCorrelations.get(r.pattern);
+    const hasPlatformSpecificity = correlation && correlation.platformSpecificity > 0.8;
+    
+    return !hasPrefix && !hasPlatformSpecificity;
+  });
+  
+  
+  // Always include ALL platform-specific headers, then add up to 10 general headers
+  // If there are 10+ platform headers, we exceed the normal limit to ensure they're all included
+  const maxGeneralHeaders = 10; // Always allow up to 10 general headers in addition to platform-specific
+  const finalKeepRecommendations = [
+    ...platformSpecificHeaders,
+    ...generalHeaders.slice(0, maxGeneralHeaders)
+  ];
+  
+  // If we have more platform-specific headers than the normal limit, we exceed 10
+  // This ensures ALL platform-specific headers are always included
   
   return {
     currentlyFiltered: currentlyFiltered as string[],
     recommendToFilter: recommendToFilter.slice(0, 10), // Top 10
-    recommendToKeep: recommendToKeep.slice(0, 10) // Top 10
+    recommendToKeep: finalKeepRecommendations // All platform-specific + up to 10 total
   };
 }
 
@@ -411,8 +455,13 @@ function shouldKeepHeaderBiasAware(
     return true;
   }
   
-  // Platform prefix patterns should be kept if they show any specificity
-  if (isPlatformPrefixHeader(headerName) && correlation.platformSpecificity > 0.3) {
+  // Check for CMS names in header values (e.g., "powered-by: Shopify" or "server: Drupal/9.0")
+  if (hasCMSNameInHeaderValue(headerName, correlation)) {
+    return true;
+  }
+  
+  // Platform prefix patterns should ALWAYS be kept - the prefix itself indicates platform specificity
+  if (isPlatformPrefixHeader(headerName)) {
     return true;
   }
   
@@ -518,18 +567,85 @@ function isPlatformPrefixHeader(headerName: string): boolean {
   const platformPrefixes = [
     'd-',           // Duda
     'x-wix-',       // Wix
-    'x-wp-',        // WordPress
-    'x-shopify-',   // Shopify
-    'x-drupal-',    // Drupal
-    'x-joomla-',    // Joomla
+    'x-wp-',        // WordPress (standard prefix)
+    'x-shopify-',   // Shopify (with x- prefix)
+    'shopify-',     // Shopify (standalone prefix)
+    'x-drupal-',    // Drupal (with x- prefix)
+    'drupal-',      // Drupal (standalone prefix)
+    'x-joomla-',    // Joomla (with x- prefix)
+    'joomla-',      // Joomla (standalone prefix - real-world usage)
     'x-ghost-',     // Ghost
     'x-squarespace-', // Squarespace
     'x-webflow-',   // Webflow
     'x-kong-',      // Kong Gateway
     'x-nf-',        // Netlify
     'x-vercel-',    // Vercel
-    'x-bz-'         // Unknown platform
+    'x-bz-',        // Unknown platform
+    'x-magento-',   // Magento
+    'x-prestashop-', // PrestaShop
+    'x-opencart-',  // OpenCart
+    'wc-',          // WooCommerce
+    'edd-'          // Easy Digital Downloads
   ];
   
   return platformPrefixes.some(prefix => headerName.toLowerCase().startsWith(prefix));
+}
+
+/**
+ * Check if header value contains CMS/platform names that would make it discriminative
+ */
+function hasCMSNameInHeaderValue(headerName: string, correlation: HeaderCMSCorrelation): boolean {
+  const cmsNames = [
+    'wordpress', 'wp',
+    'drupal',
+    'joomla', 'joomla!',
+    'shopify',
+    'wix',
+    'squarespace',
+    'duda',
+    'ghost',
+    'webflow',
+    'magento',
+    'prestashop',
+    'opencart',
+    'laravel',
+    'django',
+    'rails'
+  ];
+  
+  // Check for high correlation with specific CMS that would indicate CMS-specific values
+  const topCMS = Object.entries(correlation.perCMSFrequency)
+    .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+  
+  // If there's strong correlation with a specific CMS (>60%), this header likely contains CMS-specific values
+  if (topCMS && topCMS[1].frequency > 0.6) {
+    return true;
+  }
+  
+  // Check if header name suggests it might contain CMS info (common header patterns)
+  const cmsIndicatingHeaders = [
+    'powered-by', 'x-powered-by',
+    'generator', 'x-generator', 
+    'server',
+    'x-cms', 'cms',
+    'x-framework', 'framework',
+    'x-application', 'application',
+    'x-platform', 'platform',
+    'content-encoded-by',    // Common Joomla header pattern
+    'content-powered-by',    // Common Joomla header pattern
+    'nginx-cache'            // Common WordPress caching header pattern
+  ];
+  
+  // Use substring matching to catch variations like x-content-encoded-by, x-nginx-cache, etc.
+  const matchesCMSPattern = cmsIndicatingHeaders.some(pattern => 
+    headerName.toLowerCase().includes(pattern)
+  );
+  
+  
+  if (matchesCMSPattern && correlation.platformSpecificity > 0.4) {
+    return true;
+  }
+  
+  return false;
 }
