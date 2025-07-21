@@ -71,6 +71,30 @@ export const GENERIC_HTTP_HEADERS = new Set([
     'surrogate-control', // Generic CDN caching - not discriminative
     'x-request-id',     // Unique request identifier - not discriminative
     'x-dc',             // Datacenter location - not discriminative
+    
+    // Additional infrastructure headers (based on RFC standards)
+    'te',               // Transfer encoding preferences - infrastructure
+    'trailer',          // Trailer field names - HTTP protocol
+    'warning',          // Additional response information - infrastructure
+    'authorization',    // Authentication credentials - infrastructure
+    'proxy-authenticate', // Proxy authentication challenge - infrastructure
+    'proxy-authorization', // Proxy authentication credentials - infrastructure
+    'range',            // Partial content request - client behavior
+    'if-match',         // Entity tag matching - conditional request
+    'if-unmodified-since', // Inverse conditional check - client behavior
+    'content-disposition', // File download handling - universal behavior
+    'content-md5',      // Content integrity check (deprecated) - universal
+    'content-location', // Resource location - infrastructure
+    'expect-ct',        // Certificate transparency - security infrastructure
+    'x-download-options', // IE download security - universal security
+    'x-permitted-cross-domain-policies', // Flash security policy - universal
+    'x-forwarded-for',  // Proxy IP forwarding - infrastructure
+    'x-forwarded-host', // Original host header - infrastructure  
+    'x-forwarded-proto', // Original protocol (HTTP/HTTPS) - infrastructure
+    'x-real-ip',        // Real client IP (reverse proxy) - infrastructure
+    'forwarded',        // RFC 7239 proxy information - infrastructure
+    'public-key-pins',  // Certificate pinning (deprecated) - security infrastructure
+    'public-key-pins-report-only', // HPKP reporting - security infrastructure
 ]);
 
 const UNIVERSAL_META_TAGS = new Set([

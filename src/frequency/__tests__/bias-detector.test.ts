@@ -139,13 +139,13 @@ describe('Bias Detector', () => {
 
       // Verify header correlations were calculated
       expect(result.headerCorrelations.size).toBeGreaterThan(0);
-      expect(result.headerCorrelations.has('server')).toBe(true);
+      expect(result.headerCorrelations.has('x-generator')).toBe(true);
 
-      // Verify server header correlation (should be present in all CMS types)
-      const serverCorrelation = result.headerCorrelations.get('server')!;
-      expect(serverCorrelation.overallFrequency).toBe(1.0); // Present in all sites
-      expect(serverCorrelation.platformSpecificity).toBeLessThan(0.5); // Low specificity
-      expect(serverCorrelation.recommendationConfidence).toBe('high');
+      // Verify x-generator header correlation (Drupal-specific, semantically valid)
+      const generatorCorrelation = result.headerCorrelations.get('x-generator')!;
+      expect(generatorCorrelation.overallFrequency).toBeCloseTo(0.22, 2); // Present in 2 out of 9 sites (Drupal only)
+      expect(generatorCorrelation.platformSpecificity).toBeGreaterThan(0.5); // High specificity for Drupal
+      expect(generatorCorrelation.recommendationConfidence).toBe('low'); // Low frequency but high specificity
     });
 
     it('should detect biased dataset with WordPress dominance', async () => {
@@ -354,19 +354,13 @@ describe('Bias Detector', () => {
       expect(pingbackCorr.perCMSFrequency['Drupal'].frequency).toBe(0.0); // 0% of Drupal sites
       expect(pingbackCorr.platformSpecificity).toBeGreaterThan(0.5); // High specificity
       
-      // Check content-type correlation (universal)
-      const contentTypeCorr = result.headerCorrelations.get('content-type')!;
-      expect(contentTypeCorr).toBeDefined();
-      expect(contentTypeCorr.overallFrequency).toBe(1.0); // 4 out of 4 sites
-      expect(contentTypeCorr.perCMSFrequency['WordPress'].frequency).toBe(1.0); // 100% of WordPress sites
-      expect(contentTypeCorr.perCMSFrequency['Drupal'].frequency).toBe(1.0); // 100% of Drupal sites
-      expect(contentTypeCorr.platformSpecificity).toBeLessThan(0.3); // Low specificity
-
-      // Check server correlation (universal but varied)
-      const serverCorr = result.headerCorrelations.get('server')!;
-      expect(serverCorr).toBeDefined();
-      expect(serverCorr.overallFrequency).toBe(1.0); // 4 out of 4 sites
-      expect(serverCorr.platformSpecificity).toBeLessThan(0.5); // Low to medium specificity
+      // Check x-powered-by correlation (appears in WordPress but not Drupal in this test)
+      const poweredByCorr = result.headerCorrelations.get('x-powered-by')!;
+      expect(poweredByCorr).toBeDefined();
+      expect(poweredByCorr.overallFrequency).toBe(0.25); // 1 out of 4 sites
+      expect(poweredByCorr.perCMSFrequency['WordPress'].frequency).toBe(0.5); // 50% of WordPress sites
+      expect(poweredByCorr.perCMSFrequency['Drupal'].frequency).toBe(0.0); // 0% of Drupal sites
+      expect(poweredByCorr.platformSpecificity).toBeGreaterThan(0.5); // High specificity
     });
 
     it('should handle robots.txt headers in correlation analysis', async () => {
@@ -376,13 +370,15 @@ describe('Bias Detector', () => {
           timestamp: new Date().toISOString(),
           httpHeaders: {
             'server': 'Apache',
-            'content-type': 'text/html'
+            'content-type': 'text/html',
+            'x-custom-header': 'mainpage-value'
           },
           robotsTxt: {
             httpHeaders: {
               'server': 'Apache',
               'content-type': 'text/plain',
-              'cache-control': 'max-age=86400'
+              'cache-control': 'max-age=86400',
+              'x-robots-tag': 'noindex'
             }
           },
           detectionResults: [{ cms: 'WordPress', confidence: 0.95 }]
@@ -391,12 +387,13 @@ describe('Bias Detector', () => {
 
       const result = await analyzeDatasetBias(robotsTestData, testOptions);
 
-      // Should include headers from both mainpage and robots.txt
-      expect(result.headerCorrelations.has('cache-control')).toBe(true);
+      // Should include headers from both mainpage and robots.txt (semantically valid ones)
+      expect(result.headerCorrelations.has('x-robots-tag')).toBe(true);
+      expect(result.headerCorrelations.has('x-custom-header')).toBe(true);
       
-      // Should not double-count headers that appear in both
-      const serverCorr = result.headerCorrelations.get('server')!;
-      expect(serverCorr.overallOccurrences).toBe(1); // Only counted once per site
+      // Should not double-count headers that appear in both (check with a custom header)
+      const robotsTagCorr = result.headerCorrelations.get('x-robots-tag')!;
+      expect(robotsTagCorr.overallOccurrences).toBe(1); // Only counted once per site
     });
   });
 

@@ -316,6 +316,13 @@ function shouldFilterHeaderBiasAware(
   frequency: number, 
   diversity: number
 ): boolean {
+  // FIRST: Check if it's a standard HTTP header that can NEVER be discriminative
+  // Standard headers with structured values (dates, numbers, booleans) are determined 
+  // by infrastructure, not CMS choice, so they should ALWAYS be filtered
+  if (GENERIC_HTTP_HEADERS.has(headerName.toLowerCase())) {
+    return true; // Standard HTTP headers are NEVER discriminative for CMS detection
+  }
+
   // NEVER filter headers with strong CMS correlation regardless of confidence
   const topCMS = Object.entries(correlation.perCMSFrequency)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
@@ -377,6 +384,12 @@ function shouldKeepHeaderBiasAware(
   frequency: number, 
   diversity: number
 ): boolean {
+  // FIRST: Check if it's a standard HTTP header that can NEVER be discriminative
+  // Standard headers with structured values are determined by infrastructure, not CMS
+  if (GENERIC_HTTP_HEADERS.has(headerName.toLowerCase())) {
+    return false; // Standard HTTP headers are NEVER worth keeping for CMS discrimination
+  }
+
   // Strongly recommend keeping headers with high CMS correlation
   const topCMS = Object.entries(correlation.perCMSFrequency)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))

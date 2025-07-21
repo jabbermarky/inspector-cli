@@ -1,4 +1,5 @@
 import { createModuleLogger } from '../utils/logger.js';
+import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-bias-detector');
@@ -214,7 +215,13 @@ function analyzeHeaderCMSCorrelations(
     }
     
     // Record this site as having each unique header for this CMS
+    // SEMANTIC FILTERING: Exclude standard HTTP headers that can never be discriminative
     for (const headerName of uniqueHeaders) {
+      // Skip standard HTTP infrastructure headers - they cannot be discriminative for CMS detection
+      if (GENERIC_HTTP_HEADERS.has(headerName)) {
+        continue;
+      }
+      
       if (!headerStats.has(headerName)) {
         headerStats.set(headerName, new Map());
       }
