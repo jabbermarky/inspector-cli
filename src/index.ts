@@ -5,11 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import process from 'process';
-import figlet from 'figlet';
 
 process.removeAllListeners('warning');
-// Banner output is appropriate for CLI applications
-console.log(figlet.textSync('Inspector CLI'));
 
 import { program } from "commander";
 
@@ -34,10 +31,14 @@ import './commands/learn.js';
 import './commands/frequency.js';
 import './commands/models.js';
 
+import figlet from 'figlet';
+
 program.parse(process.argv);
 program.showHelpAfterError();
 
 if (!process.argv.slice(2).length) {
+    // Banner output is appropriate for CLI applications
+    console.log(figlet.textSync('Inspector CLI'));
     program.outputHelp();
 }
 
