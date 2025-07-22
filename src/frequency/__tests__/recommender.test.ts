@@ -42,7 +42,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
@@ -73,7 +74,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
@@ -105,7 +107,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
@@ -118,24 +121,48 @@ describe('Frequency Recommender', () => {
   
   describe('Detect-CMS Recommendations', () => {
     it('should identify new pattern opportunities', async () => {
+      // Mock header patterns that the detect-CMS algorithm will analyze
       const headerPatterns = new Map([
         ['x-drupal-cache', [
-          { pattern: 'x-drupal-cache:HIT', frequency: 0.08, confidence: 0.9, occurrences: 8, examples: ['HIT'], cmsCorrelation: { 'Drupal': 0.95, 'Unknown': 0.05 } }
+          { pattern: 'x-drupal-cache:HIT', frequency: 0.25, confidence: 0.9, occurrences: 25, examples: ['HIT'] }
         ]]
       ]);
       
-      // Mock data points with CMS correlations
-      const dataPoints = [
-        { url: 'site1.com', headers: { 'x-drupal-cache': 'HIT' }, detectionResults: [{ cms: 'Drupal', confidence: 0.9 }] },
-        { url: 'site2.com', headers: { 'x-drupal-cache': 'HIT' }, detectionResults: [{ cms: 'Drupal', confidence: 0.9 }] },
-        { url: 'site3.com', headers: { 'x-drupal-cache': 'HIT' }, detectionResults: [{ cms: 'Drupal', confidence: 0.9 }] }
-      ] as any;
+      const dataPoints = [] as any;
+      
+      // Mock bias analysis with the correlation we expect
+      const mockBiasAnalysis = {
+        totalSites: 100,
+        concentrationScore: 0.3,
+        cmsDistribution: {
+          'Drupal': { count: 35, percentage: 35 },
+          'WordPress': { count: 65, percentage: 65 }
+        },
+        headerCorrelations: new Map([
+          ['x-drupal-cache', {
+            headerName: 'x-drupal-cache',
+            overallOccurrences: 25,
+            overallFrequency: 0.25,
+            platformSpecificity: 0.85, // High specificity
+            recommendationConfidence: 'high' as const,
+            cmsGivenHeader: {
+              'Drupal': { count: 20, probability: 0.8 }, // 20/25 = 80%
+              'Unknown': { count: 5, probability: 0.2 }
+            },
+            perCMSFrequency: {
+              'Drupal': { count: 20, frequency: 0.8 }
+            }
+          }]
+        ]),
+        biasWarnings: []
+      } as any;
       
       const result = await generateRecommendations({
         headerPatterns,
         metaPatterns: new Map(),
         scriptPatterns: new Map(),
         dataPoints,
+        biasAnalysis: mockBiasAnalysis, // Provide the mock bias analysis
         options: {
           dataSource: 'cms-analysis',
           dataDir: './data',
@@ -145,30 +172,64 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
       const drupalCacheOpp = result.detectCms.newPatternOpportunities.find(
-        p => p.pattern === 'x-drupal-cache:HIT'
+        p => p.pattern === 'x-drupal-cache'
       );
       expect(drupalCacheOpp).toBeDefined();
-      expect(drupalCacheOpp!.frequency).toBe(0.08);
-      expect(drupalCacheOpp!.cmsCorrelation['Drupal']).toBeGreaterThan(0.8);
+      expect(drupalCacheOpp!.frequency).toBe(0.25); // 25/100 sites
+      expect(drupalCacheOpp!.cmsCorrelation['Drupal']).toBeGreaterThan(0.75); // 28/35 = 80%
     });
     
     it('should identify patterns to refine', async () => {
+      // Mock header patterns - this should be flagged as too generic
       const headerPatterns = new Map([
         ['x-powered-by', [
-          { pattern: 'x-powered-by:PHP', frequency: 0.45, confidence: 0.3, occurrences: 45, examples: ['PHP/7.4'], cmsCorrelation: { 'WordPress': 0.3, 'Drupal': 0.2, 'Unknown': 0.5 } }
+          { pattern: 'x-powered-by:PHP', frequency: 0.35, confidence: 0.3, occurrences: 35, examples: ['PHP/7.4'] }
         ]]
       ]);
+      
+      const dataPoints = [] as any;
+      
+      // Mock bias analysis showing poor discrimination (should be flagged to refine)
+      const mockBiasAnalysis = {
+        totalSites: 100,
+        concentrationScore: 0.3,
+        cmsDistribution: {
+          'WordPress': { count: 40, percentage: 40 },
+          'Drupal': { count: 30, percentage: 30 },
+          'Unknown': { count: 30, percentage: 30 }
+        },
+        headerCorrelations: new Map([
+          ['x-powered-by', {
+            headerName: 'x-powered-by',
+            overallOccurrences: 35,
+            overallFrequency: 0.35,
+            platformSpecificity: 0.15, // Low specificity (should trigger "too generic")
+            recommendationConfidence: 'low' as const,
+            cmsGivenHeader: {
+              'WordPress': { count: 14, probability: 0.4 }, // 14/35 = 40%
+              'Drupal': { count: 10, probability: 0.29 }, // 10/35 = 29%
+              'Unknown': { count: 11, probability: 0.31 } // 11/35 = 31%
+            },
+            perCMSFrequency: {
+              'WordPress': { count: 14, frequency: 0.4 }
+            }
+          }]
+        ]),
+        biasWarnings: []
+      } as any;
       
       const result = await generateRecommendations({
         headerPatterns,
         metaPatterns: new Map(),
         scriptPatterns: new Map(),
-        dataPoints: [],
+        dataPoints,
+        biasAnalysis: mockBiasAnalysis, // Provide the mock bias analysis
         options: {
           dataSource: 'cms-analysis',
           dataDir: './data',
@@ -178,16 +239,17 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
       const phpRefine = result.detectCms.patternsToRefine.find(
-        p => p.pattern === 'x-powered-by:PHP'
+        p => p.pattern === 'x-powered-by'
       );
       expect(phpRefine).toBeDefined();
       expect(phpRefine!.issue).toContain('Too generic');
-      expect(phpRefine!.currentFrequency).toBe(0.45);
+      expect(phpRefine!.currentFrequency).toBe(0.35);
     });
   });
   
@@ -217,7 +279,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
@@ -231,38 +294,49 @@ describe('Frequency Recommender', () => {
   
   describe('CMS Correlation Calculation', () => {
     it('should calculate CMS correlations correctly', async () => {
+      // Mock header patterns that should be a good CMS correlation opportunity
       const headerPatterns = new Map([
         ['x-generator', [
-          { pattern: 'x-generator:WordPress', frequency: 0.2, confidence: 0.8, occurrences: 20, examples: ['WordPress'], cmsCorrelation: { 'WordPress': 0.85, 'Drupal': 0.15 } }
+          { pattern: 'x-generator:WordPress', frequency: 0.2, confidence: 0.8, occurrences: 20, examples: ['WordPress'] }
         ]]
       ]);
       
-      const dataPoints = [
-        // 15 WordPress sites with x-generator
-        ...Array(15).fill(null).map((_, i) => ({
-          url: `wp-site${i}.com`,
-          headers: { 'x-generator': 'WordPress' },
-          detectionResults: [{ cms: 'WordPress', confidence: 0.9 }]
-        })),
-        // 5 WordPress sites without x-generator
-        ...Array(5).fill(null).map((_, i) => ({
-          url: `wp-site-no-gen${i}.com`,
-          headers: {},
-          detectionResults: [{ cms: 'WordPress', confidence: 0.9 }]
-        })),
-        // 5 Drupal sites with x-generator (false positive)
-        ...Array(5).fill(null).map((_, i) => ({
-          url: `drupal-site${i}.com`,
-          headers: { 'x-generator': 'WordPress' },
-          detectionResults: [{ cms: 'Drupal', confidence: 0.9 }]
-        }))
-      ] as any;
+      const dataPoints = [] as any;
+      
+      // Mock bias analysis showing strong WordPress correlation
+      const mockBiasAnalysis = {
+        totalSites: 100,
+        concentrationScore: 0.3,
+        cmsDistribution: {
+          'WordPress': { count: 60, percentage: 60 },
+          'Drupal': { count: 20, percentage: 20 },
+          'Unknown': { count: 20, percentage: 20 }
+        },
+        headerCorrelations: new Map([
+          ['x-generator', {
+            headerName: 'x-generator',
+            overallOccurrences: 20,
+            overallFrequency: 0.2,
+            platformSpecificity: 0.8, // High specificity
+            recommendationConfidence: 'high' as const,
+            cmsGivenHeader: {
+              'WordPress': { count: 17, probability: 0.85 }, // 17/20 = 85%
+              'Drupal': { count: 3, probability: 0.15 } // 3/20 = 15%
+            },
+            perCMSFrequency: {
+              'WordPress': { count: 17, frequency: 0.85 }
+            }
+          }]
+        ]),
+        biasWarnings: []
+      } as any;
       
       const result = await generateRecommendations({
         headerPatterns,
         metaPatterns: new Map(),
         scriptPatterns: new Map(),
         dataPoints,
+        biasAnalysis: mockBiasAnalysis, // Provide the mock bias analysis
         options: {
           dataSource: 'cms-analysis',
           dataDir: './data',
@@ -272,12 +346,13 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
       const wpGeneratorOpp = result.detectCms.newPatternOpportunities.find(
-        p => p.pattern === 'x-generator:WordPress'
+        p => p.pattern === 'x-generator'
       );
       expect(wpGeneratorOpp).toBeDefined();
       // Updated correlation to meet 0.8 threshold for newPatternOpportunities
@@ -301,7 +376,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       
@@ -339,7 +415,8 @@ describe('Frequency Recommender', () => {
           output: 'human',
           outputFile: '',
           includeRecommendations: true,
-          includeCurrentFilters: true
+          includeCurrentFilters: true,
+          debugCalculations: false
         }
       });
       

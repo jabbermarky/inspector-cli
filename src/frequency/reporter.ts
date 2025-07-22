@@ -30,11 +30,11 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
       content = formatAsCSV(result);
       break;
     case 'markdown':
-      content = formatAsMarkdown(result);
+      content = formatAsMarkdown(result, options);
       break;
     case 'human':
     default:
-      content = formatAsHuman(result);
+      content = formatAsHuman(result, options);
       break;
   }
   
@@ -49,7 +49,7 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
 /**
  * Format results as human-readable report
  */
-function formatAsHuman(result: FrequencyResult): string {
+function formatAsHuman(result: FrequencyResult, options: FrequencyOptionsWithDefaults): string {
   const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
   
   let output = `# Frequency Analysis Report
@@ -163,7 +163,45 @@ Filter Reasons:
 `;
   }
 
-  // Recommendations
+  // Debug Mode: Calculation Audit Trail
+  if (options.debugCalculations && biasAnalysis) {
+    output += `## 🔧 Debug Mode: Calculation Audit Trail
+
+### Statistical Thresholds Applied
+- **Minimum Sample Size**: 30 sites (for strict discriminative scoring)
+- **Minimum CMS Concentration**: 40% (for discriminative headers)
+- **Platform Specificity Algorithm**: Two-tier (strict for ≥30 sites, coefficient of variation for <30 sites)
+
+### Header Correlation Details
+`;
+    
+    for (const [headerName, correlation] of biasAnalysis.headerCorrelations.entries()) {
+      if (correlation.overallOccurrences >= 5) { // Only show headers with reasonable sample size
+        output += `
+#### \`${headerName}\`
+- **Sample Size**: ${correlation.overallOccurrences} sites (${(correlation.overallFrequency * 100).toFixed(1)}% of dataset)
+- **Platform Specificity**: ${(correlation.platformSpecificity * 100).toFixed(1)}%
+- **Confidence Level**: ${correlation.recommendationConfidence}
+
+**P(CMS|header) Breakdown:**
+`;
+        
+        for (const [cms, data] of Object.entries(correlation.cmsGivenHeader)) {
+          if (data.count > 0) {
+            output += `- ${cms}: ${data.count}/${correlation.overallOccurrences} = ${(data.probability * 100).toFixed(1)}%\n`;
+          }
+        }
+        
+        if (correlation.biasWarning) {
+          output += `⚠️ **Bias Warning**: ${correlation.biasWarning}\n`;
+        }
+      }
+    }
+    
+    output += `\n---\n`;
+  }
+
+  // Recommendations with Calculation Transparency
   if (recommendations) {
     output += `## Recommendations
 
@@ -183,10 +221,103 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
     output += `
 #### Recommend to Keep:
 `;
-    for (const rec of recommendations.learn.recommendToKeep) {
-      const headerData = headers[rec.pattern];
-      const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
-      output += `- ${rec.pattern}: ${rec.reason} (${freqPercent}% frequency, ${rec.diversity} values)\n`;
+    
+    // Separate recommendations by confidence level
+    const highConfidence = recommendations.learn.recommendToKeep.filter(rec => {
+      if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+        const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+        return correlation.recommendationConfidence === 'high';
+      }
+      return false;
+    });
+    
+    const mediumConfidence = recommendations.learn.recommendToKeep.filter(rec => {
+      if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+        const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+        return correlation.recommendationConfidence === 'medium';
+      }
+      return false;
+    });
+    
+    const lowConfidence = recommendations.learn.recommendToKeep.filter(rec => {
+      if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+        const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+        return correlation.recommendationConfidence === 'low';
+      }
+      return true; // Default to low confidence if no bias analysis
+    });
+    
+    // High Confidence Recommendations
+    if (highConfidence.length > 0) {
+      output += `
+##### High Confidence Recommendations (${highConfidence.length})
+*Headers with strong statistical support for CMS detection*
+
+`;
+      for (const rec of highConfidence) {
+        const headerData = headers[rec.pattern];
+        const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
+        
+        let transparencyInfo = '';
+        if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+          const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+          const topCMS = Object.entries(correlation.cmsGivenHeader)
+            .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+            .sort(([, a], [, b]) => b.probability - a.probability)[0];
+          
+          if (topCMS && topCMS[1].probability > 0.1) {
+            const cmsPercent = Math.round(topCMS[1].probability * 100);
+            const cmsCount = topCMS[1].count;
+            transparencyInfo = ` | **${cmsCount}/${correlation.overallOccurrences} sites (${cmsPercent}%) are ${topCMS[0]}**`;
+          }
+        }
+        
+        output += `- **${rec.pattern}**: ${rec.reason}${transparencyInfo}\n`;
+      }
+    }
+    
+    // Medium Confidence Recommendations  
+    if (mediumConfidence.length > 0) {
+      output += `
+##### Medium Confidence Recommendations (${mediumConfidence.length})
+*Headers with moderate support - use with caution*
+
+`;
+      for (const rec of mediumConfidence) {
+        const headerData = headers[rec.pattern];
+        const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
+        
+        let transparencyInfo = '';
+        if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+          const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+          transparencyInfo = ` | ${correlation.overallOccurrences} sites total`;
+        }
+        
+        output += `- **${rec.pattern}**: ${rec.reason} (${freqPercent}% frequency)${transparencyInfo}\n`;
+      }
+    }
+    
+    // Low Confidence Recommendations
+    if (lowConfidence.length > 0) {
+      output += `
+##### Low Confidence Recommendations (${lowConfidence.length})
+*Headers flagged for future analysis when more data available*
+
+`;
+      for (const rec of lowConfidence) {
+        const headerData = headers[rec.pattern];
+        const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
+        
+        let warningInfo = '';
+        if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+          const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+          if (correlation.biasWarning) {
+            warningInfo = ` ⚠️ *${correlation.biasWarning}*`;
+          }
+        }
+        
+        output += `- **${rec.pattern}**: ${rec.reason} (${freqPercent}% frequency)${warningInfo}\n`;
+      }
     }
 
     output += `
@@ -562,7 +693,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
 /**
  * Format results as markdown with tables
  */
-function formatAsMarkdown(result: FrequencyResult): string {
+function formatAsMarkdown(result: FrequencyResult, options: FrequencyOptionsWithDefaults): string {
   const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
   
   let output = `# Frequency Analysis Report
@@ -683,6 +814,41 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
   // Scripts organized by classification
   output += formatScriptPatternsByClassification(scripts);
 
+  // Debug Mode for Markdown
+  if (options.debugCalculations && biasAnalysis) {
+    output += `## 🔧 Calculation Debug Information
+
+### P(CMS|header) Calculation Details
+
+| Header | Sample Size | Platform Specificity | Top CMS Correlation | Confidence | Bias Warning |
+|--------|-------------|---------------------|--------------------| -----------|--------------|
+`;
+    
+    for (const [headerName, correlation] of biasAnalysis.headerCorrelations.entries()) {
+      if (correlation.overallOccurrences >= 5) {
+        const topCMS = Object.entries(correlation.cmsGivenHeader)
+          .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+          .sort(([, a], [, b]) => b.probability - a.probability)[0];
+        
+        let topCMSDisplay = 'None';
+        if (topCMS && topCMS[1].probability > 0.05) {
+          topCMSDisplay = `${topCMS[1].count}/${correlation.overallOccurrences} = ${(topCMS[1].probability * 100).toFixed(1)}% ${topCMS[0]}`;
+        }
+        
+        const biasWarningDisplay = correlation.biasWarning || 'None';
+        
+        output += `| \`${headerName}\` | ${correlation.overallOccurrences} sites | ${(correlation.platformSpecificity * 100).toFixed(1)}% | ${topCMSDisplay} | ${correlation.recommendationConfidence} | ${biasWarningDisplay} |\n`;
+      }
+    }
+    
+    output += `\n### Statistical Thresholds\n\n`;
+    output += `- **Minimum Sample Size for Strict Scoring**: 30 sites\n`;
+    output += `- **Minimum CMS Concentration**: 40%\n`;
+    output += `- **Platform Specificity Calculation**: Two-tier algorithm\n`;
+    output += `- **Correlation Metric**: P(CMS|header) instead of P(header|CMS)\n\n`;
+    output += `---\n\n`;
+  }
+
   // Recommendations
   if (recommendations) {
     output += `## Recommendations
@@ -726,27 +892,44 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
 
 #### Recommend to Keep:
 
-| Header | Frequency | Sites Using | Unique Values | Top Value | Page Distribution | Recommendation |
-|--------|-----------|-------------|---------------|-----------|------------------|----------------|
+| Header | Frequency | Sites Using | CMS Correlation | Platform Specificity | Confidence | Recommendation |
+|--------|-----------|-------------|-----------------|---------------------|------------|----------------|
 `;
     for (const rec of recommendations.learn.recommendToKeep) {
       const headerData = headers[rec.pattern];
       const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
       
-      if (headerData) {
-        const topValue = headerData.values[0];
-        const topValueDisplay = topValue ? escapeMarkdownTableCell(topValue.value) : 'N/A';
+      // Calculate transparency columns
+      let cmsCorrelationDisplay = 'N/A';
+      let platformSpecificityDisplay = 'N/A';
+      let confidenceDisplay = 'Unknown';
+      
+      if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+        const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
         
-        let pageDistDisplay = 'N/A';
-        if (headerData.pageDistribution) {
-          const mainPercent = Math.round(headerData.pageDistribution.mainpage * 100);
-          const robotsPercent = Math.round(headerData.pageDistribution.robots * 100);
-          pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
+        // Show top CMS correlation with calculation
+        const topCMS = Object.entries(correlation.cmsGivenHeader)
+          .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+          .sort(([, a], [, b]) => b.probability - a.probability)[0];
+        
+        if (topCMS && topCMS[1].probability > 0.05) {
+          const cmsPercent = Math.round(topCMS[1].probability * 100);
+          const cmsCount = topCMS[1].count;
+          cmsCorrelationDisplay = `${cmsCount}/${correlation.overallOccurrences} = ${cmsPercent}% ${topCMS[0]}`;
         }
         
-        output += `| \`${rec.pattern}\` | ${freqPercent}% | ${headerData.occurrences}/${headerData.totalSites} | ${rec.diversity} | \`${topValueDisplay}\` | ${pageDistDisplay} | ${rec.reason} |\n`;
+        // Platform specificity
+        const specificityPercent = Math.round(correlation.platformSpecificity * 100);
+        platformSpecificityDisplay = `${specificityPercent}%`;
+        
+        // Confidence level
+        confidenceDisplay = correlation.recommendationConfidence;
+      }
+      
+      if (headerData) {
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | ${headerData.occurrences}/${headerData.totalSites} | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
       } else {
-        output += `| \`${rec.pattern}\` | ${freqPercent}% | N/A | ${rec.diversity} | N/A | N/A | ${rec.reason} |\n`;
+        output += `| \`${rec.pattern}\` | ${freqPercent}% | N/A | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
       }
     }
 

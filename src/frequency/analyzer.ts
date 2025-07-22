@@ -11,6 +11,7 @@ import { batchAnalyzeHeaders, generateSemanticInsights } from './semantic-analyz
 import { analyzeVendorPresence, inferTechnologyStack } from './vendor-patterns.js';
 import { analyzeHeaderCooccurrence } from './co-occurrence-analyzer.js';
 import { discoverHeaderPatterns } from './pattern-discovery.js';
+import { runStandardPipeline, AnalysisStage } from './analysis-pipeline.js';
 import type { FrequencyOptions, FrequencyResult, DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
 
 const logger = createModuleLogger('frequency-analyzer');
@@ -32,6 +33,11 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     outputFile: '',
     includeRecommendations: true,
     includeCurrentFilters: true,
+    debugCalculations: false,
+    enableValidation: true,
+    skipStatisticalTests: false,
+    validationStopOnError: false,
+    validationDebugMode: false,
     ...options
   };
   
@@ -66,6 +72,69 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     // Step 4: Perform dataset bias analysis
     logger.info('Performing dataset bias analysis');
     const biasAnalysis = await analyzeDatasetBias(dataPoints, opts);
+    
+    // Step 4.5: Run validation pipeline if enabled (Phase 3)
+    let validationResults;
+    if (opts.enableValidation && biasAnalysis.headerCorrelations.size > 0) {
+      logger.info('Running Phase 3 validation pipeline');
+      try {
+        const pipelineResult = await runStandardPipeline(
+          dataPoints,
+          biasAnalysis,
+          opts,
+          {
+            skipSignificanceTesting: opts.skipStatisticalTests,
+            stopOnError: opts.validationStopOnError,
+            debugMode: opts.validationDebugMode,
+            frequencyThreshold: opts.minOccurrences / dataPoints.length,
+            sampleSizeThreshold: Math.max(30, opts.minOccurrences),
+            concentrationThreshold: 0.4
+          }
+        );
+        
+        // Count statistically significant headers
+        const significantCount = pipelineResult.finalData.significanceResults ? 
+          Array.from(pipelineResult.finalData.significanceResults.values())
+            .filter(result => result.result?.isSignificant).length : 0;
+        
+        validationResults = {
+          pipelineResult,
+          qualityScore: pipelineResult.summary.qualityScore,
+          validationPassed: pipelineResult.overallPassed,
+          sanityChecksPassed: pipelineResult.finalData.sanityCheckReport?.passed || false,
+          statisticallySignificantHeaders: significantCount
+        };
+        
+        logger.info('Validation pipeline completed', {
+          passed: validationResults.validationPassed,
+          qualityScore: validationResults.qualityScore,
+          significantHeaders: significantCount,
+          sanityChecksPassed: validationResults.sanityChecksPassed
+        });
+        
+        // Use validated correlations if pipeline passed
+        if (pipelineResult.overallPassed && pipelineResult.finalData.correlations.size > 0) {
+          biasAnalysis.headerCorrelations = pipelineResult.finalData.correlations;
+          logger.info('Updated bias analysis with validated correlations', {
+            originalHeaders: biasAnalysis.headerCorrelations.size,
+            validatedHeaders: pipelineResult.finalData.correlations.size
+          });
+        }
+        
+      } catch (validationError) {
+        logger.warn('Validation pipeline failed, continuing with original analysis', {
+          error: String(validationError)
+        });
+        
+        validationResults = {
+          pipelineResult: null,
+          qualityScore: 0,
+          validationPassed: false,
+          sanityChecksPassed: false,
+          statisticallySignificantHeaders: 0
+        };
+      }
+    }
     
     // Step 5: Perform semantic analysis of headers
     logger.info('Performing semantic analysis of headers');
@@ -127,7 +196,8 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
       biasAnalysis,
       semanticAnalysis,
       cooccurrenceAnalysis,
-      patternDiscoveryAnalysis
+      patternDiscoveryAnalysis,
+      ...(validationResults && { validationResults })
     };
     
     const duration = performance.now() - startTime;

@@ -63,6 +63,13 @@ export interface FrequencyOptions {
   // Analysis options
   includeRecommendations?: boolean;
   includeCurrentFilters?: boolean;
+  debugCalculations?: boolean;
+  
+  // Phase 3: Validation options
+  enableValidation?: boolean;
+  skipStatisticalTests?: boolean;
+  validationStopOnError?: boolean;
+  validationDebugMode?: boolean;
 }
 
 export interface FrequencyResult {
@@ -106,6 +113,15 @@ export interface FrequencyResult {
   cooccurrenceAnalysis?: CooccurrenceAnalysis;
   
   patternDiscoveryAnalysis?: PatternDiscoveryAnalysis;
+  
+  // Phase 3: Validation framework results
+  validationResults?: {
+    pipelineResult: any; // PipelineResult from analysis-pipeline.ts
+    qualityScore: number;
+    validationPassed: boolean;
+    sanityChecksPassed: boolean;
+    statisticallySignificantHeaders: number;
+  };
 }
 
 export interface HeaderFrequencyData {

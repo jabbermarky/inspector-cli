@@ -104,16 +104,36 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: true,
-        includeCurrentFilters: true
+        includeCurrentFilters: true,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
       };
       
       const result = await analyzeFrequency(options);
       
-      // Verify all components were called
-      expect(mockCollectData).toHaveBeenCalledWith(options);
+      // Verify all components were called with new validation options
+      expect(mockCollectData).toHaveBeenCalledWith(expect.objectContaining({
+        dataSource: 'cms-analysis',
+        dataDir: './data/cms-analysis',
+        minSites: 1,
+        minOccurrences: 1,
+        pageType: 'all',
+        output: 'human',
+        outputFile: '',
+        includeRecommendations: true,
+        includeCurrentFilters: true,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
+      }));
       expect(mockAnalyzeHeaders).toHaveBeenCalledWith(
         expect.any(Array),
-        options
+        expect.objectContaining(options)
       );
       expect(mockAnalyzeMetaTags).toHaveBeenCalledWith(
         expect.any(Array),
@@ -166,7 +186,12 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
       };
       
       await expect(analyzeFrequency(options)).rejects.toThrow('Insufficient data: found 0 sites, minimum required: 10');
@@ -182,7 +207,12 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
       };
       
       const result = await analyzeFrequency(options);
@@ -201,14 +231,19 @@ describe('Frequency Analyzer', () => {
         output: 'json',
         outputFile: 'frequency.json',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
       };
       
       await analyzeFrequency(options);
       
       expect(mockFormatOutput).toHaveBeenCalledWith(
         expect.any(Object),
-        options
+        expect.objectContaining(options)
       );
     });
     
@@ -224,7 +259,12 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false,
+        enableValidation: true,
+        skipStatisticalTests: false,
+        validationStopOnError: false,
+        validationDebugMode: false
       };
       
       await expect(analyzeFrequency(options)).rejects.toThrow('Collection failed');
@@ -267,7 +307,8 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false
       };
       
       const result = await analyzeFrequency(options);
@@ -325,7 +366,8 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false
       };
       
       const result = await analyzeFrequency(options);
@@ -377,7 +419,8 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false
       };
       
       const result = await analyzeFrequency(options);
@@ -410,7 +453,8 @@ describe('Frequency Analyzer', () => {
         output: 'human',
         outputFile: '',
         includeRecommendations: false,
-        includeCurrentFilters: false
+        includeCurrentFilters: false,
+        debugCalculations: false
       };
       
       const startTime = performance.now();

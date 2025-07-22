@@ -95,6 +95,75 @@ export const GENERIC_HTTP_HEADERS = new Set([
     'forwarded',        // RFC 7239 proxy information - infrastructure
     'public-key-pins',  // Certificate pinning (deprecated) - security infrastructure
     'public-key-pins-report-only', // HPKP reporting - security infrastructure
+    
+    // Missing CORS headers (from handoff document)
+    'access-control-allow-methods',    // CORS preflight response - not CMS-specific
+    'access-control-allow-headers',    // CORS preflight response - not CMS-specific
+    'access-control-max-age',          // CORS preflight caching - not CMS-specific
+    'access-control-expose-headers',   // CORS response headers - not CMS-specific
+    'access-control-request-method',   // CORS preflight request - not CMS-specific
+    'access-control-request-headers',  // CORS preflight request - not CMS-specific
+    
+    // Missing client hints headers
+    'accept-ch',           // Client hints acceptance - performance optimization, not CMS-specific
+    'accept-ch-lifetime',  // Client hints cache lifetime - performance optimization, not CMS-specific
+    'critical-ch',         // Critical client hints - performance optimization, not CMS-specific
+    'device-memory',       // Client hints device memory - not CMS-specific
+    'downlink',            // Client hints network speed - not CMS-specific
+    'ect',                 // Client hints effective connection type - not CMS-specific
+    'rtt',                 // Client hints round-trip time - not CMS-specific
+    'save-data',           // Client hints data saver mode - not CMS-specific
+    'viewport-width',      // Client hints viewport - not CMS-specific
+    'width',               // Client hints image width - not CMS-specific
+    
+    // Missing performance/infrastructure headers
+    'timing-allow-origin', // Performance timing CORS - not CMS-specific
+    'host-header',         // Load balancer/proxy original host - infrastructure
+    // NOTE: Removed 'x-robots-tag' - while generally generic, test shows it may have discriminative value in robots.txt context
+    'x-siteid',            // Generic deployment/site identifier - not CMS-specific
+    // NOTE: Removed 'x-version' - version values might contain CMS-specific info
+    'x-cacheable',         // Generic caching directive - not CMS-specific
+    'x-cluster-client-ip', // Load balancer client IP - infrastructure
+    'x-host',              // Original host header (various proxies) - infrastructure
+    'x-original-host',     // Original host header - infrastructure
+    'x-original-url',      // Original URL before rewrite - infrastructure
+    'x-rewrite-url',       // URL rewriting information - infrastructure
+    
+    // Additional standard HTTP headers from Wikipedia (REQUEST HEADERS ONLY - responses may contain CMS info)
+    'accept',              // Client content type preferences - not CMS-specific
+    'accept-charset',      // Client charset preferences - not CMS-specific
+    'accept-encoding',     // Client encoding preferences - not CMS-specific
+    'accept-language',     // Client language preferences - not CMS-specific
+    'host',                // Target host - infrastructure
+    'user-agent',          // Client browser/bot info - not CMS-specific
+    'origin',              // Request origin - not CMS-specific
+    'referer',             // Referring page - not CMS-specific
+    'upgrade',             // Protocol upgrade request - infrastructure
+    'if-none-match',       // Conditional request (ETag) - caching infrastructure
+    'if-modified-since',   // Conditional request (date) - caching infrastructure
+    'if-match',            // Conditional request (ETag) - infrastructure
+    'if-unmodified-since', // Conditional request (date) - infrastructure
+    'if-range',            // Conditional range request - infrastructure
+    
+    // NOTE: Removed response headers that might contain CMS info in their VALUES:
+    // - 'www-authenticate' (could contain realm with CMS info)
+    // - 'location' (redirect URLs might contain CMS paths)
+    // - 'retry-after' (timing might be CMS-specific)
+    // - 'allow' (allowed methods might be CMS-specific)
+    // - 'content-range' (range handling might be CMS-specific)
+    
+    // Security headers from Wikipedia
+    'x-dns-prefetch-control', // DNS prefetching control - browser optimization
+    'x-ua-compatible',        // IE compatibility mode - browser compatibility
+    'dnt',                    // Do Not Track - privacy directive, not CMS-specific
+    'sec-gpc',                // Global Privacy Control - privacy directive, not CMS-specific
+    'sec-fetch-site',         // Fetch metadata - browser security, not CMS-specific
+    'sec-fetch-mode',         // Fetch metadata - browser security, not CMS-specific
+    'sec-fetch-user',         // Fetch metadata - browser security, not CMS-specific
+    'sec-fetch-dest',         // Fetch metadata - browser security, not CMS-specific
+    'sec-ch-ua',              // Client hints user agent - not CMS-specific
+    'sec-ch-ua-mobile',       // Client hints mobile flag - not CMS-specific
+    'sec-ch-ua-platform',     // Client hints platform - not CMS-specific
 ]);
 
 const UNIVERSAL_META_TAGS = new Set([

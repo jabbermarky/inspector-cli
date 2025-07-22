@@ -18,6 +18,10 @@ program
   .option('--date-start <date>', 'Filter captures from this date (YYYY-MM-DD)')
   .option('--date-end <date>', 'Filter captures until this date (YYYY-MM-DD)')
   .option('--last-days <number>', 'Filter captures: 0=today only, 1=yesterday+today, 2=last 2 days+today, etc.')
+  .option('--no-validation', 'Disable Phase 3 validation framework')
+  .option('--skip-statistical-tests', 'Skip statistical significance tests (faster)')
+  .option('--validation-stop-on-error', 'Stop validation pipeline on first error')
+  .option('--validation-debug', 'Enable detailed validation debug output')
   .action(async (options) => {
     try {
       logger.info('Starting frequency analysis command', { options });
@@ -81,7 +85,12 @@ program
         includeRecommendations: options.recommendations !== false,
         pageType: options.pageType,
         dataDir: options.dataDir,
-        dateRange
+        dateRange,
+        // Phase 3: Validation options
+        enableValidation: options.validation !== false,
+        skipStatisticalTests: Boolean(options.skipStatisticalTests),
+        validationStopOnError: Boolean(options.validationStopOnError),
+        validationDebugMode: Boolean(options.validationDebug)
       };
       
       // Validate options
