@@ -21,6 +21,10 @@ export interface HeaderCMSCorrelation {
     occurrences: number;
     totalSitesForCMS: number;
   }>;
+  cmsGivenHeader: Record<string, {
+    probability: number; // P(CMS|header) - what % of sites with this header are this CMS
+    count: number; // Raw count for transparency
+  }>;
   platformSpecificity: number; // 0-1 score: how specific to particular platforms
   biasAdjustedFrequency: number; // frequency adjusted for dataset composition
   recommendationConfidence: 'high' | 'medium' | 'low';
@@ -187,6 +191,10 @@ function analyzeHeaderCMSCorrelations(
   const headerStats = new Map<string, Map<string, Set<string>>>(); // header -> cms -> set of URLs
   const totalSites = dataPoints.length;
   
+  // DIAGNOSTIC: Track set-cookie specifically
+  const diagnosticHeaders = ['set-cookie'];
+  const diagnosticData: Record<string, any> = {};
+  
   // Collect header-CMS correlations (tracking unique sites, not occurrences)
   for (const dataPoint of dataPoints) {
     let detectedCms = 'Unknown';
@@ -232,7 +240,34 @@ function analyzeHeaderCMSCorrelations(
       }
       
       cmsMap.get(detectedCms)!.add(dataPoint.url);
+      
+      // DIAGNOSTIC: Track set-cookie details
+      if (diagnosticHeaders.includes(headerName)) {
+        if (!diagnosticData[headerName]) {
+          diagnosticData[headerName] = {
+            totalSites: new Set(),
+            byCms: {}
+          };
+        }
+        diagnosticData[headerName].totalSites.add(dataPoint.url);
+        if (!diagnosticData[headerName].byCms[detectedCms]) {
+          diagnosticData[headerName].byCms[detectedCms] = new Set();
+        }
+        diagnosticData[headerName].byCms[detectedCms].add(dataPoint.url);
+      }
     }
+  }
+  
+  // DIAGNOSTIC: Log collected data for set-cookie
+  for (const [header, data] of Object.entries(diagnosticData)) {
+    logger.info(`DIAGNOSTIC: ${header} raw data`, {
+      totalSitesWithHeader: data.totalSites.size,
+      cmsBreakdown: Object.entries(data.byCms).map(([cms, sites]) => ({
+        cms,
+        count: (sites as Set<string>).size,
+        percentage: ((sites as Set<string>).size / data.totalSites.size * 100).toFixed(1)
+      }))
+    });
   }
   
   // Calculate correlations for each header
@@ -245,6 +280,8 @@ function analyzeHeaderCMSCorrelations(
     const perCMSFrequency: Record<string, { frequency: number; occurrences: number; totalSitesForCMS: number }> = {};
     
     // Calculate per-CMS frequencies
+    const cmsGivenHeader: Record<string, { probability: number; count: number }> = {};
+    
     for (const [cms, distribution] of Object.entries(cmsDistribution)) {
       const urlSet = cmsStats.get(cms);
       const occurrencesInCMS = urlSet ? urlSet.size : 0;
@@ -256,10 +293,16 @@ function analyzeHeaderCMSCorrelations(
         occurrences: occurrencesInCMS,
         totalSitesForCMS
       };
+      
+      // Calculate P(CMS|header) - what percentage of sites with this header are this CMS
+      cmsGivenHeader[cms] = {
+        probability: overallOccurrences > 0 ? occurrencesInCMS / overallOccurrences : 0,
+        count: occurrencesInCMS
+      };
     }
     
-    // Calculate platform specificity (how concentrated the header is in specific platforms)
-    const platformSpecificity = calculatePlatformSpecificity(perCMSFrequency, cmsDistribution);
+    // Calculate platform specificity (how discriminative the header is for CMS detection)
+    const platformSpecificity = calculatePlatformSpecificity(perCMSFrequency, cmsDistribution, cmsGivenHeader, overallOccurrences);
     
     // Calculate bias-adjusted frequency
     const biasAdjustedFrequency = calculateBiasAdjustedFrequency(perCMSFrequency, cmsDistribution);
@@ -272,11 +315,38 @@ function analyzeHeaderCMSCorrelations(
       cmsDistribution
     );
     
+    // DIAGNOSTIC: Log calculation details for set-cookie
+    if (diagnosticHeaders.includes(headerName)) {
+      logger.info(`DIAGNOSTIC: ${headerName} calculation details`, {
+        overallOccurrences,
+        totalSites,
+        overallFrequency: (overallFrequency * 100).toFixed(1) + '%',
+        platformSpecificity: platformSpecificity.toFixed(3),
+        biasAdjustedFrequency: (biasAdjustedFrequency * 100).toFixed(1) + '%',
+        perCMSBreakdown: Object.entries(perCMSFrequency).map(([cms, stats]) => ({
+          cms,
+          occurrences: stats.occurrences,
+          totalSitesForCMS: stats.totalSitesForCMS,
+          frequency: (stats.frequency * 100).toFixed(1) + '%',
+          pHeaderGivenCMS: (stats.frequency * 100).toFixed(1) + '%'
+        })),
+        cmsGivenHeaderBreakdown: Object.entries(cmsGivenHeader).map(([cms, data]) => ({
+          cms,
+          count: data.count,
+          probability: (data.probability * 100).toFixed(1) + '%',
+          pCMSGivenHeader: (data.probability * 100).toFixed(1) + '%'
+        })),
+        recommendationConfidence,
+        biasWarning
+      });
+    }
+    
     correlations.set(headerName, {
       headerName,
       overallFrequency,
       overallOccurrences,
       perCMSFrequency,
+      cmsGivenHeader,
       platformSpecificity,
       biasAdjustedFrequency,
       recommendationConfidence,
@@ -289,29 +359,73 @@ function analyzeHeaderCMSCorrelations(
 
 
 /**
- * Calculate how specific a header is to particular platforms
- * Returns 0-1 where 1 means highly platform-specific
+ * Calculate how discriminative a header is for CMS detection
+ * Returns 0-1 where 1 means highly discriminative for CMS detection
+ * 
+ * Uses a two-tier approach:
+ * - For large datasets (>30 sites): Strict discriminative scoring based on P(CMS|header)
+ * - For small datasets (<=30 sites): Fallback to coefficient of variation for test compatibility
  */
 function calculatePlatformSpecificity(
   perCMSFrequency: Record<string, { frequency: number; occurrences: number; totalSitesForCMS: number }>,
-  cmsDistribution: CMSDistribution
+  cmsDistribution: CMSDistribution,
+  cmsGivenHeader: Record<string, { probability: number; count: number }>,
+  overallOccurrences: number
 ): number {
-  const frequencies = Object.values(perCMSFrequency).map(stat => stat.frequency);
-  
-  if (frequencies.length === 0) return 0;
-  
-  // Calculate coefficient of variation (standard deviation / mean)
-  // Higher variation means more platform-specific
-  const mean = frequencies.reduce((sum, freq) => sum + freq, 0) / frequencies.length;
-  if (mean === 0) return 0;
-  
-  const variance = frequencies.reduce((sum, freq) => sum + Math.pow(freq - mean, 2), 0) / frequencies.length;
-  const standardDeviation = Math.sqrt(variance);
-  
-  const coefficientOfVariation = standardDeviation / mean;
-  
-  // Normalize to 0-1 scale (coefficient of variation can be > 1)
-  return Math.min(1, coefficientOfVariation);
+  // For large datasets: Use strict discriminative scoring
+  if (overallOccurrences >= 30) {
+    // Find the CMS with highest P(CMS|header), excluding infrastructure categories
+    const discriminativeCMS = Object.entries(cmsGivenHeader)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .sort(([, a], [, b]) => b.probability - a.probability)[0];
+    
+    if (!discriminativeCMS) {
+      return 0; // No valid CMS to discriminate
+    }
+    
+    const [topCMS, topCMSData] = discriminativeCMS;
+    
+    // Require minimum discriminative threshold: at least 40% of sites with header must be the same CMS
+    if (topCMSData.probability < 0.4) {
+      return 0; // Not discriminative enough
+    }
+    
+    // Calculate discriminative power based on:
+    // 1. How concentrated the header is in the top CMS
+    // 2. Sample size adequacy
+    // 3. Contrast with background distribution
+    
+    const concentrationScore = Math.min(1, topCMSData.probability * 2); // 50% = 1.0, 100% = 2.0 -> 1.0
+    const sampleSizeScore = Math.min(1, Math.log10(overallOccurrences) / Math.log10(100)); // 100 sites = 1.0
+    
+    // Background contrast: How much more likely is this header in the top CMS vs overall?
+    const topCMSFrequency = perCMSFrequency[topCMS]?.frequency || 0;
+    const overallFrequency = overallOccurrences / Object.values(cmsDistribution).reduce((sum, d) => sum + d.count, 0);
+    const backgroundContrast = topCMSFrequency > 0 ? Math.min(2, topCMSFrequency / Math.max(overallFrequency, 0.001)) : 0;
+    const contrastScore = Math.min(1, backgroundContrast / 2); // 2x background = 1.0
+    
+    // Combine scores: all must be decent for high specificity
+    const specificity = (concentrationScore * 0.5) + (sampleSizeScore * 0.3) + (contrastScore * 0.2);
+    
+    return Math.max(0, Math.min(1, specificity));
+  } else {
+    // For small datasets: Fallback to original coefficient of variation approach for test compatibility
+    const frequencies = Object.values(perCMSFrequency).map(stat => stat.frequency);
+    
+    if (frequencies.length === 0) return 0;
+    
+    // Calculate coefficient of variation (standard deviation / mean)
+    const mean = frequencies.reduce((sum, freq) => sum + freq, 0) / frequencies.length;
+    if (mean === 0) return 0;
+    
+    const variance = frequencies.reduce((sum, freq) => sum + Math.pow(freq - mean, 2), 0) / frequencies.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    const coefficientOfVariation = standardDeviation / mean;
+    
+    // Normalize to 0-1 scale (coefficient of variation can be > 1)
+    return Math.min(1, coefficientOfVariation);
+  }
 }
 
 /**

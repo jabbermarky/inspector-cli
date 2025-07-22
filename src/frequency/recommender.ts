@@ -197,37 +197,49 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
 /**
  * Generate recommendations for detect-cms command
  */
-function generateDetectCmsRecommendations(input: RecommendationInput): DetectCmsRecommendations {
-  const { headerPatterns, metaPatterns } = input;
+function generateDetectCmsRecommendations(input: RecommendationInput & { biasAnalysis: DatasetBiasAnalysis }): DetectCmsRecommendations {
+  const { headerPatterns, metaPatterns, biasAnalysis } = input;
   
   const newPatternOpportunities: DetectCmsRecommendations['newPatternOpportunities'] = [];
   const patternsToRefine: DetectCmsRecommendations['patternsToRefine'] = [];
   
-  // Analyze headers for CMS detection opportunities
+  // Analyze headers for CMS detection opportunities using bias analysis
   for (const [headerName, patterns] of headerPatterns.entries()) {
-    for (const pattern of patterns) {
-      // Look for patterns with strong CMS correlation
-      const strongCorrelations = Object.entries(pattern.cmsCorrelation)
-        .filter(([cms, correlation]) => correlation > 0.8 && cms !== 'Unknown')
-        .sort(([, a], [, b]) => b - a);
+    const correlation = biasAnalysis.headerCorrelations.get(headerName);
+    if (!correlation) continue;
+    
+    // Find the most correlated CMS using P(CMS|header)
+    const topCMS = Object.entries(correlation.cmsGivenHeader)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .sort(([, a], [, b]) => b.probability - a.probability)[0];
+    
+    if (topCMS && topCMS[1].probability > 0.5 && topCMS[1].count >= 10) {
+      // Strong pattern opportunity
+      const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
       
-      if (strongCorrelations.length > 0 && pattern.frequency >= 0.05 && pattern.frequency <= 0.3) {
+      if (totalFrequency >= 0.01 && totalFrequency <= 0.3) { // 1-30% frequency range
+        const cmsCorrelation: Record<string, number> = {};
+        for (const [cms, data] of Object.entries(correlation.cmsGivenHeader)) {
+          cmsCorrelation[cms] = data.probability;
+        }
+        
         newPatternOpportunities.push({
-          pattern: pattern.pattern,
-          frequency: pattern.frequency,
-          confidence: pattern.confidence,
-          cmsCorrelation: pattern.cmsCorrelation
+          pattern: headerName,
+          frequency: totalFrequency,
+          confidence: topCMS[1].probability,
+          cmsCorrelation
         });
       }
-      
-      // Look for overly generic patterns (high frequency, low confidence)
-      if (pattern.frequency > 0.3 && pattern.confidence < 0.5) {
-        patternsToRefine.push({
-          pattern: pattern.pattern,
-          issue: 'Too generic - appears in most sites',
-          currentFrequency: pattern.frequency
-        });
-      }
+    }
+    
+    // Look for overly generic patterns (high frequency, low specificity)
+    const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
+    if (totalFrequency > 0.3 && correlation.platformSpecificity < 0.2) {
+      patternsToRefine.push({
+        pattern: headerName,
+        issue: 'Too generic - appears in most sites',
+        currentFrequency: totalFrequency
+      });
     }
   }
   
@@ -434,13 +446,17 @@ function shouldKeepHeaderBiasAware(
     return false; // Standard HTTP headers are NEVER worth keeping for CMS discrimination
   }
 
-  // Strongly recommend keeping headers with high CMS correlation
-  const topCMS = Object.entries(correlation.perCMSFrequency)
+  // Strongly recommend keeping headers with high CMS correlation using P(CMS|header)
+  const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+    .sort(([, a], [, b]) => b.probability - a.probability)[0];
   
-  // Only consider it "strong CMS correlation" if BOTH high frequency AND high platform specificity
-  if (topCMS && topCMS[1].frequency > 0.7 && correlation.platformSpecificity > 0.5) {
+  // Only consider it discriminative if a significant percentage of sites with this header belong to one CMS
+  // AND there's sufficient sample size (at least 10 sites with the header)
+  if (topCMSByProbability && 
+      topCMSByProbability[1].probability > 0.5 && // >50% of sites with header are this CMS
+      topCMSByProbability[1].count >= 10 && // At least 10 sites
+      correlation.platformSpecificity > 0.5) {
     return true; // Strong CMS correlation = highly discriminative, definitely keep
   }
   
@@ -480,9 +496,12 @@ function shouldKeepHeaderBiasAware(
     return true;
   }
   
-  // Keep headers that show moderate CMS correlation - but require higher platform specificity
-  // to avoid false positives from universally used headers that appear more in biased datasets
-  if (topCMS && topCMS[1].frequency > 0.6 && correlation.platformSpecificity > 0.45) {
+  // Keep headers that show moderate CMS correlation - but require both P(CMS|header) and sample size
+  // to avoid false positives from small sample correlations
+  if (topCMSByProbability && 
+      topCMSByProbability[1].probability > 0.4 && // >40% of sites with header are this CMS
+      topCMSByProbability[1].count >= 5 && // At least 5 sites
+      correlation.platformSpecificity > 0.45) {
     return true;
   }
   
@@ -528,21 +547,25 @@ function getKeepReasonBiasAware(
   frequency: number, 
   diversity: number
 ): string {
-  // Check for CMS-specific correlations first
-  const topCMS = Object.entries(correlation.perCMSFrequency)
+  // Check for CMS-specific correlations using P(CMS|header)
+  const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+    .sort(([, a], [, b]) => b.probability - a.probability)[0];
   
-  if (topCMS && topCMS[1].frequency > 0.7) {
-    return `Strong correlation with ${topCMS[0]} (${Math.round(topCMS[1].frequency * 100)}%) - highly discriminative`;
+  if (topCMSByProbability && topCMSByProbability[1].probability > 0.5) {
+    const percentage = Math.round(topCMSByProbability[1].probability * 100);
+    const count = topCMSByProbability[1].count;
+    return `${percentage}% of sites with this header are ${topCMSByProbability[0]} (${count} sites) - highly discriminative`;
   }
   
   if (correlation.platformSpecificity > 0.6) {
     return `High platform specificity (${Math.round(correlation.platformSpecificity * 100)}%) - excellent discriminative value`;
   }
   
-  if (topCMS && topCMS[1].frequency > 0.5 && correlation.platformSpecificity > 0.3) {
-    return `Moderate correlation with ${topCMS[0]} (${Math.round(topCMS[1].frequency * 100)}%) with platform specificity`;
+  if (topCMSByProbability && topCMSByProbability[1].probability > 0.3 && correlation.platformSpecificity > 0.3) {
+    const percentage = Math.round(topCMSByProbability[1].probability * 100);
+    const count = topCMSByProbability[1].count;
+    return `${percentage}% of sites with this header are ${topCMSByProbability[0]} (${count} sites) with moderate platform specificity`;
   }
   
   if (isPlatformPrefixHeader(correlation.headerName)) {
@@ -613,13 +636,13 @@ function hasCMSNameInHeaderValue(headerName: string, correlation: HeaderCMSCorre
     'rails'
   ];
   
-  // Check for high correlation with specific CMS that would indicate CMS-specific values
-  const topCMS = Object.entries(correlation.perCMSFrequency)
+  // Check for high correlation with specific CMS using P(CMS|header)
+  const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
+    .sort(([, a], [, b]) => b.probability - a.probability)[0];
   
-  // If there's strong correlation with a specific CMS (>60%), this header likely contains CMS-specific values
-  if (topCMS && topCMS[1].frequency > 0.6) {
+  // If >40% of sites with this header belong to a specific CMS, it likely contains CMS-specific values
+  if (topCMSByProbability && topCMSByProbability[1].probability > 0.4 && topCMSByProbability[1].count >= 5) {
     return true;
   }
   
