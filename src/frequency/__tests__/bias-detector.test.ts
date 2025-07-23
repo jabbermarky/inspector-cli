@@ -517,6 +517,55 @@ describe('Bias Detector', () => {
     });
   });
 
+  describe('Consistent Filtering with Header Analyzer', () => {
+    it('should apply same minOccurrences filtering as header analyzer', async () => {
+      // Create test data where some headers are below minOccurrences threshold
+      const testData: DetectionDataPoint[] = [
+        // Header with exactly minOccurrences (5) - should be included
+        ...Array(5).fill(null).map((_, i) => ({
+          url: `https://site${i}.com`,
+          httpHeaders: { 'x-header-threshold': 'value' },
+          detectionResults: [{ cms: 'WordPress', confidence: 0.9, patterns: [] }]
+        })),
+        // Header with below minOccurrences (3) - should be excluded
+        ...Array(3).fill(null).map((_, i) => ({
+          url: `https://site${i+10}.com`,
+          httpHeaders: { 'x-header-below': 'value' },
+          detectionResults: [{ cms: 'WordPress', confidence: 0.9, patterns: [] }]
+        })),
+        // Fill remaining sites with other data
+        ...Array(10).fill(null).map((_, i) => ({
+          url: `https://site${i+20}.com`,
+          httpHeaders: { 'server': 'nginx' },
+          detectionResults: [{ cms: 'Drupal', confidence: 0.8, patterns: [] }]
+        }))
+      ];
+
+      const options: FrequencyOptionsWithDefaults = {
+        dataSource: 'cms-analysis',
+        dataDir: './data/cms-analysis',
+        minSites: 1,
+        minOccurrences: 5, // Headers with <5 occurrences should be filtered out
+        pageType: 'all',
+        output: 'human',
+        outputFile: '',
+        includeRecommendations: false,
+        includeCurrentFilters: false,
+        debugCalculations: false
+      };
+
+      const result = await analyzeDatasetBias(testData, options);
+
+      // Verify consistent filtering: headers with <5 occurrences should be excluded
+      expect(result.headerCorrelations.has('x-header-threshold')).toBe(true); // 5 occurrences - included
+      expect(result.headerCorrelations.has('x-header-below')).toBe(false); // 3 occurrences - excluded
+      
+      // Verify the included header has correct count
+      const thresholdHeader = result.headerCorrelations.get('x-header-threshold');
+      expect(thresholdHeader?.overallOccurrences).toBe(5);
+    });
+  });
+
   describe('Edge Cases and Error Handling', () => {
     it('should handle empty dataset', async () => {
       const emptyDataPoints: DetectionDataPoint[] = [];

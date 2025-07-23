@@ -242,9 +242,12 @@ function formatHeaderData(
     
     if (values.length > 0) {
       // Calculate header-level frequency as percentage of sites using ANY value of this header
-      const uniqueSitesUsingHeader = new Set(
-        values.flatMap(v => v.examples)
-      ).size;
+      // NOTE: This is a fundamental architectural issue - we need access to raw site counts
+      // For now, sum the frequency of all patterns for this header as approximation
+      const totalHeaderFrequency = patterns
+        .filter(p => p.frequency >= options.minOccurrences / totalSites)
+        .reduce((sum, p) => sum + p.frequency, 0);
+      const uniqueSitesUsingHeader = Math.round(totalHeaderFrequency * totalSites);
       const headerFrequency = Math.min(1.0, uniqueSitesUsingHeader / totalSites);
       
       // Calculate aggregated page distribution for this header across all its values

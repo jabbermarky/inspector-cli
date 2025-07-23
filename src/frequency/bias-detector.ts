@@ -58,7 +58,7 @@ export async function analyzeDatasetBias(
   const biasWarnings = generateBiasWarnings(cmsDistribution, concentrationScore);
   
   // Step 4: Analyze header-CMS correlations
-  const headerCorrelations = analyzeHeaderCMSCorrelations(dataPoints, cmsDistribution);
+  const headerCorrelations = analyzeHeaderCMSCorrelations(dataPoints, cmsDistribution, options);
   
   logger.info('Dataset bias analysis complete', {
     cmsTypes: Object.keys(cmsDistribution).length,
@@ -186,7 +186,8 @@ function generateBiasWarnings(
  */
 function analyzeHeaderCMSCorrelations(
   dataPoints: DetectionDataPoint[],
-  cmsDistribution: CMSDistribution
+  cmsDistribution: CMSDistribution,
+  options: FrequencyOptionsWithDefaults
 ): Map<string, HeaderCMSCorrelation> {
   const headerStats = new Map<string, Map<string, Set<string>>>(); // header -> cms -> set of URLs
   const totalSites = dataPoints.length;
@@ -354,7 +355,22 @@ function analyzeHeaderCMSCorrelations(
     });
   }
   
-  return correlations;
+  // CONSISTENCY FIX: Apply same minOccurrences filtering as header analyzer
+  // This ensures data consistency between frequency analysis and bias analysis
+  const filteredCorrelations = new Map<string, HeaderCMSCorrelation>();
+  for (const [headerName, correlation] of correlations) {
+    if (correlation.overallOccurrences >= options.minOccurrences) {
+      filteredCorrelations.set(headerName, correlation);
+    }
+  }
+  
+  logger.info('Applied consistent filtering', {
+    originalHeaders: correlations.size,
+    filteredHeaders: filteredCorrelations.size,
+    minOccurrences: options.minOccurrences
+  });
+  
+  return filteredCorrelations;
 }
 
 

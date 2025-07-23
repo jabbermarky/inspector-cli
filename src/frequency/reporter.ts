@@ -899,13 +899,18 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
       const headerData = headers[rec.pattern];
       const freqPercent = headerData ? Math.round(headerData.frequency * 100) : Math.round(rec.frequency * 100);
       
-      // Calculate transparency columns
+      // Calculate transparency columns consistently using bias detector data when available
       let cmsCorrelationDisplay = 'N/A';
       let platformSpecificityDisplay = 'N/A';
       let confidenceDisplay = 'Unknown';
+      let sitesUsingDisplay = 'N/A';
       
       if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
         const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
+        
+        // Use bias detector data for Sites Using column (consistent with CMS Correlation)
+        const totalSites = headerData?.totalSites || 4569; // Use header data total or fallback
+        sitesUsingDisplay = `${correlation.overallOccurrences}/${totalSites}`;
         
         // Show top CMS correlation with calculation
         const topCMS = Object.entries(correlation.cmsGivenHeader)
@@ -924,13 +929,12 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
         
         // Confidence level
         confidenceDisplay = correlation.recommendationConfidence;
+      } else if (headerData) {
+        // Fallback to header analyzer data when bias analysis is not available
+        sitesUsingDisplay = `${headerData.occurrences}/${headerData.totalSites}`;
       }
       
-      if (headerData) {
-        output += `| \`${rec.pattern}\` | ${freqPercent}% | ${headerData.occurrences}/${headerData.totalSites} | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
-      } else {
-        output += `| \`${rec.pattern}\` | ${freqPercent}% | N/A | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
-      }
+      output += `| \`${rec.pattern}\` | ${freqPercent}% | ${sitesUsingDisplay} | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
     }
 
     output += `

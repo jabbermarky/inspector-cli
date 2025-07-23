@@ -313,10 +313,10 @@ describe('Frequency Analyzer', () => {
       
       const result = await analyzeFrequency(options);
       
-      // Verify header formatting
+      // Verify header formatting (FIXED: now uses correct occurrence counts from examples)
       expect(result.headers['server']).toEqual({
         frequency: 0.6,
-        occurrences: 3,
+        occurrences: 3, // Uses all examples from the pattern, not truncated
         totalSites: 5,
         values: [
           { value: 'Apache', frequency: 0.6, occurrences: 3, examples: ['site1.com', 'site2.com', 'site3.com'] }
@@ -324,8 +324,8 @@ describe('Frequency Analyzer', () => {
       });
       
       expect(result.headers['x-powered-by']).toEqual({
-        frequency: 0.6,
-        occurrences: 3,
+        frequency: 0.8, // FIXED: 4 unique sites / 5 total = 0.8 (was incorrectly 0.6)
+        occurrences: 4, // FIXED: Now correctly shows 4 occurrences from examples
         totalSites: 5,
         values: [
           { value: 'PHP', frequency: 0.8, occurrences: 4, examples: ['site2.com', 'site3.com', 'site4.com'] }
@@ -442,6 +442,74 @@ describe('Frequency Analyzer', () => {
     });
   });
   
+  describe('Bug Fix: Occurrence Count Calculation', () => {
+    it('should correctly count occurrences from all pattern examples, not truncated display examples', async () => {
+      // Test the specific bug: headers with many occurrences showing as only 3 sites
+      // This simulates the x-cache-group issue where 124+ sites showed as 3
+      
+      mockCollectData.mockResolvedValue({
+        dataPoints: Array(200).fill(null).map((_, i) => ({
+          url: `https://site${i+1}.com`,
+          headers: { 'x-cache-group': 'cache-value' },
+          metaTags: [],
+          scripts: []
+        })),
+        filteringReport: {
+          sitesFilteredOut: 0,
+          filterReasons: {}
+        }
+      });
+      
+      // Mock analyzer returning pattern with many examples (simulating real data)
+      const mockHeaderPatterns = new Map([
+        ['x-cache-group', [
+          { 
+            pattern: 'x-cache-group:cache-value', 
+            frequency: 0.65, // 130 out of 200 sites
+            occurrences: 130, 
+            examples: Array(130).fill(null).map((_, i) => `site${i+1}.com`) // Full example list
+          }
+        ]]
+      ]);
+      
+      mockAnalyzeHeaders.mockResolvedValue(mockHeaderPatterns);
+      
+      const options: FrequencyOptionsWithDefaults = {
+        dataSource: 'cms-analysis',
+        dataDir: './data/cms-analysis',
+        minSites: 1,
+        minOccurrences: 5,
+        pageType: 'all',
+        output: 'human',
+        outputFile: '',
+        includeRecommendations: false,
+        includeCurrentFilters: false,
+        debugCalculations: false
+      };
+      
+      const result = await analyzeFrequency(options);
+      
+      // FIXED: Should now correctly show 130 occurrences using frequency calculation
+      expect(result.headers['x-cache-group']).toEqual({
+        frequency: 0.65, // 130 sites / 200 total (based on pattern frequency)
+        occurrences: 130, // FIXED: Calculated from pattern frequency, not limited examples
+        totalSites: 200,
+        values: [
+          { 
+            value: 'cache-value', 
+            frequency: 0.65, 
+            occurrences: 130, 
+            examples: ['site1.com', 'site2.com', 'site3.com'] // Display examples limited to 3
+          }
+        ]
+      });
+      
+      // Verify the bug is fixed: occurrences calculated from frequency, not examples
+      expect(result.headers['x-cache-group'].occurrences).toBe(130);
+      expect(result.headers['x-cache-group'].values[0].examples.length).toBe(3); // Display examples still limited
+    });
+  });
+
   describe('Performance Tracking', () => {
     it('should track execution time', async () => {
       const options: FrequencyOptionsWithDefaults = {

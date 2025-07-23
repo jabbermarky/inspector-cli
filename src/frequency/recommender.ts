@@ -554,8 +554,7 @@ function getKeepReasonBiasAware(
   
   if (topCMSByProbability && topCMSByProbability[1].probability > 0.5) {
     const percentage = Math.round(topCMSByProbability[1].probability * 100);
-    const count = topCMSByProbability[1].count;
-    return `${percentage}% of sites with this header are ${topCMSByProbability[0]} (${count} sites) - highly discriminative`;
+    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header)`;
   }
   
   if (correlation.platformSpecificity > 0.6) {
@@ -564,8 +563,7 @@ function getKeepReasonBiasAware(
   
   if (topCMSByProbability && topCMSByProbability[1].probability > 0.3 && correlation.platformSpecificity > 0.3) {
     const percentage = Math.round(topCMSByProbability[1].probability * 100);
-    const count = topCMSByProbability[1].count;
-    return `${percentage}% of sites with this header are ${topCMSByProbability[0]} (${count} sites) with moderate platform specificity`;
+    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header)`;
   }
   
   if (isPlatformPrefixHeader(correlation.headerName)) {
