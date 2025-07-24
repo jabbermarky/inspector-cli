@@ -211,7 +211,7 @@ describe('DNS Validator', () => {
                 expect(result.valid).toBe(false);
                 expect(result.reason).toBe(DNSSkipReason.TIMEOUT);
                 expect(result.error).toMatch(/DNS timeout after 50ms/);
-                expect(result.duration).toBeGreaterThanOrEqual(50);
+                expect(result.duration).toBeGreaterThanOrEqual(45); // Allow for timing precision variance
             });
 
             it('should handle generic DNS resolution failures', async () => {

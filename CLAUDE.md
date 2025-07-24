@@ -18,6 +18,7 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 - KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
 - Clarify assumptions by asking clarifying questions before coding
 - When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
+- Do not use overconfident language - be precise and honest about what you have actually accomplished versus what still needs work.
 
 ## Module and Import Conventions
 

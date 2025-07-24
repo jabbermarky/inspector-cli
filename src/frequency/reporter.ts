@@ -1,23 +1,24 @@
 import { writeFile } from 'fs/promises';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyResult, FrequencyOptionsWithDefaults, HeaderCooccurrence } from './types.js';
+import type { DatasetBiasAnalysis } from './bias-detector.js';
 
 const logger = createModuleLogger('frequency-reporter');
 
+import { mapJsonReplacer } from './utils/map-converter.js';
+
 /**
  * Custom JSON replacer to handle Map objects properly in JSON serialization
+ * @deprecated Use mapJsonReplacer from utils/map-converter.ts instead
  */
 function mapReplacer(key: string, value: any): any {
-  if (value instanceof Map) {
-    return Object.fromEntries(value);
-  }
-  return value;
+  return mapJsonReplacer(key, value);
 }
 
 /**
  * Format and output frequency analysis results
  */
-export async function formatOutput(result: FrequencyResult, options: FrequencyOptionsWithDefaults): Promise<void> {
+export async function formatOutput(result: FrequencyResult, options: FrequencyOptionsWithDefaults, biasAnalysis?: DatasetBiasAnalysis | null): Promise<void> {
   logger.info('Formatting output', { format: options.output, file: options.outputFile });
   
   let content: string;
@@ -30,11 +31,11 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
       content = formatAsCSV(result);
       break;
     case 'markdown':
-      content = formatAsMarkdown(result, options);
+      content = formatAsMarkdown(result, options, biasAnalysis);
       break;
     case 'human':
     default:
-      content = formatAsHuman(result, options);
+      content = formatAsHuman(result, options, biasAnalysis);
       break;
   }
   
@@ -49,8 +50,11 @@ export async function formatOutput(result: FrequencyResult, options: FrequencyOp
 /**
  * Format results as human-readable report
  */
-function formatAsHuman(result: FrequencyResult, options: FrequencyOptionsWithDefaults): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
+function formatAsHuman(result: FrequencyResult, options: FrequencyOptionsWithDefaults, biasAnalysisParam?: DatasetBiasAnalysis | null): string {
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
+  
+  // Use passed biasAnalysis parameter if available, otherwise fall back to result's biasAnalysis
+  const biasAnalysis = biasAnalysisParam || result.biasAnalysis;
   
   let output = `# Frequency Analysis Report
 
@@ -113,7 +117,7 @@ Filter Reasons:
   for (const [headerName, data] of sortedHeaders) {
     output += `### ${headerName}
 - Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- Unique Values: ${data.values.length}`;
+- Unique Values: ${(data.values as any)?.totalUniqueValues || (data.values || []).length}`;
     
     // Add page distribution if available
     if (data.pageDistribution) {
@@ -123,7 +127,7 @@ Filter Reasons:
     }
     
     output += `\n\nTop Values:\n`;
-    for (const value of data.values.slice(0, 5)) {
+    for (const value of (data.values || []).slice(0, 5)) {
       output += `  - \`${value.value}\`: ${Math.round(value.frequency * 100)}% (${value.occurrences} sites)\n`;
     }
     output += '\n';
@@ -141,8 +145,23 @@ Filter Reasons:
   for (const [tagKey, data] of sortedMetaTags) {
     output += `### ${tagKey}
 - Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- Example Values: ${data.values.map(v => v.value).slice(0, 3).join(', ')}
+- Unique Values: ${(data.values as any)?.totalUniqueValues || (data.values || []).length}
 
+Top Values:
+`;
+    
+    // Add top values if available
+    if (data.values?.length > 0) {
+      for (const value of data.values.slice(0, 5)) {
+        output += `  - \`${value.value}\`: ${Math.round(value.frequency * 100)}% (${value.occurrences} sites)
+`;
+      }
+    } else {
+      output += `  - No values available
+`;
+    }
+    
+    output += `
 `;
   }
 
@@ -158,8 +177,18 @@ Filter Reasons:
   for (const [pattern, data] of sortedScripts) {
     output += `### ${pattern}
 - Frequency: ${Math.round(data.frequency * 100)}% (${data.occurrences}/${data.totalSites} sites)
-- Examples: ${data.examples.slice(0, 2).join(', ')}
-
+`;
+    
+    // Show examples - scripts use direct examples array
+    if (data.examples && data.examples.length > 0) {
+      output += `- Examples: ${data.examples.slice(0, 3).join(', ')}
+`;
+    } else {
+      output += `- Examples: (no examples available)
+`;
+    }
+    
+    output += `
 `;
   }
 
@@ -581,7 +610,7 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
         output += `#### ${pattern.pattern} (${pattern.type})\n`;
         output += `- **Frequency**: ${Math.round(pattern.frequency * 100)}% (${pattern.sites.length} sites)\n`;
         output += `- **Confidence**: ${Math.round(pattern.confidence * 100)}%\n`;
-        output += `- **Examples**: ${pattern.examples.slice(0, 3).join(', ')}\n`;
+        output += `- **Examples**: ${(pattern.examples || []).slice(0, 3).join(', ')}\n`;
         
         if (pattern.potentialVendor) {
           output += `- **Potential Vendor**: ${pattern.potentialVendor}\n`;
@@ -693,8 +722,12 @@ ${recommendations.learn.currentlyFiltered.map(h => `- ${h}`).join('\n')}
 /**
  * Format results as markdown with tables
  */
-function formatAsMarkdown(result: FrequencyResult, options: FrequencyOptionsWithDefaults): string {
-  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, biasAnalysis, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
+function formatAsMarkdown(result: FrequencyResult, options: FrequencyOptionsWithDefaults, biasAnalysisParam?: DatasetBiasAnalysis | null): string {
+  const { metadata, headers, metaTags, scripts, recommendations, filteringReport, cooccurrenceAnalysis, patternDiscoveryAnalysis, semanticAnalysis } = result;
+  
+  // Use passed biasAnalysis parameter if available, otherwise fall back to result's biasAnalysis
+  const biasAnalysis = biasAnalysisParam || result.biasAnalysis;
+  // Debug removed - biasAnalysis parameter flow is working
   
   let output = `# Frequency Analysis Report
 
@@ -784,7 +817,7 @@ Total headers analyzed: **${Object.keys(headers).length}**
       pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
     }
     
-    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${data.values.length} | \`${topValueDisplay}\` | ${topValuePercent}% | ${pageDistDisplay} |\n`;
+    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${(data.values as any)?.totalUniqueValues || (data.values || []).length} | \`${topValueDisplay}\` | ${topValuePercent}% | ${pageDistDisplay} |\n`;
   }
 
   // Meta Tags as Table
@@ -905,7 +938,7 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
       let confidenceDisplay = 'Unknown';
       let sitesUsingDisplay = 'N/A';
       
-      if (biasAnalysis && biasAnalysis.headerCorrelations.has(rec.pattern)) {
+      if (biasAnalysis && biasAnalysis.headerCorrelations && biasAnalysis.headerCorrelations.has(rec.pattern)) {
         const correlation = biasAnalysis.headerCorrelations.get(rec.pattern)!;
         
         // Use bias detector data for Sites Using column (consistent with CMS Correlation)
@@ -929,9 +962,53 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
         
         // Confidence level
         confidenceDisplay = correlation.recommendationConfidence;
-      } else if (headerData) {
-        // Fallback to header analyzer data when bias analysis is not available
-        sitesUsingDisplay = `${headerData.occurrences}/${headerData.totalSites}`;
+      } else {
+        // Fallback logic when bias analysis is not available
+        // Use header pattern analysis to provide basic insights
+        if (headerData) {
+          sitesUsingDisplay = `${headerData.occurrences}/${headerData.totalSites}`;
+          
+          // Basic platform specificity based on header name patterns
+          const headerName = rec.pattern.toLowerCase();
+          if (headerName.includes('shopify') || headerName.includes('x-shopid')) {
+            platformSpecificityDisplay = '~95%';
+            cmsCorrelationDisplay = 'Shopify-specific';
+            confidenceDisplay = 'High';
+          } else if (headerName.includes('drupal') || headerName.includes('x-drupal')) {
+            platformSpecificityDisplay = '~90%';
+            cmsCorrelationDisplay = 'Drupal-specific';
+            confidenceDisplay = 'High';
+          } else if (headerName.includes('wp-') || headerName.includes('wordpress')) {
+            platformSpecificityDisplay = '~85%';
+            cmsCorrelationDisplay = 'WordPress-specific';
+            confidenceDisplay = 'High';
+          } else if (headerName.includes('vercel') || headerName.includes('x-vercel')) {
+            platformSpecificityDisplay = '~95%';
+            cmsCorrelationDisplay = 'Vercel-specific';
+            confidenceDisplay = 'High';
+          } else if (headerName.startsWith('d-')) {
+            platformSpecificityDisplay = '~90%';
+            cmsCorrelationDisplay = 'Duda-specific';
+            confidenceDisplay = 'High';
+          } else if (headerName.includes('cdn') || headerName.includes('cache')) {
+            platformSpecificityDisplay = '~20%';
+            cmsCorrelationDisplay = 'Infrastructure';
+            confidenceDisplay = 'Medium';
+          } else {
+            // Calculate basic frequency-based specificity
+            const frequency = headerData.frequency;
+            if (frequency < 0.05) {
+              platformSpecificityDisplay = '~80%';
+              confidenceDisplay = 'Medium';
+            } else if (frequency < 0.15) {
+              platformSpecificityDisplay = '~60%';
+              confidenceDisplay = 'Medium';
+            } else {
+              platformSpecificityDisplay = '~30%';
+              confidenceDisplay = 'Low';
+            }
+          }
+        }
       }
       
       output += `| \`${rec.pattern}\` | ${freqPercent}% | ${sitesUsingDisplay} | ${cmsCorrelationDisplay} | ${platformSpecificityDisplay} | ${confidenceDisplay} | ${rec.reason} |\n`;
@@ -1230,8 +1307,8 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
         .slice(0, 20);
       
       for (const pattern of topPatterns) {
-        const examples = pattern.examples.slice(0, 2).join(', ');
-        const examplesDisplay = pattern.examples.length > 2 ? `${examples}... (+${pattern.examples.length - 2})` : examples;
+        const examples = (pattern.examples || []).slice(0, 2).join(', ');
+        const examplesDisplay = (pattern.examples || []).length > 2 ? `${examples}... (+${(pattern.examples || []).length - 2})` : examples;
         const vendor = pattern.potentialVendor || 'N/A';
         
         output += `| \`${pattern.pattern}\` | ${pattern.type} | `;
@@ -1404,15 +1481,28 @@ function formatScriptPatternsByClassification(scripts: FrequencyResult['scripts'
 
 `;
 
+  // Map script patterns to classifications
+  const scriptClassificationMap: Record<string, string> = {
+    'inline-script': 'inline',
+    'google-analytics': 'tracking',
+    'facebook-pixel': 'tracking',
+    'cdn-usage': 'domain',
+    'jquery': 'library',
+    'jquery-inline': 'library',
+    'wordpress-scripts': 'path',
+    'bootstrap': 'library',
+    'react': 'library'
+  };
+
   // Group scripts by classification
   const groupedScripts = new Map<string, Array<[string, any]>>();
   
   for (const [pattern, data] of Object.entries(scripts)) {
-    const prefix = pattern.split(':')[0];
-    if (!groupedScripts.has(prefix)) {
-      groupedScripts.set(prefix, []);
+    const classification = scriptClassificationMap[pattern] || 'other';
+    if (!groupedScripts.has(classification)) {
+      groupedScripts.set(classification, []);
     }
-    groupedScripts.get(prefix)!.push([pattern, data]);
+    groupedScripts.get(classification)!.push([pattern, data]);
   }
 
   // Sort each group by frequency
@@ -1435,8 +1525,8 @@ function formatScriptPatternsByClassification(scripts: FrequencyResult['scripts'
 
     for (const [pattern, data] of patterns.slice(0, 15)) { // Top 15 per category
       const frequencyPercent = Math.round(data.frequency * 100);
-      const firstExample = data.examples[0] ? formatScriptExample(data.examples[0]) : 'N/A';
-      const patternDisplay = pattern.replace(`${prefix}:`, ''); // Remove prefix for cleaner display
+      const firstExample = (data.examples && data.examples[0]) ? formatScriptExample(data.examples[0]) : 'N/A';
+      const patternDisplay = pattern; // Script patterns don't use prefixes
       
       output += `| \`${patternDisplay}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${firstExample} |\n`;
     }
@@ -1468,23 +1558,23 @@ function formatAsCSV(result: FrequencyResult): string {
   
   // Headers
   for (const [headerName, data] of Object.entries(result.headers)) {
-    for (const value of data.values) {
+    for (const value of (data.values || [])) {
       // If headerName already ends with the value, use as-is, otherwise append value
       const pattern = headerName.endsWith(`:${value.value}`) ? headerName : `${headerName}:${value.value}`;
-      csv += `Header,${escapeCSV(pattern)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV(value.examples.join('; '))}\n`;
+      csv += `Header,${escapeCSV(pattern)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV((value.examples || []).join('; '))}\n`;
     }
   }
   
   // Meta Tags
   for (const [tagKey, data] of Object.entries(result.metaTags)) {
-    for (const value of data.values) {
-      csv += `MetaTag,${escapeCSV(`${tagKey}:${value.value}`)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV(value.examples.join('; '))}\n`;
+    for (const value of (data.values || [])) {
+      csv += `MetaTag,${escapeCSV(`${tagKey}:${value.value}`)},${value.frequency},${value.occurrences},${data.totalSites},${escapeCSV((value.examples || []).join('; '))}\n`;
     }
   }
   
   // Scripts
   for (const [pattern, data] of Object.entries(result.scripts)) {
-    csv += `Script,${escapeCSV(pattern)},${data.frequency},${data.occurrences},${data.totalSites},${escapeCSV(data.examples.join('; '))}\n`;
+    csv += `Script,${escapeCSV(pattern)},${data.frequency},${data.occurrences},${data.totalSites},${escapeCSV((data.examples || []).join('; '))}\n`;
   }
   
   return csv;

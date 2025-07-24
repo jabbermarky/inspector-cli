@@ -60,6 +60,8 @@ export async function analyzeDatasetBias(
   // Step 4: Analyze header-CMS correlations
   const headerCorrelations = analyzeHeaderCMSCorrelations(dataPoints, cmsDistribution, options);
   
+  console.log(`[DEBUG] Dataset bias analysis: ${headerCorrelations.size} correlations generated`);
+  
   logger.info('Dataset bias analysis complete', {
     cmsTypes: Object.keys(cmsDistribution).length,
     concentrationScore,
@@ -197,6 +199,7 @@ function analyzeHeaderCMSCorrelations(
   const diagnosticData: Record<string, any> = {};
   
   // Collect header-CMS correlations (tracking unique sites, not occurrences)
+
   for (const dataPoint of dataPoints) {
     let detectedCms = 'Unknown';
     
@@ -273,6 +276,7 @@ function analyzeHeaderCMSCorrelations(
   
   // Calculate correlations for each header
   const correlations = new Map<string, HeaderCMSCorrelation>();
+  
   
   for (const [headerName, cmsStats] of headerStats.entries()) {
     const overallOccurrences = Array.from(cmsStats.values()).reduce((sum, urlSet) => sum + urlSet.size, 0);

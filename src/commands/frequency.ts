@@ -1,6 +1,6 @@
 import { program } from 'commander';
 import { createModuleLogger } from '../utils/logger.js';
-import { analyzeFrequency } from '../frequency/analyzer.js';
+import { analyzeFrequency } from '../frequency/analyzer-v2.js';
 import type { FrequencyOptions } from '../frequency/types.js';
 
 const logger = createModuleLogger('frequency-command');

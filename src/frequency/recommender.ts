@@ -18,10 +18,33 @@ export interface RecommendationInput {
 /**
  * Generate recommendations for learn, detect-cms, and ground-truth commands
  */
+/**
+ * Check if header name suggests it might contain CMS info
+ */
+function isCMSIndicativeHeader(headerName: string): boolean {
+  const cmsIndicatingHeaders = [
+    'powered-by', 'x-powered-by',
+    'generator', 'x-generator', 
+    'server',
+    'x-cms', 'cms',
+    'x-framework', 'framework',
+    'x-application', 'application',
+    'x-platform', 'platform',
+    'content-encoded-by',
+    'content-powered-by',
+    'nginx-cache'
+  ];
+  
+  return cmsIndicatingHeaders.some(pattern => 
+    headerName.toLowerCase().includes(pattern.toLowerCase())
+  );
+}
+
 export async function generateRecommendations(input: RecommendationInput): Promise<{
   learn: LearnRecommendations;
   detectCms: DetectCmsRecommendations;
   groundTruth: GroundTruthRecommendations;
+  biasAnalysis: DatasetBiasAnalysis;
 }> {
   logger.info('Generating filter and detection recommendations');
   
@@ -46,7 +69,8 @@ export async function generateRecommendations(input: RecommendationInput): Promi
   return {
     learn: learnRecommendations,
     detectCms: detectCmsRecommendations,
-    groundTruth: groundTruthRecommendations
+    groundTruth: groundTruthRecommendations,
+    biasAnalysis
   };
 }
 
@@ -56,8 +80,11 @@ export async function generateRecommendations(input: RecommendationInput): Promi
 function generateLearnRecommendations(input: RecommendationInput & { biasAnalysis: DatasetBiasAnalysis }): LearnRecommendations {
   const { headerPatterns, options, biasAnalysis } = input;
   
-  // Get currently filtered headers from discriminative filtering
-  const currentlyFiltered = Array.from(GENERIC_HTTP_HEADERS);
+  // Get currently filtered headers from actual analysis data, not static list
+  // This integrates V2 architecture data with the legacy recommendation system
+  const currentlyFiltered = Array.from(headerPatterns.keys()).filter(headerName => 
+    GENERIC_HTTP_HEADERS.has(headerName)
+  );
   
   const recommendToFilter: LearnRecommendations['recommendToFilter'] = [];
   const recommendToKeep: LearnRecommendations['recommendToKeep'] = [];
@@ -203,10 +230,36 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
   const newPatternOpportunities: DetectCmsRecommendations['newPatternOpportunities'] = [];
   const patternsToRefine: DetectCmsRecommendations['patternsToRefine'] = [];
   
+  
   // Analyze headers for CMS detection opportunities using bias analysis
   for (const [headerName, patterns] of headerPatterns.entries()) {
     const correlation = biasAnalysis.headerCorrelations.get(headerName);
-    if (!correlation) continue;
+    
+    // If no correlation data, still try basic frequency-based analysis
+    if (!correlation) {
+      // Look for headers that might be CMS-indicative based on frequency
+      const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
+      
+      // Low-frequency headers might be discriminative
+      if (totalFrequency >= 0.01 && totalFrequency <= 0.15 && isCMSIndicativeHeader(headerName)) {
+        // Create basic CMS correlation based on header name patterns
+        let cmsGuess = 'CMS';
+        if (headerName.includes('shopify')) cmsGuess = 'Shopify';
+        else if (headerName.includes('wordpress') || headerName.includes('wp-')) cmsGuess = 'WordPress';
+        else if (headerName.includes('drupal')) cmsGuess = 'Drupal';
+        else if (headerName.includes('joomla')) cmsGuess = 'Joomla';
+        else if (headerName.includes('generator')) cmsGuess = 'CMS';
+        else if (headerName.includes('powered-by')) cmsGuess = 'CMS';
+        
+        newPatternOpportunities.push({
+          pattern: headerName,
+          frequency: totalFrequency,
+          confidence: 0.6, // Medium confidence without correlation data
+          cmsCorrelation: { [cmsGuess]: 0.6 }
+        });
+      }
+      continue;
+    }
     
     // Find the most correlated CMS using P(CMS|header)
     const topCMS = Object.entries(correlation.cmsGivenHeader)
@@ -247,6 +300,7 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
   newPatternOpportunities.sort((a, b) => (b.confidence * (1 - b.frequency)) - (a.confidence * (1 - a.frequency)));
   patternsToRefine.sort((a, b) => b.currentFrequency - a.currentFrequency);
   
+  
   return {
     newPatternOpportunities: newPatternOpportunities.slice(0, 10),
     patternsToRefine: patternsToRefine.slice(0, 5)
@@ -259,29 +313,44 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
 function generateGroundTruthRecommendations(input: RecommendationInput): GroundTruthRecommendations {
   const { headerPatterns, metaPatterns } = input;
   
-  // This would need to analyze existing ground-truth rules
-  // For prototype, we'll provide a basic implementation
-  const currentlyUsedPatterns: string[] = [
-    'x-powered-by',
-    'x-generator', 
-    'server'
-  ];
-  
+  // Find currently used patterns based on actual data
+  const currentlyUsedPatterns: string[] = [];
   const potentialNewRules: GroundTruthRecommendations['potentialNewRules'] = [];
   
-  // Look for high-confidence, CMS-specific patterns in headers
+  // Identify headers that are already being used for ground-truth (high confidence, CMS-indicative)
   for (const [headerName, patterns] of headerPatterns.entries()) {
+    if (isCMSIndicativeHeader(headerName)) {
+      currentlyUsedPatterns.push(headerName);
+    }
+  }
+  
+  // Look for patterns that could be good ground-truth rules
+  for (const [headerName, patterns] of headerPatterns.entries()) {
+    // Skip headers already in use
+    if (currentlyUsedPatterns.includes(headerName)) continue;
+    
     for (const pattern of patterns) {
-      if (pattern.confidence > 0.8 && pattern.frequency < 0.2) {
-        const strongestCms = Object.entries(pattern.cmsCorrelation)
-          .filter(([cms]) => cms !== 'Unknown')
-          .sort(([, a], [, b]) => (b as number) - (a as number))[0];
+      // Look for discriminative patterns (medium-high confidence, not too common)
+      if (pattern.frequency >= 0.02 && pattern.frequency <= 0.3) {
+        // Check if it's a CMS-indicative header or has distinctive values
+        // Convert Set to Array if needed for .some() method
+        const examplesArray = Array.isArray(pattern.examples) ? pattern.examples : Array.from(pattern.examples || []);
+        const hasDistinctiveValues = examplesArray.some(example => 
+          /wordpress|drupal|joomla|shopify|woocommerce|magento|prestashop/i.test(String(example))
+        );
         
-        if (strongestCms && (strongestCms[1] as number) > 0.8) {
+        if (isCMSIndicativeHeader(headerName) || hasDistinctiveValues) {
+          // Determine the most likely CMS from correlation data
+          const strongestCms = Object.entries(pattern.cmsCorrelation || {})
+            .filter(([cms]) => cms !== 'Unknown')
+            .sort(([, a], [, b]) => (b as number) - (a as number))[0];
+            
+          const cmsName = strongestCms ? strongestCms[0] : 'specific CMS';
+          
           potentialNewRules.push({
             pattern: pattern.pattern,
             confidence: pattern.confidence,
-            suggestedRule: `Sites with "${pattern.pattern}" are likely ${strongestCms[0]}`
+            suggestedRule: `Sites with "${headerName}" containing "${examplesArray[0] || 'specific values'}" are likely ${cmsName}`
           });
         }
       }
