@@ -11,6 +11,19 @@ import type {
   SiteData, 
   DateRange 
 } from './types/analyzer-interface.js';
+
+// Header classification types
+export type HeaderCategory = 'generic' | 'platform' | 'infrastructure' | 'security' | 'cms-indicative' | 'custom';
+export type FilterRecommendation = 'always-filter' | 'never-filter' | 'context-dependent';
+
+export interface HeaderClassification {
+  category: HeaderCategory;
+  subcategory?: string;
+  vendor?: string;
+  discriminativeScore: number; // 0-1 scale
+  filterRecommendation: FilterRecommendation;
+  platformName?: string; // If header contains platform name
+}
 // Types for the analysis data we need
 interface CMSAnalysisData {
   pageData?: {
@@ -40,9 +53,292 @@ const logger = createModuleLogger('data-preprocessor');
 export class DataPreprocessor {
   private dataPath: string;
   private cache: Map<string, PreprocessedData> = new Map();
+  private headerClassificationCache: Map<string, HeaderClassification> = new Map();
+  
+  // Single source of truth for header classifications
+  private static readonly HEADER_DEFINITIONS = {
+    // Group 1: Standard headers that are NEVER discriminatory for CMS detection
+    neverDiscriminatory: new Set([
+      // Core HTTP headers
+      'date', 'content-type', 'content-length', 'content-encoding',
+      'transfer-encoding', 'connection', 'keep-alive', 'accept-ranges',
+      'etag', 'last-modified', 'expires', 'pragma', 'age', 'via', 'vary',
+      'upgrade', 'host', 'referer',
+      
+      // Security headers (standard)
+      'strict-transport-security', 'x-content-type-options', 'x-frame-options',
+      'x-xss-protection', 'referrer-policy', 'content-security-policy',
+      'x-content-security-policy', 'x-webkit-csp', 'feature-policy', 
+      'permissions-policy', 'cross-origin-embedder-policy', 
+      'cross-origin-opener-policy', 'cross-origin-resource-policy',
+      
+      // CORS headers
+      'access-control-allow-origin', 'access-control-allow-credentials',
+      'access-control-allow-headers', 'access-control-allow-methods',
+      'access-control-max-age', 'access-control-expose-headers',
+      
+      // Reporting/monitoring
+      'nel', 'report-to', 'server-timing',
+      
+      // Caching (generic)
+      'cache-control', 'surrogate-control', 'cdn-cache-control',
+      
+      // Standard HTTP/2 and HTTP/3
+      'alt-svc', 'early-data', 'http2-settings',
+      
+      // Request/Response metadata
+      'content-disposition', 'content-language', 'content-location',
+      'content-range', 'accept', 'accept-charset', 'accept-encoding',
+      'accept-language', 'expect', 'from', 'if-match', 'if-modified-since',
+      'if-none-match', 'if-range', 'if-unmodified-since', 'max-forwards',
+      'proxy-authorization', 'range', 'te', 'user-agent', 'authorization',
+      'www-authenticate', 'proxy-authenticate', 'allow', 'location',
+      'retry-after', 'warning',
+      
+      // WebSocket
+      'sec-websocket-accept', 'sec-websocket-extensions', 
+      'sec-websocket-key', 'sec-websocket-protocol', 'sec-websocket-version',
+      
+      // Other standard headers
+      'x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host',
+      'x-real-ip', 'x-original-url', 'x-rewrite-url',
+      'x-request-id', 'x-correlation-id', 'x-trace-id',
+      'x-b3-traceid', 'x-b3-spanid', 'x-b3-parentspanid', 'x-b3-sampled',
+      'x-b3-flags', 'traceparent', 'tracestate'
+    ]),
+    
+    // Platform/CMS name patterns (for Group 4 detection)
+    platformPatterns: new Map([
+      // CMS platforms
+      ['wordpress', 'WordPress'],
+      ['wp-', 'WordPress'],
+      ['drupal', 'Drupal'],
+      ['joomla', 'Joomla'],
+      ['duda', 'Duda'],
+      ['d-', 'Duda'], // Duda prefix pattern
+      
+      // E-commerce platforms
+      ['shopify', 'Shopify'],
+      ['x-shopid', 'Shopify'],
+      ['magento', 'Magento'],
+      ['woocommerce', 'WooCommerce'],
+      ['bigcommerce', 'BigCommerce'],
+      ['prestashop', 'PrestaShop'],
+      ['opencart', 'OpenCart'],
+      
+      // Website builders
+      ['wix', 'Wix'],
+      ['squarespace', 'Squarespace'],
+      ['weebly', 'Weebly'],
+      ['godaddy', 'GoDaddy'],
+      ['jimdo', 'Jimdo'],
+      
+      // Enterprise CMS
+      ['aem', 'Adobe Experience Manager'],
+      ['sitecore', 'Sitecore'],
+      ['contentful', 'Contentful'],
+      ['liferay', 'Liferay'],
+      ['kentico', 'Kentico'],
+      
+      // Development frameworks/platforms
+      ['nextjs', 'Next.js'],
+      ['next-', 'Next.js'],
+      ['nuxt', 'Nuxt.js'],
+      ['gatsby', 'Gatsby'],
+      
+      // Hosting/Infrastructure platforms  
+      ['vercel', 'Vercel'],
+      ['netlify', 'Netlify'],
+      ['cloudflare', 'Cloudflare'],
+      ['cf-', 'Cloudflare'],
+      ['x-amz-', 'AWS'],
+      ['fastly', 'Fastly'],
+      ['akamai', 'Akamai']
+    ]),
+    
+    // Headers that commonly contain CMS/platform information in their VALUES
+    valueDiscriminativeHeaders: new Set([
+      'server', 'x-powered-by', 'powered-by', 'x-generator', 'generator',
+      'x-cms', 'x-framework', 'x-platform', 'x-application'
+    ]),
+    
+    // Infrastructure/CDN headers (may be discriminative based on usage patterns)
+    infrastructureHeaders: new Set([
+      'x-cache', 'x-cache-status', 'x-cache-hit', 'x-cache-lookup', 'x-cacheable',
+      'x-varnish', 'x-cdn', 'x-edge-location', 'x-served-by',
+      'x-backend-server', 'x-proxy-cache', 'x-fastly-request-id',
+      'x-amz-cf-id', 'x-amz-cf-pop', 'x-amz-request-id',
+      'cf-ray', 'cf-cache-status', 'cf-request-id',
+      'x-azure-ref', 'x-ms-request-id', 'x-ms-routing-request-id'
+    ])
+  };
 
   constructor(dataPath: string = './data/cms-analysis') {
     this.dataPath = dataPath;
+  }
+
+  /**
+   * Classify a header according to the 4-group classification system
+   * Phase 3: Single source of truth for all header classification decisions
+   */
+  classifyHeader(headerName: string): HeaderClassification {
+    const normalizedName = headerName.toLowerCase();
+    
+    // Check cache first
+    if (this.headerClassificationCache.has(normalizedName)) {
+      return this.headerClassificationCache.get(normalizedName)!;
+    }
+
+    let classification: HeaderClassification;
+
+    // Group 1: Standard headers that are NEVER discriminatory
+    if (DataPreprocessor.HEADER_DEFINITIONS.neverDiscriminatory.has(normalizedName)) {
+      classification = {
+        category: 'generic',
+        discriminativeScore: 0,
+        filterRecommendation: 'always-filter'
+      };
+    }
+    // Group 2: Standard headers with potentially discriminatory values
+    else if (DataPreprocessor.HEADER_DEFINITIONS.valueDiscriminativeHeaders.has(normalizedName)) {
+      classification = {
+        category: 'cms-indicative',
+        discriminativeScore: 0.6, // Moderate score, depends on values
+        filterRecommendation: 'context-dependent'
+      };
+    }
+    // Group 3: Non-standard headers with potentially discriminatory values (check before platform patterns)
+    else if (DataPreprocessor.HEADER_DEFINITIONS.infrastructureHeaders.has(normalizedName)) {
+      classification = {
+        category: 'infrastructure',
+        discriminativeScore: 0.3, // Lower score, usually not CMS-specific
+        filterRecommendation: 'context-dependent'
+      };
+    }
+    // Group 4: Headers with platform/CMS names in the header name itself
+    else {
+      const platformMatch = this.findPlatformInHeaderName(normalizedName);
+      if (platformMatch) {
+        classification = {
+          category: 'platform',
+          vendor: platformMatch.platform,
+          platformName: platformMatch.platform,
+          discriminativeScore: 0.8, // High score for name-based discrimination
+          filterRecommendation: 'never-filter'
+        };
+      }
+      // Unknown/custom headers
+      else {
+        classification = {
+          category: 'custom',
+          discriminativeScore: 0.5, // Medium score, needs analysis
+          filterRecommendation: 'context-dependent'
+        };
+      }
+    }
+
+    // Cache the result
+    this.headerClassificationCache.set(normalizedName, classification);
+    return classification;
+  }
+
+  /**
+   * Find platform/CMS name in header name
+   * Uses more precise matching to avoid false positives
+   */
+  private findPlatformInHeaderName(headerName: string): { platform: string; pattern: string } | null {
+    // Sort patterns by specificity (longer patterns first) to avoid false matches
+    const sortedPatterns = Array.from(DataPreprocessor.HEADER_DEFINITIONS.platformPatterns.entries())
+      .sort(([a], [b]) => b.length - a.length);
+
+    for (const [pattern, platform] of sortedPatterns) {
+      // Handle prefix patterns (ending with -)
+      if (pattern.endsWith('-') && headerName.startsWith(pattern)) {
+        return { platform, pattern };
+      }
+      
+      // Handle exact word matches to avoid partial matches
+      if (headerName.includes(pattern)) {
+        // Avoid false positives like "powered-by" matching "by"
+        // Only match if it's a meaningful part of the header name
+        if (pattern.length >= 3 || headerName === pattern) {
+          return { platform, pattern };
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if header should be filtered (never recommended for detection)
+   */
+  shouldFilterHeader(headerName: string, context?: {
+    frequency?: number;
+    diversity?: number;
+    maxFrequency?: number;
+  }): boolean {
+    const classification = this.classifyHeader(headerName);
+    
+    // Always filter Group 1 headers
+    if (classification.filterRecommendation === 'always-filter') {
+      return true;
+    }
+    
+    // Never filter Group 4 headers (platform names)
+    if (classification.filterRecommendation === 'never-filter') {
+      return false;
+    }
+
+    // Context-dependent filtering for Groups 2 & 3
+    if (context) {
+      // Don't recommend headers with very low frequency (< 2%) without strong evidence
+      if (context.maxFrequency && context.maxFrequency < 0.02) {
+        return true; // Too rare to be useful for detection
+      }
+      
+      // Apply other frequency/diversity-based filtering logic here
+      // This replaces the scattered logic in various shouldKeepHeader functions
+    }
+
+    return false; // Default to not filtering unless we have reason to
+  }
+
+  /**
+   * Get all headers of a specific category
+   */
+  getHeadersByCategory(category: HeaderCategory): string[] {
+    const headers: string[] = [];
+    
+    switch (category) {
+      case 'generic':
+        headers.push(...Array.from(DataPreprocessor.HEADER_DEFINITIONS.neverDiscriminatory));
+        break;
+      case 'cms-indicative':
+        headers.push(...Array.from(DataPreprocessor.HEADER_DEFINITIONS.valueDiscriminativeHeaders));
+        break;
+      case 'infrastructure':
+        headers.push(...Array.from(DataPreprocessor.HEADER_DEFINITIONS.infrastructureHeaders));
+        break;
+      case 'platform':
+        // This would need to be computed from actual data since it depends on header names
+        break;
+    }
+    
+    return headers;
+  }
+
+  /**
+   * Get platform patterns for external use
+   */
+  getPlatformPatterns(): Map<string, string> {
+    return new Map(DataPreprocessor.HEADER_DEFINITIONS.platformPatterns);
+  }
+
+  /**
+   * Clear header classification cache
+   */
+  clearHeaderClassificationCache(): void {
+    this.headerClassificationCache.clear();
   }
 
   /**

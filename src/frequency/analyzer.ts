@@ -5,6 +5,7 @@ import { collectData } from './collector.js';
 import { analyzeHeaders } from './header-analyzer.js';
 import { analyzeMetaTags } from './meta-analyzer.js';
 import { generateRecommendations } from './recommender.js';
+import { DataPreprocessor } from './data-preprocessor.js';
 import { formatOutput } from './reporter.js';
 import { analyzeDatasetBias } from './bias-detector.js';
 import { batchAnalyzeHeaders, generateSemanticInsights } from './semantic-analyzer.js';
@@ -163,13 +164,15 @@ export async function analyzeFrequency(options: FrequencyOptions = {}): Promise<
     let recommendations;
     if (opts.includeRecommendations) {
       logger.info('Generating bias-aware filter recommendations');
+      const preprocessor = new DataPreprocessor();
       recommendations = await generateRecommendations({
         headerPatterns,
         metaPatterns,
         scriptPatterns,
         dataPoints,
         options: opts,
-        biasAnalysis
+        biasAnalysis,
+        preprocessor
       });
     }
     

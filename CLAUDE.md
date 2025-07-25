@@ -212,3 +212,7 @@ node dist/index.js learn <url> --filter-level custom \
 
 - My name is Mark
 - Always use my name whenever responding to my requests
+
+## Interaction Protocols
+
+- Always start out by saying Hello Mark!

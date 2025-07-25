@@ -159,12 +159,12 @@ describe('RecommendationsCoordinator Integration Tests', () => {
       // The system should now use the intersection of V2 data and filter list
       const headerNames = recommendations.learn.currentlyFiltered;
       
-      // Only headers from our test data that are also in GENERIC_HTTP_HEADERS should appear
-      expect(headerNames).toContain('server'); // In both test data and static list
-      expect(headerNames).toContain('content-type'); // In both test data and static list
+      // Only Group 1 (generic) headers should be in currentlyFiltered
+      expect(headerNames).toContain('content-type'); // Group 1: always filtered
+      expect(headerNames).not.toContain('server'); // Group 2: context-dependent
       
-      // Should not contain headers not in our test data
-      expect(headerNames.length).toBe(2); // Only our 2 test headers
+      // Should contain only the Group 1 headers from our test data
+      expect(headerNames.length).toBe(1); // Only content-type is always filtered
     });
 
     it('should convert header patterns to legacy format correctly', async () => {

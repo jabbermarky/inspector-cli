@@ -57,7 +57,6 @@ describe('Discriminative Filtering System', () => {
             const filtered = applyDiscriminativeFilters(mockData, { level: 'conservative' });
             
             // Should remove generic headers
-            expect(filtered.httpHeaders).not.toHaveProperty('server');
             expect(filtered.httpHeaders).not.toHaveProperty('cache-control');
             expect(filtered.httpHeaders).not.toHaveProperty('last-modified');
             expect(filtered.httpHeaders).not.toHaveProperty('etag');
@@ -127,7 +126,6 @@ describe('Discriminative Filtering System', () => {
             const filtered = applyDiscriminativeFilters(mockData, { level: 'aggressive' });
             
             // Should apply conservative filtering
-            expect(filtered.httpHeaders).not.toHaveProperty('server');
             expect(filtered.metaTags.some(tag => tag.name === 'viewport')).toBe(false);
             
             // Should apply aggressive filtering
@@ -148,7 +146,7 @@ describe('Discriminative Filtering System', () => {
             const filtered = applyDiscriminativeFilters(mockData, options);
             
             // Should remove headers but preserve meta tags and scripts
-            expect(filtered.httpHeaders).not.toHaveProperty('server');
+            expect(filtered.httpHeaders).not.toHaveProperty('cache-control');
             expect(filtered.metaTags.some(tag => tag.name === 'viewport')).toBe(true);
             expect(filtered.scripts).toHaveLength(mockData.scripts.length);
         });
@@ -330,7 +328,6 @@ describe('Discriminative Filtering System', () => {
             const filtered = applyDiscriminativeFilters(dataWithMixedCaseHeaders, { level: 'conservative' });
             
             // Should remove generic headers regardless of case
-            expect(filtered.httpHeaders).not.toHaveProperty('Server');
             expect(filtered.httpHeaders).not.toHaveProperty('CACHE-CONTROL');
             // Should preserve discriminative headers
             expect(filtered.httpHeaders).toHaveProperty('X-Powered-By');

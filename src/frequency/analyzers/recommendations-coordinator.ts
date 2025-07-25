@@ -8,6 +8,7 @@ import type {
 } from '../types/analyzer-interface.js';
 import type { FrequencyOptions } from '../types.js';
 import { generateRecommendations, type RecommendationInput } from '../recommender.js';
+import { DataPreprocessor } from '../data-preprocessor.js';
 import { createModuleLogger } from '../../utils/logger.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
 
@@ -54,12 +55,14 @@ export class RecommendationsCoordinator {
     };
 
     
+    const preprocessor = new DataPreprocessor();
     const recommendationInput: RecommendationInput = {
       headerPatterns,
       metaPatterns,
       scriptPatterns,
       dataPoints,
-      options: legacyOptions
+      options: legacyOptions,
+      preprocessor
     };
 
     try {

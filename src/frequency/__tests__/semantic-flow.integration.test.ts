@@ -122,7 +122,7 @@ describe('Semantic Analysis Integration Flow', () => {
       const serverAnalysis = headerAnalyses.get('server');
       expect(serverAnalysis).toBeDefined();
       expect(serverAnalysis!.headerName).toBe('server');
-      expect(serverAnalysis!.category.primary).toBe('infrastructure');
+      expect(serverAnalysis!.category.primary).toBe('cms');
 
       const wordpressAnalysis = headerAnalyses.get('x-pingback');
       expect(wordpressAnalysis).toBeDefined();
@@ -333,8 +333,8 @@ describe('Semantic Analysis Integration Flow', () => {
       // Verify security category has the expected count
       expect(semanticInsights.categoryDistribution.security).toBe(securityHeaders.length);
       
-      // Verify infrastructure category for server header
-      expect(semanticInsights.categoryDistribution.infrastructure).toBe(1);
+      // Verify infrastructure category (server is now cms, so should be 0)
+      expect(semanticInsights.categoryDistribution.infrastructure).toBe(0);
 
       // Verify naming conventions (all should be kebab-case)
       expect(semanticInsights.namingConventions['kebab-case']).toBe(securityHeaders.length + 1); // +1 for server

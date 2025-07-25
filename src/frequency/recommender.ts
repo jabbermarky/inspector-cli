@@ -1,8 +1,8 @@
 import { createModuleLogger } from '../utils/logger.js';
-import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
-import { analyzeDatasetBias, type DatasetBiasAnalysis, type HeaderCMSCorrelation, isEnterpriseInfrastructureHeader } from './bias-detector.js';
+import { analyzeDatasetBias, type DatasetBiasAnalysis, type HeaderCMSCorrelation } from './bias-detector.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults, LearnRecommendations, DetectCmsRecommendations, GroundTruthRecommendations } from './types.js';
 import type { HeaderPattern } from './header-analyzer.js';
+import { DataPreprocessor, type HeaderClassification } from './data-preprocessor.js';
 
 const logger = createModuleLogger('frequency-recommender');
 
@@ -13,32 +13,13 @@ export interface RecommendationInput {
   dataPoints: DetectionDataPoint[];
   options: FrequencyOptionsWithDefaults;
   biasAnalysis?: DatasetBiasAnalysis;
+  preprocessor?: DataPreprocessor;
 }
 
 /**
  * Generate recommendations for learn, detect-cms, and ground-truth commands
  */
-/**
- * Check if header name suggests it might contain CMS info
- */
-function isCMSIndicativeHeader(headerName: string): boolean {
-  const cmsIndicatingHeaders = [
-    'powered-by', 'x-powered-by',
-    'generator', 'x-generator', 
-    'server',
-    'x-cms', 'cms',
-    'x-framework', 'framework',
-    'x-application', 'application',
-    'x-platform', 'platform',
-    'content-encoded-by',
-    'content-powered-by',
-    'nginx-cache'
-  ];
-  
-  return cmsIndicatingHeaders.some(pattern => 
-    headerName.toLowerCase().includes(pattern.toLowerCase())
-  );
-}
+// isCMSIndicativeHeader function removed - use DataPreprocessor.classifyHeader() instead
 
 export async function generateRecommendations(input: RecommendationInput): Promise<{
   learn: LearnRecommendations;
@@ -79,12 +60,14 @@ export async function generateRecommendations(input: RecommendationInput): Promi
  */
 function generateLearnRecommendations(input: RecommendationInput & { biasAnalysis: DatasetBiasAnalysis }): LearnRecommendations {
   const { headerPatterns, options, biasAnalysis } = input;
+  const preprocessor = input.preprocessor || new DataPreprocessor();
   
-  // Get currently filtered headers from actual analysis data, not static list
+  // Get currently filtered headers using centralized classification
   // This integrates V2 architecture data with the legacy recommendation system
-  const currentlyFiltered = Array.from(headerPatterns.keys()).filter(headerName => 
-    GENERIC_HTTP_HEADERS.has(headerName)
-  );
+  const currentlyFiltered = Array.from(headerPatterns.keys()).filter(headerName => {
+    const classification = preprocessor.classifyHeader(headerName);
+    return classification.filterRecommendation === 'always-filter';
+  });
   
   const recommendToFilter: LearnRecommendations['recommendToFilter'] = [];
   const recommendToKeep: LearnRecommendations['recommendToKeep'] = [];
@@ -103,14 +86,20 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
     const useBiasAware = correlation !== undefined;
     
     if (!isCurrentlyFiltered) {
-      // Should this header be filtered?
-      const shouldFilter = useBiasAware 
-        ? shouldFilterHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
-        : shouldFilterHeader(headerName, totalFrequency, diversity, maxFrequency);
+      // Check if this header should be filtered using centralized classification
+      const classification = preprocessor.classifyHeader(headerName);
+      // Don't filter context-dependent headers that have high CMS correlation
+      const hasHighCMSCorrelation = correlation && 
+        Object.values(correlation.cmsGivenHeader).some(cms => cms.probability > 0.7);
+      
+      const shouldFilter = classification.filterRecommendation === 'always-filter' ||
+        (classification.filterRecommendation === 'context-dependent' && 
+         !hasHighCMSCorrelation &&
+         preprocessor.shouldFilterHeader(headerName, { frequency: totalFrequency, diversity, maxFrequency }));
       
       if (shouldFilter) {
         const reason = useBiasAware 
-          ? getFilterReasonBiasAware(correlation, totalFrequency, diversity)
+          ? getFilterReasonBiasAware(correlation, totalFrequency, diversity, preprocessor)
           : getFilterReason(totalFrequency, diversity, maxFrequency);
         recommendToFilter.push({
           pattern: headerName,
@@ -119,13 +108,12 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
           diversity
         });
       } else {
-        const shouldKeep = useBiasAware
-          ? shouldKeepHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
-          : shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency);
+        const shouldKeep = classification.filterRecommendation === 'never-filter' ||
+          (useBiasAware && correlation && shouldKeepBasedOnCorrelation(headerName, correlation, totalFrequency, diversity, classification));
         
         if (shouldKeep) {
           const reason = useBiasAware
-            ? getKeepReasonBiasAware(correlation, totalFrequency, diversity)
+            ? getKeepReasonBiasAware(correlation, totalFrequency, diversity, preprocessor)
             : getKeepReason(totalFrequency, diversity, maxFrequency);
           
           recommendToKeep.push({
@@ -138,13 +126,13 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
       }
     } else {
       // Should this currently filtered header be kept (unfiltered)?
-      const shouldKeep = useBiasAware
-        ? shouldKeepHeaderBiasAware(headerName, correlation, totalFrequency, diversity)
-        : shouldKeepHeader(headerName, totalFrequency, diversity, maxFrequency);
+      const classification = preprocessor.classifyHeader(headerName);
+      const shouldKeep = classification.filterRecommendation === 'never-filter' ||
+        (useBiasAware && correlation && shouldKeepBasedOnCorrelation(headerName, correlation, totalFrequency, diversity, classification));
       
       if (shouldKeep) {
         const reason = useBiasAware
-          ? getKeepReasonBiasAware(correlation, totalFrequency, diversity)
+          ? getKeepReasonBiasAware(correlation, totalFrequency, diversity, preprocessor)
           : getKeepReason(totalFrequency, diversity, maxFrequency);
         recommendToKeep.push({
           pattern: headerName,
@@ -175,8 +163,10 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
     }
     
     // Secondary sort for ties: Prefer platform-prefix headers
-    const aIsPlatformPrefix = isPlatformPrefixHeader(a.pattern);
-    const bIsPlatformPrefix = isPlatformPrefixHeader(b.pattern);
+    const aClassification = preprocessor.classifyHeader(a.pattern);
+    const bClassification = preprocessor.classifyHeader(b.pattern);
+    const aIsPlatformPrefix = aClassification.category === 'platform';
+    const bIsPlatformPrefix = bClassification.category === 'platform';
     if (aIsPlatformPrefix !== bIsPlatformPrefix) {
       return bIsPlatformPrefix ? 1 : -1; // Platform prefix headers first
     }
@@ -188,14 +178,16 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
   // Separate platform-specific headers from general recommendations
   // Include both prefix-based headers AND bias-aware platform-specific headers
   const platformSpecificHeaders = recommendToKeep.filter(r => {
-    const hasPrefix = isPlatformPrefixHeader(r.pattern);
+    const classification = preprocessor.classifyHeader(r.pattern);
+    const hasPrefix = classification.category === 'platform';
     const correlation = biasAnalysis.headerCorrelations.get(r.pattern);
     const hasPlatformSpecificity = correlation && correlation.platformSpecificity > 0.8; // Very high threshold
     
     return hasPrefix || hasPlatformSpecificity;
   });
   const generalHeaders = recommendToKeep.filter(r => {
-    const hasPrefix = isPlatformPrefixHeader(r.pattern);
+    const classification = preprocessor.classifyHeader(r.pattern);
+    const hasPrefix = classification.category === 'platform';
     const correlation = biasAnalysis.headerCorrelations.get(r.pattern);
     const hasPlatformSpecificity = correlation && correlation.platformSpecificity > 0.8;
     
@@ -226,13 +218,29 @@ function generateLearnRecommendations(input: RecommendationInput & { biasAnalysi
  */
 function generateDetectCmsRecommendations(input: RecommendationInput & { biasAnalysis: DatasetBiasAnalysis }): DetectCmsRecommendations {
   const { headerPatterns, metaPatterns, biasAnalysis } = input;
+  const preprocessor = input.preprocessor || new DataPreprocessor();
   
   const newPatternOpportunities: DetectCmsRecommendations['newPatternOpportunities'] = [];
   const patternsToRefine: DetectCmsRecommendations['patternsToRefine'] = [];
-  
-  
+
   // Analyze headers for CMS detection opportunities using bias analysis
   for (const [headerName, patterns] of headerPatterns.entries()) {
+    // Skip headers that should always be filtered using centralized classification
+    const classification = preprocessor.classifyHeader(headerName);
+    if (classification.filterRecommendation === 'always-filter') {
+      continue; // Skip Group 1 headers
+    }
+    
+    // Check if this header should be filtered based on context
+    const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
+    const diversity = patterns.length;
+    const maxFrequency = Math.max(...patterns.map(p => p.frequency));
+    
+    if (classification.filterRecommendation === 'context-dependent' &&
+        preprocessor.shouldFilterHeader(headerName, { frequency: totalFrequency, diversity, maxFrequency })) {
+      continue; // Skip headers that should be filtered based on context
+    }
+    
     const correlation = biasAnalysis.headerCorrelations.get(headerName);
     
     // If no correlation data, still try basic frequency-based analysis
@@ -241,7 +249,8 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
       const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
       
       // Low-frequency headers might be discriminative
-      if (totalFrequency >= 0.01 && totalFrequency <= 0.15 && isCMSIndicativeHeader(headerName)) {
+      const classification = preprocessor.classifyHeader(headerName);
+      if (totalFrequency >= 0.01 && totalFrequency <= 0.15 && classification.category === 'cms-indicative') {
         // Create basic CMS correlation based on header name patterns
         let cmsGuess = 'CMS';
         if (headerName.includes('shopify')) cmsGuess = 'Shopify';
@@ -286,7 +295,7 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
     }
     
     // Look for overly generic patterns (high frequency, low specificity)
-    const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
+    // totalFrequency already calculated above
     if (totalFrequency > 0.3 && correlation.platformSpecificity < 0.2) {
       patternsToRefine.push({
         pattern: headerName,
@@ -312,6 +321,7 @@ function generateDetectCmsRecommendations(input: RecommendationInput & { biasAna
  */
 function generateGroundTruthRecommendations(input: RecommendationInput): GroundTruthRecommendations {
   const { headerPatterns, metaPatterns } = input;
+  const preprocessor = input.preprocessor || new DataPreprocessor();
   
   // Find currently used patterns based on actual data
   const currentlyUsedPatterns: string[] = [];
@@ -319,7 +329,8 @@ function generateGroundTruthRecommendations(input: RecommendationInput): GroundT
   
   // Identify headers that are already being used for ground-truth (high confidence, CMS-indicative)
   for (const [headerName, patterns] of headerPatterns.entries()) {
-    if (isCMSIndicativeHeader(headerName)) {
+    const classification = preprocessor.classifyHeader(headerName);
+    if (classification.category === 'cms-indicative') {
       currentlyUsedPatterns.push(headerName);
     }
   }
@@ -339,7 +350,8 @@ function generateGroundTruthRecommendations(input: RecommendationInput): GroundT
           /wordpress|drupal|joomla|shopify|woocommerce|magento|prestashop/i.test(String(example))
         );
         
-        if (isCMSIndicativeHeader(headerName) || hasDistinctiveValues) {
+        const classification = preprocessor.classifyHeader(headerName);
+        if (classification.category === 'cms-indicative' || hasDistinctiveValues) {
           // Determine the most likely CMS from correlation data
           const strongestCms = Object.entries(pattern.cmsCorrelation || {})
             .filter(([cms]) => cms !== 'Unknown')
@@ -382,36 +394,9 @@ function generateGroundTruthRecommendations(input: RecommendationInput): GroundT
   };
 }
 
-/**
- * Determine if a header should be filtered
- */
-function shouldFilterHeader(headerName: string, frequency: number, diversity: number, maxFrequency: number): boolean {
-  // High universality (>70% of sites)
-  if (maxFrequency > 0.7) return true;
-  
-  // High diversity + high frequency (likely request IDs, timestamps, etc.)
-  if (diversity > 20 && frequency > 0.5) return true;
-  
-  // Known generic patterns
-  const genericPatterns = ['request-id', 'trace-id', 'timestamp', 'correlation-id'];
-  if (genericPatterns.some(pattern => headerName.includes(pattern))) return true;
-  
-  return false;
-}
+// shouldFilterHeader function removed - use DataPreprocessor.shouldFilterHeader() instead
 
-/**
- * Determine if a currently filtered header should be kept
- */
-function shouldKeepHeader(headerName: string, frequency: number, diversity: number, maxFrequency: number): boolean {
-  // Low frequency but appears consistently (could be discriminative)
-  if (maxFrequency < 0.3 && diversity <= 5) return true;
-  
-  // Platform-specific headers
-  const platformHeaders = ['powered-by', 'generator', 'cms', 'framework'];
-  if (platformHeaders.some(pattern => headerName.includes(pattern))) return true;
-  
-  return false;
-}
+// shouldKeepHeader function removed - use DataPreprocessor.shouldFilterHeader() instead
 
 /**
  * Get reason for filtering recommendation
@@ -424,153 +409,55 @@ function getFilterReason(frequency: number, diversity: number, maxFrequency: num
 }
 
 /**
- * Get reason for keeping recommendation  
+ * Get reason for keeping recommendation when correlation data is not available
  */
 function getKeepReason(frequency: number, diversity: number, maxFrequency: number): string {
-  if (maxFrequency < 0.2) return `Low frequency (${Math.round(maxFrequency * 100)}%) suggests discriminative value`;
-  if (diversity <= 3) return `Low diversity (${diversity} values) suggests specific platforms`;
-  return 'Potentially discriminative pattern worth preserving';
+  if (maxFrequency < 0.2) return `Low frequency (${Math.round(maxFrequency * 100)}%) - insufficient data for correlation analysis`;
+  if (diversity <= 3) return `Low diversity (${diversity} values) may indicate platform-specific usage`;
+  return 'Insufficient data to determine if pattern is discriminative';
 }
 
-/**
- * Bias-aware filtering recommendation logic
- */
-function shouldFilterHeaderBiasAware(
-  headerName: string, 
-  correlation: HeaderCMSCorrelation, 
-  frequency: number, 
-  diversity: number
-): boolean {
-  // FIRST: Check if it's a standard HTTP header that can NEVER be discriminative
-  // Standard headers with structured values (dates, numbers, booleans) are determined 
-  // by infrastructure, not CMS choice, so they should ALWAYS be filtered
-  if (GENERIC_HTTP_HEADERS.has(headerName.toLowerCase())) {
-    return true; // Standard HTTP headers are NEVER discriminative for CMS detection
-  }
-
-  // NEVER filter headers with strong CMS correlation regardless of confidence
-  const topCMS = Object.entries(correlation.perCMSFrequency)
-    .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-    .sort(([, a], [, b]) => b.frequency - a.frequency)[0];
-  
-  if (topCMS && topCMS[1].frequency > 0.7) {
-    return false; // Strong CMS correlation = discriminative value, DO NOT filter
-  }
-  
-  // NEVER filter headers with high platform specificity
-  if (correlation.platformSpecificity > 0.6) {
-    return false; // High platform specificity = discriminative value, DO NOT filter
-  }
-  
-  // Filter truly generic patterns that appear across all platforms equally
-  if (correlation.platformSpecificity < 0.3 && correlation.biasAdjustedFrequency > 0.8) {
-    return true; // Truly universal headers with no platform bias
-  }
-  
-  // Check for generic request ID patterns (but only if they also have low platform specificity)
-  const genericPatterns = ['request-id', 'trace-id', 'timestamp', 'correlation-id'];
-  if (genericPatterns.some(pattern => headerName.includes(pattern)) && 
-      correlation.platformSpecificity < 0.3 && 
-      correlation.biasAdjustedFrequency > 0.6) {
-    return true;
-  }
-  
-  // High diversity + truly universal = likely non-discriminative
-  if (diversity > 50 && correlation.platformSpecificity < 0.3 && correlation.biasAdjustedFrequency > 0.7) {
-    return true;
-  }
-  
-  // Enterprise infrastructure headers should only be filtered if they are truly generic
-  if (isEnterpriseInfrastructureHeader(headerName)) {
-    // Only filter if no CMS correlation AND very low platform specificity
-    const hasCMSCorrelation = Object.entries(correlation.perCMSFrequency)
-      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-      .some(([, data]) => data.frequency > 0.5);
-    
-    if (hasCMSCorrelation || correlation.platformSpecificity > 0.4) {
-      return false; // Keep infrastructure headers that show CMS correlation or platform specificity
-    }
-    
-    // Only filter truly generic infrastructure headers
-    if (correlation.platformSpecificity < 0.3 && correlation.biasAdjustedFrequency > 0.8) {
-      return true;
-    }
-  }
-  
-  return false;
-}
+// shouldFilterHeaderBiasAware function removed - use DataPreprocessor.shouldFilterHeader() instead
 
 /**
  * Bias-aware keep recommendation logic
  */
-function shouldKeepHeaderBiasAware(
+// shouldKeepHeaderBiasAware function removed - use DataPreprocessor.shouldFilterHeader() instead
+
+/**
+ * Helper function to determine if header should be kept based on correlation data and classification
+ */
+function shouldKeepBasedOnCorrelation(
   headerName: string, 
   correlation: HeaderCMSCorrelation, 
   frequency: number, 
-  diversity: number
+  diversity: number,
+  classification: HeaderClassification
 ): boolean {
-  // FIRST: Check if it's a standard HTTP header that can NEVER be discriminative
-  // Standard headers with structured values are determined by infrastructure, not CMS
-  if (GENERIC_HTTP_HEADERS.has(headerName.toLowerCase())) {
-    return false; // Standard HTTP headers are NEVER worth keeping for CMS discrimination
+  // Never keep headers that should always be filtered
+  if (classification.filterRecommendation === 'always-filter') {
+    return false;
   }
-
-  // Strongly recommend keeping headers with high CMS correlation using P(CMS|header)
+  
+  // Always keep headers with platform names
+  if (classification.filterRecommendation === 'never-filter') {
+    return true;
+  }
+  
+  // For context-dependent headers, use correlation analysis
   const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
     .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
     .sort(([, a], [, b]) => b.probability - a.probability)[0];
   
-  // Only consider it discriminative if a significant percentage of sites with this header belong to one CMS
-  // AND there's sufficient sample size (at least 10 sites with the header)
+  // Strong CMS correlation suggests discriminative value
   if (topCMSByProbability && 
-      topCMSByProbability[1].probability > 0.5 && // >50% of sites with header are this CMS
-      topCMSByProbability[1].count >= 10 && // At least 10 sites
-      correlation.platformSpecificity > 0.5) {
-    return true; // Strong CMS correlation = highly discriminative, definitely keep
+      topCMSByProbability[1].probability > 0.5 && 
+      topCMSByProbability[1].count >= 10) {
+    return true;
   }
   
-  // Strongly recommend keeping headers with high platform specificity
+  // High platform specificity suggests discriminative value
   if (correlation.platformSpecificity > 0.6) {
-    return true; // High platform specificity = discriminative value, definitely keep
-  }
-  
-  // Platform-specific header name patterns should be kept
-  const platformPatterns = ['powered-by', 'generator', 'cms', 'framework'];
-  if (platformPatterns.some(pattern => headerName.includes(pattern))) {
-    return true;
-  }
-  
-  // Check for CMS names in header values (e.g., "powered-by: Shopify" or "server: Drupal/9.0")
-  if (hasCMSNameInHeaderValue(headerName, correlation)) {
-    return true;
-  }
-  
-  // Platform prefix patterns should ALWAYS be kept - the prefix itself indicates platform specificity
-  if (isPlatformPrefixHeader(headerName)) {
-    return true;
-  }
-  
-  // Enterprise infrastructure headers should be kept ONLY if they show platform specificity
-  // For infrastructure headers, high frequency alone is not discriminative - they must show variation across platforms
-  if (isEnterpriseInfrastructureHeader(headerName)) {
-    if (correlation.platformSpecificity > 0.6) {
-      return true; // Keep infrastructure headers only if they show high platform specificity
-    }
-    // If infrastructure header has low platform specificity, don't keep it regardless of frequency
-    return false; // Early return for infrastructure headers with low specificity
-  }
-  
-  // Keep headers that are moderately platform-specific even if not infrastructure
-  if (correlation.platformSpecificity > 0.4 && correlation.biasAdjustedFrequency < 0.7) {
-    return true;
-  }
-  
-  // Keep headers that show moderate CMS correlation - but require both P(CMS|header) and sample size
-  // to avoid false positives from small sample correlations
-  if (topCMSByProbability && 
-      topCMSByProbability[1].probability > 0.4 && // >40% of sites with header are this CMS
-      topCMSByProbability[1].count >= 5 && // At least 5 sites
-      correlation.platformSpecificity > 0.45) {
     return true;
   }
   
@@ -583,7 +470,8 @@ function shouldKeepHeaderBiasAware(
 function getFilterReasonBiasAware(
   correlation: HeaderCMSCorrelation, 
   frequency: number, 
-  diversity: number
+  diversity: number,
+  preprocessor: DataPreprocessor
 ): string {
   const headerName = correlation.headerName;
   
@@ -601,7 +489,8 @@ function getFilterReasonBiasAware(
     return `Generic tracking header pattern with low discriminative value`;
   }
   
-  if (isEnterpriseInfrastructureHeader(headerName) && correlation.platformSpecificity < 0.2) {
+  const classification = preprocessor.classifyHeader(headerName);
+  if ((classification.category === 'infrastructure' || classification.category === 'generic') && correlation.platformSpecificity < 0.2) {
     return `Generic infrastructure header - appears across all enterprise websites`;
   }
   
@@ -614,7 +503,8 @@ function getFilterReasonBiasAware(
 function getKeepReasonBiasAware(
   correlation: HeaderCMSCorrelation, 
   frequency: number, 
-  diversity: number
+  diversity: number,
+  preprocessor: DataPreprocessor
 ): string {
   // Check for CMS-specific correlations using P(CMS|header)
   const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
@@ -623,24 +513,40 @@ function getKeepReasonBiasAware(
   
   if (topCMSByProbability && topCMSByProbability[1].probability > 0.5) {
     const percentage = Math.round(topCMSByProbability[1].probability * 100);
-    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header)`;
+    const sampleSize = topCMSByProbability[1].count;
+    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header, ${sampleSize} sites)`;
   }
   
   if (correlation.platformSpecificity > 0.6) {
-    return `High platform specificity (${Math.round(correlation.platformSpecificity * 100)}%) - excellent discriminative value`;
+    // Check if we have sufficient CMS correlation data to make this claim
+    const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
+      .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
+      .sort(([, a], [, b]) => b.probability - a.probability)[0];
+    
+    // Only claim "high platform specificity" if we have strong correlation data
+    if (topCMSByProbability && 
+        topCMSByProbability[1].count >= 10 && 
+        topCMSByProbability[1].probability >= 0.6) {
+      return `High platform specificity (${Math.round(correlation.platformSpecificity * 100)}%) - excellent discriminative value`;
+    } else {
+      // Platform specificity calculation exists but lacks sufficient correlation data or strength
+      return `High calculated platform specificity but insufficient correlation data to confirm discriminative value (sample: ${topCMSByProbability?.[1]?.count || 0} sites, ${Math.round((topCMSByProbability?.[1]?.probability || 0) * 100)}% correlation)`;
+    }
   }
   
   if (topCMSByProbability && topCMSByProbability[1].probability > 0.3 && correlation.platformSpecificity > 0.3) {
     const percentage = Math.round(topCMSByProbability[1].probability * 100);
-    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header)`;
+    const sampleSize = topCMSByProbability[1].count;
+    return `Strong correlation with ${topCMSByProbability[0]} (${percentage}% of sites with this header, ${sampleSize} sites)`;
   }
   
-  if (isPlatformPrefixHeader(correlation.headerName)) {
-    return `Platform-specific header pattern - likely discriminative for CMS detection`;
+  const classification = preprocessor.classifyHeader(correlation.headerName);
+  if (classification.category === 'platform') {
+    return `Platform-specific header pattern (identified by name prefix) - likely discriminative for CMS detection`;
   }
   
-  if (isEnterpriseInfrastructureHeader(correlation.headerName) && correlation.platformSpecificity > 0.4) {
-    return `Infrastructure header with platform specificity - may indicate specific CMS configurations`;
+  if ((classification.category === 'infrastructure' || classification.category === 'generic') && correlation.platformSpecificity > 0.4) {
+    return `Infrastructure header (identified by name pattern) with platform specificity - may indicate specific CMS configurations`;
   }
   
   if (correlation.platformSpecificity > 0.4) {
@@ -650,92 +556,6 @@ function getKeepReasonBiasAware(
   return `Shows discriminative potential (${Math.round(correlation.biasAdjustedFrequency * 100)}% frequency, ${Math.round(correlation.platformSpecificity * 100)}% specificity)`;
 }
 
-/**
- * Check if header follows platform prefix patterns
- */
-function isPlatformPrefixHeader(headerName: string): boolean {
-  const platformPrefixes = [
-    'd-',           // Duda
-    'x-wix-',       // Wix
-    'x-wp-',        // WordPress (standard prefix)
-    'x-shopify-',   // Shopify (with x- prefix)
-    'shopify-',     // Shopify (standalone prefix)
-    'x-drupal-',    // Drupal (with x- prefix)
-    'drupal-',      // Drupal (standalone prefix)
-    'x-joomla-',    // Joomla (with x- prefix)
-    'joomla-',      // Joomla (standalone prefix - real-world usage)
-    'x-ghost-',     // Ghost
-    'x-squarespace-', // Squarespace
-    'x-webflow-',   // Webflow
-    'x-kong-',      // Kong Gateway
-    'x-nf-',        // Netlify
-    'x-vercel-',    // Vercel
-    'x-bz-',        // Unknown platform
-    'x-magento-',   // Magento
-    'x-prestashop-', // PrestaShop
-    'x-opencart-',  // OpenCart
-    'wc-',          // WooCommerce
-    'edd-'          // Easy Digital Downloads
-  ];
-  
-  return platformPrefixes.some(prefix => headerName.toLowerCase().startsWith(prefix));
-}
+// isPlatformPrefixHeader function removed - use DataPreprocessor.classifyHeader() instead
 
-/**
- * Check if header value contains CMS/platform names that would make it discriminative
- */
-function hasCMSNameInHeaderValue(headerName: string, correlation: HeaderCMSCorrelation): boolean {
-  const cmsNames = [
-    'wordpress', 'wp',
-    'drupal',
-    'joomla', 'joomla!',
-    'shopify',
-    'wix',
-    'squarespace',
-    'duda',
-    'ghost',
-    'webflow',
-    'magento',
-    'prestashop',
-    'opencart',
-    'laravel',
-    'django',
-    'rails'
-  ];
-  
-  // Check for high correlation with specific CMS using P(CMS|header)
-  const topCMSByProbability = Object.entries(correlation.cmsGivenHeader)
-    .filter(([cms]) => !['Unknown', 'Enterprise', 'CDN'].includes(cms))
-    .sort(([, a], [, b]) => b.probability - a.probability)[0];
-  
-  // If >40% of sites with this header belong to a specific CMS, it likely contains CMS-specific values
-  if (topCMSByProbability && topCMSByProbability[1].probability > 0.4 && topCMSByProbability[1].count >= 5) {
-    return true;
-  }
-  
-  // Check if header name suggests it might contain CMS info (common header patterns)
-  const cmsIndicatingHeaders = [
-    'powered-by', 'x-powered-by',
-    'generator', 'x-generator', 
-    'server',
-    'x-cms', 'cms',
-    'x-framework', 'framework',
-    'x-application', 'application',
-    'x-platform', 'platform',
-    'content-encoded-by',    // Common Joomla header pattern
-    'content-powered-by',    // Common Joomla header pattern
-    'nginx-cache'            // Common WordPress caching header pattern
-  ];
-  
-  // Use substring matching to catch variations like x-content-encoded-by, x-nginx-cache, etc.
-  const matchesCMSPattern = cmsIndicatingHeaders.some(pattern => 
-    headerName.toLowerCase().includes(pattern)
-  );
-  
-  
-  if (matchesCMSPattern && correlation.platformSpecificity > 0.4) {
-    return true;
-  }
-  
-  return false;
-}
+// hasCMSNameInHeaderValue function removed - use DataPreprocessor.classifyHeader() instead

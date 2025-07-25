@@ -33,7 +33,7 @@ describe('Filtering Storage Integration', () => {
             scripts: [],
             metaTags: [],
             httpHeaders: {
-                'server': 'Apache/2.4.41', // Should be filtered
+                'content-type': 'text/html', // Should be filtered
                 'x-powered-by': 'WordPress', // Should be kept
                 'cache-control': 'no-cache', // Should be filtered
                 'x-custom-header': 'custom-value' // Should be kept
@@ -90,7 +90,7 @@ describe('Filtering Storage Integration', () => {
         
         // Verify filtered data was stored
         const storedHeaders = storedResult.inputData.enhancedData.httpHeaders;
-        expect(storedHeaders).not.toHaveProperty('server'); // Filtered out
+        expect(storedHeaders).not.toHaveProperty('content-type'); // Filtered out
         expect(storedHeaders).not.toHaveProperty('cache-control'); // Filtered out
         expect(storedHeaders).toHaveProperty('x-powered-by', 'WordPress'); // Kept
         expect(storedHeaders).toHaveProperty('x-custom-header', 'custom-value'); // Kept
@@ -137,7 +137,7 @@ describe('Filtering Storage Integration', () => {
         
         // Verify original data was stored
         const storedHeaders = storedResult.inputData.enhancedData.httpHeaders;
-        expect(storedHeaders).toHaveProperty('server', 'Apache/2.4.41'); // Kept
+        expect(storedHeaders).toHaveProperty('content-type', 'text/html'); // Kept
         expect(storedHeaders).toHaveProperty('cache-control', 'no-cache'); // Kept
         expect(storedHeaders).toHaveProperty('x-powered-by', 'WordPress'); // Kept
         expect(storedHeaders).toHaveProperty('x-custom-header', 'custom-value'); // Kept

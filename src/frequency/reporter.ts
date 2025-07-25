@@ -2,6 +2,7 @@ import { writeFile } from 'fs/promises';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyResult, FrequencyOptionsWithDefaults, HeaderCooccurrence } from './types.js';
 import type { DatasetBiasAnalysis } from './bias-detector.js';
+import { DataPreprocessor } from './data-preprocessor.js';
 
 const logger = createModuleLogger('frequency-reporter');
 
@@ -727,6 +728,9 @@ function formatAsMarkdown(result: FrequencyResult, options: FrequencyOptionsWith
   
   // Use passed biasAnalysis parameter if available, otherwise fall back to result's biasAnalysis
   const biasAnalysis = biasAnalysisParam || result.biasAnalysis;
+  
+  // Create DataPreprocessor instance for centralized header classification
+  const preprocessor = new DataPreprocessor();
   // Debug removed - biasAnalysis parameter flow is working
   
   let output = `# Frequency Analysis Report
@@ -803,7 +807,22 @@ Total headers analyzed: **${Object.keys(headers).length}**
   for (const [headerName, data] of sortedHeaders) {
     const topValue = data.values[0];
     const frequencyPercent = Math.round(data.frequency * 100);
-    const topValuePercent = topValue ? Math.round(topValue.frequency * 100) : 0;
+    // Improved Top Value Usage display - show more precision for very low values
+    let topValuePercent;
+    if (!topValue) {
+      topValuePercent = '0%';
+    } else {
+      const rawPercent = topValue.frequency * 100;
+      if (rawPercent >= 1) {
+        topValuePercent = `${Math.round(rawPercent)}%`;
+      } else if (rawPercent >= 0.1) {
+        topValuePercent = `${rawPercent.toFixed(1)}%`;
+      } else if (rawPercent > 0) {
+        topValuePercent = '<0.1%';
+      } else {
+        topValuePercent = '0%';
+      }
+    }
     const topValueDisplay = topValue ? escapeMarkdownTableCell(topValue.value) : 'N/A';
     
     // Extract just the header name (before colon) for display
@@ -817,7 +836,7 @@ Total headers analyzed: **${Object.keys(headers).length}**
       pageDistDisplay = `${mainPercent}% main, ${robotsPercent}% robots`;
     }
     
-    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${(data.values as any)?.totalUniqueValues || (data.values || []).length} | \`${topValueDisplay}\` | ${topValuePercent}% | ${pageDistDisplay} |\n`;
+    output += `| \`${displayName}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${(data.values as any)?.totalUniqueValues || (data.values || []).length} | \`${topValueDisplay}\` | ${topValuePercent} | ${pageDistDisplay} |\n`;
   }
 
   // Meta Tags as Table
@@ -964,49 +983,34 @@ Total meta tag types analyzed: **${Object.keys(metaTags).length}**
         confidenceDisplay = correlation.recommendationConfidence;
       } else {
         // Fallback logic when bias analysis is not available
-        // Use header pattern analysis to provide basic insights
+        // Use centralized DataPreprocessor for consistent header classification
         if (headerData) {
           sitesUsingDisplay = `${headerData.occurrences}/${headerData.totalSites}`;
           
-          // Basic platform specificity based on header name patterns
-          const headerName = rec.pattern.toLowerCase();
-          if (headerName.includes('shopify') || headerName.includes('x-shopid')) {
+          // Use centralized header classification instead of hardcoded patterns
+          const classification = preprocessor.classifyHeader(rec.pattern);
+          
+          if (classification.category === 'platform') {
+            // Platform-specific headers (contains platform/CMS names)
+            const platformName = classification.vendor || classification.platformName || 'Platform';
             platformSpecificityDisplay = '~95%';
-            cmsCorrelationDisplay = 'Shopify-specific';
-            confidenceDisplay = 'High';
-          } else if (headerName.includes('drupal') || headerName.includes('x-drupal')) {
-            platformSpecificityDisplay = '~90%';
-            cmsCorrelationDisplay = 'Drupal-specific';
-            confidenceDisplay = 'High';
-          } else if (headerName.includes('wp-') || headerName.includes('wordpress')) {
-            platformSpecificityDisplay = '~85%';
-            cmsCorrelationDisplay = 'WordPress-specific';
-            confidenceDisplay = 'High';
-          } else if (headerName.includes('vercel') || headerName.includes('x-vercel')) {
-            platformSpecificityDisplay = '~95%';
-            cmsCorrelationDisplay = 'Vercel-specific';
-            confidenceDisplay = 'High';
-          } else if (headerName.startsWith('d-')) {
-            platformSpecificityDisplay = '~90%';
-            cmsCorrelationDisplay = 'Duda-specific';
-            confidenceDisplay = 'High';
-          } else if (headerName.includes('cdn') || headerName.includes('cache')) {
+            cmsCorrelationDisplay = `${platformName}-specific (name-based)`;
+            confidenceDisplay = 'Medium (name-based)';
+          } else if (classification.category === 'infrastructure') {
+            // Infrastructure/CDN headers
             platformSpecificityDisplay = '~20%';
-            cmsCorrelationDisplay = 'Infrastructure';
-            confidenceDisplay = 'Medium';
+            cmsCorrelationDisplay = 'Infrastructure (name-based)';
+            confidenceDisplay = 'Low (name-based)';
+          } else if (classification.category === 'cms-indicative') {
+            // Headers that commonly contain CMS info in their values
+            platformSpecificityDisplay = '~50%';
+            cmsCorrelationDisplay = 'CMS-indicative (name-based)';
+            confidenceDisplay = 'Medium (name-based)';
           } else {
-            // Calculate basic frequency-based specificity
-            const frequency = headerData.frequency;
-            if (frequency < 0.05) {
-              platformSpecificityDisplay = '~80%';
-              confidenceDisplay = 'Medium';
-            } else if (frequency < 0.15) {
-              platformSpecificityDisplay = '~60%';
-              confidenceDisplay = 'Medium';
-            } else {
-              platformSpecificityDisplay = '~30%';
-              confidenceDisplay = 'Low';
-            }
+            // Generic or unknown headers - show uncertainty
+            cmsCorrelationDisplay = 'N/A';
+            platformSpecificityDisplay = 'Unknown';
+            confidenceDisplay = 'Low';
           }
         }
       }
@@ -1498,7 +1502,16 @@ function formatScriptPatternsByClassification(scripts: FrequencyResult['scripts'
   const groupedScripts = new Map<string, Array<[string, any]>>();
   
   for (const [pattern, data] of Object.entries(scripts)) {
-    const classification = scriptClassificationMap[pattern] || 'other';
+    // Handle prefix-based patterns (e.g., 'path:wp-content' -> 'path')
+    let classification = scriptClassificationMap[pattern];
+    if (!classification && pattern.includes(':')) {
+      const prefix = pattern.split(':')[0];
+      if (Object.keys(classifications).includes(prefix)) {
+        classification = prefix;
+      }
+    }
+    classification = classification || 'other';
+    
     if (!groupedScripts.has(classification)) {
       groupedScripts.set(classification, []);
     }
@@ -1526,7 +1539,8 @@ function formatScriptPatternsByClassification(scripts: FrequencyResult['scripts'
     for (const [pattern, data] of patterns.slice(0, 15)) { // Top 15 per category
       const frequencyPercent = Math.round(data.frequency * 100);
       const firstExample = (data.examples && data.examples[0]) ? formatScriptExample(data.examples[0]) : 'N/A';
-      const patternDisplay = pattern; // Script patterns don't use prefixes
+      // Remove prefix from pattern display (e.g., 'path:wp-content' -> 'wp-content')
+      const patternDisplay = pattern.includes(':') ? pattern.split(':')[1] : pattern;
       
       output += `| \`${patternDisplay}\` | ${frequencyPercent}% | ${data.occurrences}/${data.totalSites} | ${firstExample} |\n`;
     }

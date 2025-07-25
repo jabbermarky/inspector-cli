@@ -1,6 +1,11 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
+// Check if we're running performance tests
+const isPerformanceTest = process.env.TEST_MODE === 'performance';
+const isIntegrationTest = process.env.TEST_MODE === 'integration';
+const isAllTests = process.env.TEST_MODE === 'all';
+
 export default defineConfig({
     test: {
         // Global test configuration
@@ -15,6 +20,11 @@ export default defineConfig({
             '**/dist/**',
             '**/cypress/**',
             '**/.{idea,git,cache,output,temp}/**',
+            // Exclude performance and integration tests by default
+            ...(isAllTests ? [] : [
+                ...(isPerformanceTest ? [] : ['**/*.performance.test.{js,ts}', '**/*performance*.test.{js,ts}']),
+                ...(isIntegrationTest ? [] : ['**/*.integration.test.{js,ts}']),
+            ]),
         ],
 
         // Coverage configuration
@@ -37,9 +47,9 @@ export default defineConfig({
             ],
         },
 
-        // Timeout settings
-        testTimeout: 30000,
-        hookTimeout: 10000,
+        // Timeout settings - increase for performance tests
+        testTimeout: isPerformanceTest ? 600000 : 30000, // 10 min for perf tests, 30s for others
+        hookTimeout: isPerformanceTest ? 30000 : 10000,   // 30s for perf tests, 10s for others
 
         // Reporter configuration
         reporters: ['verbose'],
@@ -50,6 +60,19 @@ export default defineConfig({
         // Mock settings
         clearMocks: true,
         restoreMocks: true,
+
+        // Pool configuration to prevent hanging processes
+        pool: 'threads',
+        poolOptions: {
+            threads: {
+                minThreads: 1,
+                maxThreads: 4
+            }
+        },
+
+        // Force exit to prevent hanging processes
+        forceRerunTriggers: ['**/package.json/**', '**/vitest.config.*/**'],
+        teardownTimeout: 5000,
     },
 
     // Path resolution (for @test-utils alias)

@@ -1,170 +1,48 @@
 import { createModuleLogger } from '../utils/logger.js';
 import { EnhancedDataCollection, FilteringOptions, Script, MetaTag } from './types.js';
+import { DataPreprocessor } from '../frequency/data-preprocessor.js';
 
 const logger = createModuleLogger('discriminative-filtering');
 
-// Pattern definitions for filtering
-export const GENERIC_HTTP_HEADERS = new Set([
-    'server',           // Apache, nginx, IIS - not discriminative
-    'content-type',     // text/html - universal
-    'cache-control',    // Standard caching headers
-    'cdn-cache-control', // CDN-specific caching headers
-    'expires',          // Standard caching headers
-    'date',             // Server timestamp
-    'connection',       // Keep-alive, close - not discriminative
-    'keep-alive',       // Connection keep-alive - not discriminative
-    'accept-ranges',    // bytes - not discriminative
-    'content-language', // Language specification - not discriminative
-    'cache-tags',       // Cache tagging - not discriminative
-    'access-control-allow-origin', // CORS - not discriminative
-    'access-control-allow-credentials', // CORS - not discriminative
-    'vary',             // Accept-Encoding - not discriminative
-    'etag',             // Caching header
-    'last-modified',    // Caching header
-    'content-length',   // Size - not discriminative
-    'content-encoding', // gzip, deflate - not discriminative
-    'transfer-encoding', // chunked - not discriminative
-    'pragma',           // no-cache - not discriminative
-    'age',              // CDN cache age - not discriminative
-    'via',              // Proxy information - not discriminative
-    'x-cache',          // CDN cache status - not discriminative
-    'x-cache-hits',     // CDN cache hits - not discriminative
-    'x-served-by',      // CDN server info - not discriminative
-    'x-timer',          // Request timing - not discriminative
-    'cf-ray',           // Cloudflare ray ID - not discriminative
-    'cf-cache-status',  // Cloudflare cache status - not discriminative
-    'cache-status',     // Standard cache status (Netlify, Fastly, etc) - not discriminative
-    'x-vercel-cache',   // Vercel cache status - not discriminative
-    'x-vercel-id',      // Vercel request ID - not discriminative
-    'fly-request-id',   // Fly.io request ID - not discriminative
-    'x-amz-cf-id',      // AWS CloudFront ID - not discriminative
-    'x-amz-cf-pop',     // AWS CloudFront POP - not discriminative
-    'x-turbo-charged-by', // LiteSpeed acceleration - not discriminative
-    'alt-svc',          // Alternative services - protocol info, not discriminative
-    'strict-transport-security', // HSTS - security header, not discriminative
-    'x-content-type-options',    // nosniff - security header, not discriminative
-    'x-frame-options',           // SAMEORIGIN - security header, not discriminative
-    'x-xss-protection',          // XSS protection - security header, not discriminative
-    'referrer-policy',           // Referrer policy - security header, not discriminative
-    'content-security-policy',   // CSP - security header, not discriminative
-    'x-content-security-policy', // Legacy CSP - security header, not discriminative
-    'x-webkit-csp',              // Legacy WebKit CSP - security header, not discriminative
-    'feature-policy',            // Feature policy - security header, not discriminative
-    'permissions-policy',        // Permissions policy - security header, not discriminative
-    'cross-origin-embedder-policy', // COEP - security header, not discriminative
-    'cross-origin-opener-policy',   // COOP - security header, not discriminative
-    'cross-origin-resource-policy', // CORP - security header, not discriminative
-    'nel',              // Network Error Logging - standard reporting, not discriminative
-    'report-to',        // Reporting API - standard reporting, not discriminative
-    'server-timing',    // Server performance metrics - not discriminative
-    'panel',            // Hosting panel info - not discriminative for CMS
-    'platform',         // Hosting platform info - not discriminative for CMS
-    'onsuccess',        // Custom hosting header - not discriminative for CMS
-    'p3p',              // Privacy policy - not discriminative
-    'x-download-options', // Security directive - not discriminative
-    'x-permitted-cross-domain-policies', // Flash security policy - not discriminative
-    'expect-ct',        // Certificate transparency - not discriminative
-    'x-akamai-transformed', // CDN processing info - not discriminative
-    'x-edgeconnect-midmile-rtt', // CDN latency metrics - not discriminative
-    'x-edgeconnect-origin-mex-latency', // CDN metrics - not discriminative
-    'speculation-rules', // Browser optimization - not discriminative
-    'surrogate-control', // Generic CDN caching - not discriminative
-    'x-request-id',     // Unique request identifier - not discriminative
-    'x-dc',             // Datacenter location - not discriminative
-    
-    // Additional infrastructure headers (based on RFC standards)
-    'te',               // Transfer encoding preferences - infrastructure
-    'trailer',          // Trailer field names - HTTP protocol
-    'warning',          // Additional response information - infrastructure
-    'authorization',    // Authentication credentials - infrastructure
-    'proxy-authenticate', // Proxy authentication challenge - infrastructure
-    'proxy-authorization', // Proxy authentication credentials - infrastructure
-    'range',            // Partial content request - client behavior
-    'if-match',         // Entity tag matching - conditional request
-    'if-unmodified-since', // Inverse conditional check - client behavior
-    'content-disposition', // File download handling - universal behavior
-    'content-md5',      // Content integrity check (deprecated) - universal
-    'content-location', // Resource location - infrastructure
-    'expect-ct',        // Certificate transparency - security infrastructure
-    'x-download-options', // IE download security - universal security
-    'x-permitted-cross-domain-policies', // Flash security policy - universal
-    'x-forwarded-for',  // Proxy IP forwarding - infrastructure
-    'x-forwarded-host', // Original host header - infrastructure  
-    'x-forwarded-proto', // Original protocol (HTTP/HTTPS) - infrastructure
-    'x-real-ip',        // Real client IP (reverse proxy) - infrastructure
-    'forwarded',        // RFC 7239 proxy information - infrastructure
-    'public-key-pins',  // Certificate pinning (deprecated) - security infrastructure
-    'public-key-pins-report-only', // HPKP reporting - security infrastructure
-    
-    // Missing CORS headers (from handoff document)
-    'access-control-allow-methods',    // CORS preflight response - not CMS-specific
-    'access-control-allow-headers',    // CORS preflight response - not CMS-specific
-    'access-control-max-age',          // CORS preflight caching - not CMS-specific
-    'access-control-expose-headers',   // CORS response headers - not CMS-specific
-    'access-control-request-method',   // CORS preflight request - not CMS-specific
-    'access-control-request-headers',  // CORS preflight request - not CMS-specific
-    
-    // Missing client hints headers
-    'accept-ch',           // Client hints acceptance - performance optimization, not CMS-specific
-    'accept-ch-lifetime',  // Client hints cache lifetime - performance optimization, not CMS-specific
-    'critical-ch',         // Critical client hints - performance optimization, not CMS-specific
-    'device-memory',       // Client hints device memory - not CMS-specific
-    'downlink',            // Client hints network speed - not CMS-specific
-    'ect',                 // Client hints effective connection type - not CMS-specific
-    'rtt',                 // Client hints round-trip time - not CMS-specific
-    'save-data',           // Client hints data saver mode - not CMS-specific
-    'viewport-width',      // Client hints viewport - not CMS-specific
-    'width',               // Client hints image width - not CMS-specific
-    
-    // Missing performance/infrastructure headers
-    'timing-allow-origin', // Performance timing CORS - not CMS-specific
-    'host-header',         // Load balancer/proxy original host - infrastructure
-    // NOTE: Removed 'x-robots-tag' - while generally generic, test shows it may have discriminative value in robots.txt context
-    'x-siteid',            // Generic deployment/site identifier - not CMS-specific
-    // NOTE: Removed 'x-version' - version values might contain CMS-specific info
-    'x-cacheable',         // Generic caching directive - not CMS-specific
-    'x-cluster-client-ip', // Load balancer client IP - infrastructure
-    'x-host',              // Original host header (various proxies) - infrastructure
-    'x-original-host',     // Original host header - infrastructure
-    'x-original-url',      // Original URL before rewrite - infrastructure
-    'x-rewrite-url',       // URL rewriting information - infrastructure
-    
-    // Additional standard HTTP headers from Wikipedia (REQUEST HEADERS ONLY - responses may contain CMS info)
-    'accept',              // Client content type preferences - not CMS-specific
-    'accept-charset',      // Client charset preferences - not CMS-specific
-    'accept-encoding',     // Client encoding preferences - not CMS-specific
-    'accept-language',     // Client language preferences - not CMS-specific
-    'host',                // Target host - infrastructure
-    'user-agent',          // Client browser/bot info - not CMS-specific
-    'origin',              // Request origin - not CMS-specific
-    'referer',             // Referring page - not CMS-specific
-    'upgrade',             // Protocol upgrade request - infrastructure
-    'if-none-match',       // Conditional request (ETag) - caching infrastructure
-    'if-modified-since',   // Conditional request (date) - caching infrastructure
-    'if-match',            // Conditional request (ETag) - infrastructure
-    'if-unmodified-since', // Conditional request (date) - infrastructure
-    'if-range',            // Conditional range request - infrastructure
-    
-    // NOTE: Removed response headers that might contain CMS info in their VALUES:
-    // - 'www-authenticate' (could contain realm with CMS info)
-    // - 'location' (redirect URLs might contain CMS paths)
-    // - 'retry-after' (timing might be CMS-specific)
-    // - 'allow' (allowed methods might be CMS-specific)
-    // - 'content-range' (range handling might be CMS-specific)
-    
-    // Security headers from Wikipedia
-    'x-dns-prefetch-control', // DNS prefetching control - browser optimization
-    'x-ua-compatible',        // IE compatibility mode - browser compatibility
-    'dnt',                    // Do Not Track - privacy directive, not CMS-specific
-    'sec-gpc',                // Global Privacy Control - privacy directive, not CMS-specific
-    'sec-fetch-site',         // Fetch metadata - browser security, not CMS-specific
-    'sec-fetch-mode',         // Fetch metadata - browser security, not CMS-specific
-    'sec-fetch-user',         // Fetch metadata - browser security, not CMS-specific
-    'sec-fetch-dest',         // Fetch metadata - browser security, not CMS-specific
-    'sec-ch-ua',              // Client hints user agent - not CMS-specific
-    'sec-ch-ua-mobile',       // Client hints mobile flag - not CMS-specific
-    'sec-ch-ua-platform',     // Client hints platform - not CMS-specific
-]);
+// Pattern definitions for filtering - Use centralized DataPreprocessor
+// Legacy hardcoded Set replaced with dynamic classification
+
+/**
+ * Get headers that should be filtered out (considered generic/non-discriminative)
+ * Uses centralized DataPreprocessor for consistent classification
+ */
+function getGenericHeaders(): Set<string> {
+  const preprocessor = new DataPreprocessor();
+  
+  // Get all headers that should be filtered (generic + infrastructure)
+  // This matches the original filtering behavior of excluding non-CMS-discriminative headers
+  const genericHeaders = preprocessor.getHeadersByCategory('generic');
+  const infrastructureHeaders = preprocessor.getHeadersByCategory('infrastructure');
+  
+  return new Set([...genericHeaders, ...infrastructureHeaders]);
+}
+
+// Export the dynamic generic headers for backwards compatibility
+// Note: This is computed dynamically now, not a static Set
+export const GENERIC_HTTP_HEADERS = getGenericHeaders();
+
+// Removed large hardcoded Set - now using centralized DataPreprocessor
+// Original Set contained 160+ hardcoded entries covering:
+// - Standard HTTP headers (date, content-type, cache-control, etc.)
+// - Security headers (HSTS, CSP, CORS, etc.)
+// - Infrastructure headers (CDN, load balancer, proxy headers)
+// - Client hints and performance headers
+//
+// All these are now dynamically classified by DataPreprocessor
+// based on the 4-group system: generic, cms-indicative, infrastructure, platform
+//
+// The original behavior is preserved: filter out generic + infrastructure headers,
+// keep cms-indicative + platform headers for discrimination
+
+// Legacy hardcoded Set was: new Set([
+//   ... 160+ hardcoded entries were here ...
+// ]);
+// Now replaced with dynamic DataPreprocessor classification
 
 const UNIVERSAL_META_TAGS = new Set([
     'viewport',         // Mobile responsiveness - universal

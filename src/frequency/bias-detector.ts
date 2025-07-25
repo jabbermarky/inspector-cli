@@ -1,8 +1,11 @@
 import { createModuleLogger } from '../utils/logger.js';
-import { GENERIC_HTTP_HEADERS } from '../learn/filtering.js';
 import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from './types.js';
+import { DataPreprocessor } from './data-preprocessor.js';
 
 const logger = createModuleLogger('frequency-bias-detector');
+
+// Shared preprocessor instance for consistent classification
+const sharedPreprocessor = new DataPreprocessor();
 
 export interface CMSDistribution {
   [cmsName: string]: {
@@ -58,7 +61,8 @@ export async function analyzeDatasetBias(
   const biasWarnings = generateBiasWarnings(cmsDistribution, concentrationScore);
   
   // Step 4: Analyze header-CMS correlations
-  const headerCorrelations = analyzeHeaderCMSCorrelations(dataPoints, cmsDistribution, options);
+  const preprocessor = new DataPreprocessor();
+  const headerCorrelations = analyzeHeaderCMSCorrelations(dataPoints, cmsDistribution, options, preprocessor);
   
   console.log(`[DEBUG] Dataset bias analysis: ${headerCorrelations.size} correlations generated`);
   
@@ -189,7 +193,8 @@ function generateBiasWarnings(
 function analyzeHeaderCMSCorrelations(
   dataPoints: DetectionDataPoint[],
   cmsDistribution: CMSDistribution,
-  options: FrequencyOptionsWithDefaults
+  options: FrequencyOptionsWithDefaults,
+  preprocessor?: DataPreprocessor
 ): Map<string, HeaderCMSCorrelation> {
   const headerStats = new Map<string, Map<string, Set<string>>>(); // header -> cms -> set of URLs
   const totalSites = dataPoints.length;
@@ -228,9 +233,11 @@ function analyzeHeaderCMSCorrelations(
     
     // Record this site as having each unique header for this CMS
     // SEMANTIC FILTERING: Exclude standard HTTP headers that can never be discriminative
+    const _preprocessor = preprocessor || new DataPreprocessor();
     for (const headerName of uniqueHeaders) {
       // Skip standard HTTP infrastructure headers - they cannot be discriminative for CMS detection
-      if (GENERIC_HTTP_HEADERS.has(headerName)) {
+      const classification = _preprocessor.classifyHeader(headerName);
+      if (classification.filterRecommendation === 'always-filter') {
         continue;
       }
       
@@ -519,64 +526,18 @@ function assessRecommendationConfidence(
 
 /**
  * Check if header is enterprise/infrastructure related (not CMS-specific)
+ * @deprecated Use DataPreprocessor.classifyHeader() instead for centralized classification
  */
 export function isEnterpriseInfrastructureHeader(headerName: string): boolean {
-  const enterprisePatterns = [
-    // Caching infrastructure
-    'pragma',
-    'cache-control',
-    'expires',
-    'age',
-    'etag',
-    'last-modified',
-    'if-modified-since',
-    'if-none-match',
-    
-    // CDN and load balancing
-    'via',
-    'x-cache',
-    'x-cache-hits',
-    'x-served-by',
-    'x-timer',
-    'cf-ray',
-    'cf-cache-status',
-    'x-amz-cf-id',
-    'x-amz-cf-pop',
-    'x-forwarded-for',
-    'x-real-ip',
-    
-    // Connection management
-    'connection',
-    'keep-alive',
-    'upgrade',
-    'transfer-encoding',
-    
-    // Enterprise security
-    'strict-transport-security',
-    'content-security-policy',
-    'x-content-type-options',
-    'x-frame-options',
-    'x-xss-protection',
-    'referrer-policy',
-    'permissions-policy',
-    'cross-origin-opener-policy',
-    'cross-origin-embedder-policy',
-    
-    // Generic server info
-    'server',
-    'content-type',
-    'content-length',
-    'content-encoding',
-    'content-language',
-    'accept-ranges',
-    'vary',
-    'date'
-  ];
-  
+  // Use centralized DataPreprocessor for consistent header classification
+  // Handle whitespace trimming like the original function
   const normalized = headerName.toLowerCase().trim();
-  return enterprisePatterns.some(pattern => 
-    normalized === pattern || normalized.startsWith(pattern + ':')
-  );
+  const classification = sharedPreprocessor.classifyHeader(normalized);
+  
+  // Infrastructure category maps to the old "enterprise/infrastructure" concept
+  // Also include generic headers that were previously considered "enterprise"
+  return classification.category === 'infrastructure' || 
+         classification.category === 'generic';
 }
 
 /**

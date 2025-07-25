@@ -1,4 +1,5 @@
 import { createModuleLogger } from '../utils/logger.js';
+import { DataPreprocessor } from './data-preprocessor.js';
 
 const logger = createModuleLogger('frequency-semantic-analyzer');
 
@@ -72,81 +73,150 @@ export function analyzeHeaderSemantics(headerName: string): HeaderSemanticAnalys
 
 /**
  * Categorize header into primary and secondary categories with vendor detection
+ * Now uses DataPreprocessor as the foundation with semantic analysis enhancements
  */
 function categorizeHeader(headerName: string): HeaderCategory {
-  // Security headers
-  if (isSecurityHeader(headerName)) {
-    return {
-      primary: 'security',
-      confidence: 0.95,
-      vendor: detectSecurityVendor(headerName)
-    };
+  const preprocessor = new DataPreprocessor();
+  const baseClassification = preprocessor.classifyHeader(headerName);
+  
+  // Map DataPreprocessor categories to semantic analysis categories
+  let primary: HeaderPrimaryCategory;
+  let confidence: number;
+  let vendor: string | undefined;
+  let secondary: string[] | undefined;
+  
+  switch (baseClassification.category) {
+    case 'generic':
+      // Generic headers need semantic analysis for fine-grained classification
+      if (isSecurityHeader(headerName)) {
+        primary = 'security';
+        confidence = 0.95;
+        vendor = detectSecurityVendor(headerName);
+      } else if (isCachingHeader(headerName)) {
+        primary = 'caching';
+        confidence = 0.90;
+        vendor = detectCachingVendor(headerName);
+        secondary = vendor ? ['cdn'] : undefined;
+      } else if (isAnalyticsHeader(headerName)) {
+        primary = 'analytics';
+        confidence = 0.85;
+        vendor = detectAnalyticsVendor(headerName);
+      } else if (isFrameworkHeader(headerName)) {
+        primary = 'framework';
+        confidence = 0.80;
+        vendor = detectFrameworkVendor(headerName);
+      } else {
+        // Default to infrastructure for generic headers
+        primary = 'infrastructure';
+        confidence = 0.75;
+      }
+      break;
+      
+    case 'cms-indicative':
+      primary = 'cms';
+      confidence = 0.90;
+      vendor = baseClassification.vendor || detectCMSVendor(headerName);
+      break;
+      
+    case 'infrastructure':
+      // Further classify infrastructure headers with semantic analysis
+      if (isSecurityHeader(headerName)) {
+        primary = 'security';
+        confidence = 0.95;
+        vendor = detectSecurityVendor(headerName);
+      } else if (isCachingHeader(headerName)) {
+        primary = 'caching';
+        confidence = 0.90;
+        vendor = detectCachingVendor(headerName);
+        secondary = vendor ? ['cdn'] : undefined;
+      } else if (isAnalyticsHeader(headerName)) {
+        primary = 'analytics';
+        confidence = 0.85;
+        vendor = detectAnalyticsVendor(headerName);
+      } else if (isFrameworkHeader(headerName)) {
+        primary = 'framework';
+        confidence = 0.80;
+        vendor = detectFrameworkVendor(headerName);
+      } else {
+        primary = 'infrastructure';
+        confidence = 0.75;
+      }
+      break;
+      
+    case 'platform':
+      // Platform headers could be CMS or e-commerce
+      if (isEcommerceHeader(headerName)) {
+        primary = 'ecommerce';
+        confidence = 0.85;
+        vendor = baseClassification.vendor || detectEcommerceVendor(headerName);
+      } else {
+        primary = 'cms';
+        confidence = 0.85;
+        vendor = baseClassification.vendor || detectCMSVendor(headerName);
+      }
+      break;
+      
+    case 'custom':
+    default:
+      // Fallback to original semantic analysis for unknown headers
+      if (isSecurityHeader(headerName)) {
+        primary = 'security';
+        confidence = 0.95;
+        vendor = detectSecurityVendor(headerName);
+      } else if (isCMSHeader(headerName)) {
+        primary = 'cms';
+        confidence = 0.90;
+        vendor = detectCMSVendor(headerName);
+      } else if (isEcommerceHeader(headerName)) {
+        primary = 'ecommerce';
+        confidence = 0.85;
+        vendor = detectEcommerceVendor(headerName);
+      } else if (isCachingHeader(headerName)) {
+        const cachingVendor = detectCachingVendor(headerName);
+        primary = 'caching';
+        confidence = 0.90;
+        vendor = cachingVendor;
+        secondary = cachingVendor ? ['cdn'] : undefined;
+      } else if (isAnalyticsHeader(headerName)) {
+        primary = 'analytics';
+        confidence = 0.85;
+        vendor = detectAnalyticsVendor(headerName);
+      } else if (isFrameworkHeader(headerName)) {
+        primary = 'framework';
+        confidence = 0.80;
+        vendor = detectFrameworkVendor(headerName);
+      } else if (isInfrastructureHeader(headerName)) {
+        primary = 'infrastructure';
+        confidence = 0.75;
+      } else {
+        primary = 'custom';
+        confidence = 0.60;
+      }
+      break;
   }
   
-  // CMS-specific headers (check before caching to avoid false matches)
-  if (isCMSHeader(headerName)) {
-    return {
-      primary: 'cms',
-      confidence: 0.90,
-      vendor: detectCMSVendor(headerName)
-    };
-  }
-  
-  // E-commerce headers (check before caching to avoid false matches)
-  if (isEcommerceHeader(headerName)) {
-    return {
-      primary: 'ecommerce',
-      confidence: 0.85,
-      vendor: detectEcommerceVendor(headerName)
-    };
-  }
-  
-  // CDN/Caching headers
-  if (isCachingHeader(headerName)) {
-    const vendor = detectCachingVendor(headerName);
-    return {
-      primary: 'caching',
-      confidence: 0.90,
-      vendor,
-      secondary: vendor ? ['cdn'] : undefined
-    };
-  }
-  
-  // Analytics/Tracking headers
-  if (isAnalyticsHeader(headerName)) {
-    return {
-      primary: 'analytics',
-      confidence: 0.85,
-      vendor: detectAnalyticsVendor(headerName)
-    };
-  }
-  
-  // Framework headers
-  if (isFrameworkHeader(headerName)) {
-    return {
-      primary: 'framework',
-      confidence: 0.80,
-      vendor: detectFrameworkVendor(headerName)
-    };
-  }
-  
-  // Infrastructure headers (basic server functionality)
-  if (isInfrastructureHeader(headerName)) {
-    return {
-      primary: 'infrastructure',
-      confidence: 0.75
-    };
-  }
-  
-  // Custom/unknown headers
   return {
-    primary: 'custom',
-    confidence: 0.60
+    primary,
+    confidence,
+    vendor,
+    secondary
   };
 }
 
+// ================================================================
+// SEMANTIC CLASSIFICATION FUNCTIONS
+// 
+// These functions provide fine-grained semantic analysis beyond
+// DataPreprocessor's 4-group system. They're used to further classify
+// headers within the infrastructure/generic categories for detailed
+// semantic understanding (security, caching, analytics, etc.).
+//
+// This is NOT duplication - it's semantic enhancement layer.
+// ================================================================
+
 /**
- * Detect security-related headers
+ * Detect security-related headers for semantic classification
+ * Used to further classify infrastructure headers as security-focused
  */
 function isSecurityHeader(headerName: string): boolean {
   const securityPatterns = [

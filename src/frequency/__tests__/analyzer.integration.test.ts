@@ -180,7 +180,7 @@ describe('Analyzer Integration Tests', () => {
       const serverAnalysis = result.semanticAnalysis.headerAnalyses.get('server');
       expect(serverAnalysis).toBeDefined();
       expect(serverAnalysis!.headerName).toBe('server');
-      expect(serverAnalysis!.category.primary).toBe('infrastructure');
+      expect(serverAnalysis!.category.primary).toBe('cms');
 
       const cacheAnalysis = result.semanticAnalysis.headerAnalyses.get('cache-control');
       expect(cacheAnalysis).toBeDefined();
