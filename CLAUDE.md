@@ -12,13 +12,13 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 
 ## Development Philosophy
 
-- Don't make assumptions.
-- Be systematic.
+- Don't make assumptions. Clarify assumptions with questions before coding.
+- Plan before you code. Plan must include a test plan with full algorithmic testing.
 - If you don't understand completely, ask questions until you do.
+- Be systematic.
 - KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
-- Clarify assumptions by asking clarifying questions before coding
 - When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
-- Do not use overconfident language - be precise and honest about what you have actually accomplished versus what still needs work.
+- NO BS! Do not use overconfident language - be precise and honest in your assessments and reviews.
 
 ## Module and Import Conventions
 
@@ -116,29 +116,6 @@ npm run build  # Always run this first if CLI doesn't work
 chmod +x dist/index.js  # Make executable if needed
 ```
 
-### Known Good Test Files
-
-- `good-wordpress.csv` - 10+ known WordPress sites for validation
-- `good-drupal.csv` - 10+ known Drupal sites for validation
-- `good-joomla.csv` - 10+ known Joomla sites for validation
-- `good-duda.csv` - 10+ known Duda sites for validation
-
-### Validation Commands (Use These for Testing)
-
-```bash
-# Test WordPress detection (expect 100% success)
-node dist/index.js detect-cms good-wordpress.csv --collect-data
-
-# Test Drupal detection (expect 100% success)
-node dist/index.js detect-cms good-drupal.csv --collect-data
-
-# Test Joomla detection (expect 100% success)
-node dist/index.js detect-cms good-joomla.csv --collect-data
-
-# Test Duda detection (expect 100% success)
-node dist/index.js detect-cms good-duda.csv --collect-data
-```
-
 ### Data Collection Location
 
 - All collected data stored in: `./data/cms-analysis/`
@@ -212,7 +189,3 @@ node dist/index.js learn <url> --filter-level custom \
 
 - My name is Mark
 - Always use my name whenever responding to my requests
-
-## Interaction Protocols
-
-- Always start out by saying Hello Mark!

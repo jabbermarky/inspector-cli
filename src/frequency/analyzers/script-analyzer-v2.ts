@@ -45,6 +45,7 @@ export class ScriptAnalyzerV2 implements FrequencyAnalyzer<ScriptSpecificData> {
       for (const scriptSrc of siteData.scripts) {
         const scriptPatterns = this.extractScriptPatterns(scriptSrc);
         
+        
         for (const patternName of scriptPatterns) {
           // Only count once per site (unique site counting)
           if (!sitePatternsFound.has(patternName)) {
@@ -118,6 +119,37 @@ export class ScriptAnalyzerV2 implements FrequencyAnalyzer<ScriptSpecificData> {
     const patterns: string[] = [];
 
     try {
+      // Handle inline scripts first (before URL parsing)
+      if (scriptSrc.startsWith('inline:')) {
+        const content = scriptSrc.substring(7).toLowerCase(); // Remove "inline:" prefix
+        
+        // Analyze inline script content for patterns
+        if (content.includes('jquery') || content.includes('$')) {
+          patterns.push('jquery-inline');
+        }
+        if (content.includes('wp_') || content.includes('wordpress')) {
+          patterns.push('wordpress-inline');
+        }
+        if (content.includes('google-analytics') || content.includes('gtag') || content.includes('ga(')) {
+          patterns.push('google-analytics-inline');
+        }
+        if (content.includes('facebook') || content.includes('fbq')) {
+          patterns.push('facebook-pixel-inline');
+        }
+        if (content.includes('angular')) {
+          patterns.push('angular-inline');
+        }
+        if (content.includes('react')) {
+          patterns.push('react-inline');
+        }
+        if (content.includes('vue')) {
+          patterns.push('vue-inline');
+        }
+        
+        patterns.push('inline-script');
+        return patterns; // Return early for inline scripts
+      }
+
       const url = new URL(scriptSrc);
       const hostname = url.hostname;
       const pathname = url.pathname;
@@ -169,8 +201,12 @@ export class ScriptAnalyzerV2 implements FrequencyAnalyzer<ScriptSpecificData> {
 
       // Generic domain patterns for common script sources
       const domain = hostname.replace('www.', '');
-      if (['googleapis.com', 'cloudflare.com', 'jsdelivr.net', 'unpkg.com'].includes(domain)) {
-        patterns.push(`${domain}-scripts`);
+      const commonDomains = ['googleapis.com', 'cloudflare.com', 'jsdelivr.net', 'unpkg.com'];
+      for (const commonDomain of commonDomains) {
+        if (domain.endsWith(commonDomain)) {
+          patterns.push(`${commonDomain}-scripts`);
+          break; // Only add one domain pattern per script
+        }
       }
 
     } catch (error) {

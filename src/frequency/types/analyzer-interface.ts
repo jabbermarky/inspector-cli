@@ -88,6 +88,7 @@ export interface AggregatedResults {
   headers: AnalysisResult<HeaderSpecificData>;
   metaTags: AnalysisResult<MetaSpecificData>;
   scripts: AnalysisResult<ScriptSpecificData>;
+  semantic: AnalysisResult<SemanticSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
   correlations: BiasAnalysisResult;
   summary: FrequencySummary;
@@ -107,6 +108,15 @@ export interface MetaSpecificData {
 export interface ScriptSpecificData {
   cdnUsage: Map<string, number>;
   scriptTypes: Map<string, number>;
+}
+
+export interface SemanticSpecificData {
+  semanticAnalyses: Map<string, any>; // HeaderSemanticAnalysis from semantic-analyzer.ts
+  insights: any; // SemanticInsights from semantic-analyzer.ts  
+  vendorStats: any; // VendorStats from vendor-patterns.ts
+  technologyStack: any; // TechnologyStack from vendor-patterns.ts
+  categoryPatterns: Map<string, any>; // CategoryPattern from semantic-analyzer-v2.ts
+  vendorPatterns: Map<string, any>; // VendorPattern from semantic-analyzer-v2.ts
 }
 
 export interface TechSpecificData {
