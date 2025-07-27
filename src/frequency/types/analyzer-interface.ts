@@ -96,6 +96,7 @@ export interface AggregatedResults {
   scripts: AnalysisResult<ScriptSpecificData>;
   semantic: AnalysisResult<SemanticSpecificData>;
   validation: AnalysisResult<ValidationSpecificData>;
+  cooccurrence: AnalysisResult<CooccurrenceSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
   correlations: BiasAnalysisResult;
   summary: FrequencySummary;
@@ -128,6 +129,21 @@ export interface SemanticSpecificData {
 
 export interface TechSpecificData {
   categories: Map<string, Set<string>>;
+}
+
+export interface CooccurrenceSpecificData {
+  cooccurrences: Map<string, any>; // HeaderCooccurrence from cooccurrence-analyzer-v2.ts
+  technologySignatures: Map<string, any>; // TechnologyStackSignature
+  platformCombinations: Map<string, any>; // PlatformHeaderCombination
+  mutualExclusivityGroups: any[]; // MutualExclusivityGroup[]
+  strongCorrelations: any[]; // HeaderCooccurrence[]
+  insights: string[];
+  statisticalSummary: {
+    totalHeaderPairs: number;
+    significantCooccurrences: number;
+    averageMutualInformation: number;
+    topConditionalProbability: number;
+  };
 }
 
 export interface ValidationSpecificData {

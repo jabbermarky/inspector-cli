@@ -18,6 +18,7 @@ import { MetaAnalyzerV2 } from './analyzers/meta-analyzer-v2.js';
 import { ScriptAnalyzerV2 } from './analyzers/script-analyzer-v2.js';
 import { ValidationPipelineV2 } from './analyzers/validation-pipeline-v2.js';
 import { SemanticAnalyzerV2 } from './analyzers/semantic-analyzer-v2.js';
+import { CooccurrenceAnalyzerV2 } from './analyzers/cooccurrence-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyOptions } from './types.js';
 
@@ -37,7 +38,8 @@ export class FrequencyAggregator {
     this.analyzers.set('scripts', new ScriptAnalyzerV2());
     this.analyzers.set('validation', new ValidationPipelineV2()); // Post-processor after basic analysis
     this.analyzers.set('semantic', new SemanticAnalyzerV2()); // After validation
-    // TODO: Add remaining V2 analyzers: cooccurrence, discovery
+    this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After validation
+    // TODO: Add remaining V2 analyzers: discovery
   }
 
   /**
@@ -124,12 +126,17 @@ export class FrequencyAggregator {
     
     const semanticResult = await this.analyzers.get('semantic')!.analyze(validatedData, analysisOptions);
 
+    // Phase 4: Run co-occurrence analysis on validated data
+    logger.info('Running co-occurrence analysis on validated data');
+    const cooccurrenceResult = await this.analyzers.get('cooccurrence')!.analyze(validatedData, analysisOptions);
+
     logger.info('All analyzers completed', {
       headerPatterns: headerResult.patterns.size,
       metaPatterns: metaResult.patterns.size,
       scriptPatterns: scriptResult.patterns.size,
       validationPatterns: validationResult.patterns.size,
-      semanticPatterns: semanticResult.patterns.size
+      semanticPatterns: semanticResult.patterns.size,
+      cooccurrencePatterns: cooccurrenceResult.patterns.size
     });
 
     // TODO: Run tech analyzers when implemented
@@ -165,6 +172,7 @@ export class FrequencyAggregator {
       scripts: scriptResult,
       validation: validationResult,
       semantic: semanticResult,
+      cooccurrence: cooccurrenceResult,
       technologies: null as any, // TODO: Replace with actual result
       correlations: biasResult,
       summary
