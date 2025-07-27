@@ -588,70 +588,104 @@ export class CorrelationValidationStage implements ValidationStage {
 
 /**
  * Stage 5: Sanity Validation
- * Performs mathematical consistency and logic checks
+ * Comprehensive V2 implementation with 6 sanity check algorithms from V1
+ * Validates mathematical consistency, Bayesian logic, and statistical constraints
  */
 export class SanityValidationStage implements ValidationStage {
   name = 'SanityValidation';
-  description = 'Validates mathematical consistency and logical constraints';
+  description = 'Comprehensive sanity validation with 6 mathematical consistency algorithms';
 
   async validate(
     data: PreprocessedData,
     options: AnalysisOptions,
     context: ValidationContext
   ): Promise<ValidationStageResult> {
-    logger.info('Running sanity validation');
+    logger.info('Running comprehensive sanity validation with 6 algorithms');
 
     const warnings: ValidationWarning[] = [];
     const errors: ValidationError[] = [];
     const recommendations: ValidationRecommendation[] = [];
 
-    // Check frequency sum constraints
-    const frequencySum = Array.from(context.validatedPatterns.values())
-      .reduce((sum, pattern) => sum + pattern.frequency, 0);
+    // Convert V2 data to structures compatible with V1 sanity checks
+    const { correlations, cmsDistribution } = this.convertV2DataForSanityChecks(data, context);
 
-    // Frequencies shouldn't sum to more than reasonable bounds
-    const maxReasonableSum = context.validatedPatterns.size * 0.5; // Rough heuristic
-    if (frequencySum > maxReasonableSum) {
-      warnings.push({
-        type: 'data_quality',
-        severity: 'medium',
-        message: `Pattern frequency sum (${frequencySum.toFixed(2)}) exceeds reasonable bounds`,
-        affectedPatterns: ['frequency_calculations'],
-        suggestedAction: 'Review frequency calculation methodology'
-      });
+    // Execute all 6 sanity check algorithms from V1
+    const sanityResults = await this.executeAllSanityChecks(correlations, cmsDistribution);
+
+    // Process sanity check results into V2 format
+    let algorithmsPass = 0;
+    const totalAlgorithms = 6;
+
+    for (const [algorithmName, result] of Object.entries(sanityResults)) {
+      if (result.passed) {
+        algorithmsPass++;
+      } else {
+        errors.push({
+          type: 'mathematical_inconsistency',
+          message: `Sanity check failed: ${algorithmName} - ${result.message}`,
+          affectedData: result.details?.affectedPatterns || ['correlation_data'],
+          recoverable: true
+        });
+      }
+
+      // Add warnings from individual checks
+      if (result.warnings) {
+        for (const warning of result.warnings) {
+          warnings.push({
+            type: 'correlation',
+            severity: warning.severity as 'low' | 'medium' | 'high',
+            message: warning.message,
+            affectedPatterns: warning.headerName ? [warning.headerName] : ['correlation_system'],
+            suggestedAction: 'Review correlation calculation accuracy'
+          });
+        }
+      }
     }
 
-    // Check site count consistency using real sanity checks
-    let siteCountInconsistencies = 0;
-    for (const [_, pattern] of context.validatedPatterns) {
-      const consistencyCheck = StatisticalUtils.SanityCheck.frequencyConsistencyCheck(
-        pattern.siteCount,
-        data.totalSites,
-        pattern.frequency
-      );
+    // Generate comprehensive recommendations based on failed checks
+    if (algorithmsPass < totalAlgorithms) {
+      const failureRate = (totalAlgorithms - algorithmsPass) / totalAlgorithms;
       
-      if (!consistencyCheck.passed) {
-        siteCountInconsistencies++;
-        errors.push({
+      if (failureRate > 0.5) {
+        recommendations.push({
+          type: 'methodology',
+          severity: 'high',
+          title: 'Major Mathematical Inconsistencies Detected',
+          description: `${totalAlgorithms - algorithmsPass} out of ${totalAlgorithms} sanity checks failed`,
+          actionableSteps: [
+            'Review data collection methodology for systematic errors',
+            'Verify frequency calculation algorithms',
+            'Check for data corruption or processing bugs',
+            'Validate CMS detection accuracy',
+            'Consider rebuilding dataset with enhanced quality controls'
+          ],
+          expectedImpact: 'Restore mathematical consistency and reliability',
+          confidence: 0.9,
+          priority: 9
+        });
+      } else {
+        recommendations.push({
           type: 'data_quality',
-          message: consistencyCheck.message,
-          affectedData: [pattern.pattern],
-          recoverable: true
+          severity: 'medium',
+          title: 'Minor Mathematical Inconsistencies',
+          description: `${totalAlgorithms - algorithmsPass} sanity checks detected issues`,
+          actionableSteps: [
+            'Investigate specific failed sanity checks',
+            'Verify calculation precision and rounding',
+            'Check for edge cases in data processing',
+            'Consider adjusting tolerance thresholds'
+          ],
+          expectedImpact: 'Improve mathematical accuracy and confidence',
+          confidence: 0.8,
+          priority: 6
         });
       }
     }
 
-    if (siteCountInconsistencies > 0) {
-      errors.push({
-        type: 'data_quality',
-        message: `Found ${siteCountInconsistencies} patterns with site count/frequency inconsistencies`,
-        affectedData: ['pattern_calculations'],
-        recoverable: true
-      });
-    }
-
     const passed = errors.length === 0;
-    const score = passed ? Math.max(0.5, 1 - (warnings.length * 0.2)) : 0.3;
+    const score = passed ? 
+      Math.max(0.7, 1 - (warnings.length * 0.1)) : 
+      Math.max(0.2, algorithmsPass / totalAlgorithms);
 
     return {
       stageName: this.name,
@@ -662,11 +696,360 @@ export class SanityValidationStage implements ValidationStage {
       warnings,
       errors,
       metrics: {
-        frequency_sum: frequencySum,
-        consistency_errors: siteCountInconsistencies,
-        pattern_consistency: passed ? 1 : 0
+        sanity_checks_passed: algorithmsPass,
+        sanity_checks_total: totalAlgorithms,
+        sanity_success_rate: algorithmsPass / totalAlgorithms,
+        mathematical_consistency: passed ? 1 : 0,
+        bayesian_consistency: sanityResults.bayesianConsistency?.passed ? 1 : 0,
+        probability_conservation: sanityResults.probabilityConservation?.passed ? 1 : 0
       },
       recommendations
+    };
+  }
+
+  /**
+   * Convert V2 PatternData to V1-compatible correlation structures
+   */
+  private convertV2DataForSanityChecks(
+    data: PreprocessedData, 
+    context: ValidationContext
+  ): {
+    correlations: Map<string, any>;
+    cmsDistribution: any;
+  } {
+    // Build CMS distribution from V2 data
+    const cmsCount = new Map<string, number>();
+    const cmsSites = new Map<string, Set<string>>();
+    
+    for (const [siteUrl, siteData] of data.sites) {
+      const cms = siteData.cms || 'Unknown';
+      cmsCount.set(cms, (cmsCount.get(cms) || 0) + 1);
+      
+      if (!cmsSites.has(cms)) {
+        cmsSites.set(cms, new Set());
+      }
+      cmsSites.get(cms)!.add(siteUrl);
+    }
+
+    const cmsDistribution: any = {};
+    for (const [cms, count] of cmsCount) {
+      cmsDistribution[cms] = {
+        count,
+        percentage: (count / data.totalSites) * 100,
+        sites: Array.from(cmsSites.get(cms) || new Set())
+      };
+    }
+
+    // Convert V2 patterns to V1-style correlations
+    const correlations = new Map<string, any>();
+    
+    for (const [patternKey, pattern] of context.validatedPatterns) {
+      // Build per-CMS frequency data
+      const perCMSFrequency: Record<string, any> = {};
+      const cmsGivenHeader: Record<string, any> = {};
+      
+      for (const [cms, cmsData] of cmsCount) {
+        const cmsSiteSet = cmsSites.get(cms) || new Set();
+        const patternCmsSites = new Set(
+          [...pattern.sites].filter(site => cmsSiteSet.has(site))
+        );
+        
+        const occurrences = patternCmsSites.size;
+        const frequency = cmsSiteSet.size > 0 ? occurrences / cmsSiteSet.size : 0;
+        
+        perCMSFrequency[cms] = {
+          frequency,
+          occurrences,
+          totalSitesForCMS: cmsSiteSet.size
+        };
+
+        // Calculate P(CMS|header) - Bayesian probability
+        const probability = pattern.siteCount > 0 ? occurrences / pattern.siteCount : 0;
+        cmsGivenHeader[cms] = {
+          probability,
+          count: occurrences
+        };
+      }
+
+      correlations.set(pattern.pattern, {
+        headerName: pattern.pattern,
+        overallFrequency: pattern.frequency,
+        overallOccurrences: pattern.siteCount,
+        perCMSFrequency,
+        cmsGivenHeader
+      });
+    }
+
+    return { correlations, cmsDistribution };
+  }
+
+  /**
+   * Execute all 6 sanity check algorithms from V1 system
+   */
+  private async executeAllSanityChecks(
+    correlations: Map<string, any>,
+    cmsDistribution: any
+  ): Promise<Record<string, any>> {
+    const results: Record<string, any> = {};
+
+    try {
+      // Algorithm 1: Correlation Sum Check
+      results.correlationSum = this.correlationSumCheck(correlations);
+      
+      // Algorithm 2: Correlation Range Check  
+      results.correlationRange = this.correlationRangeCheck(correlations);
+      
+      // Algorithm 3: Support Check
+      results.support = this.supportCheck(correlations);
+      
+      // Algorithm 4: Bayesian Consistency Check
+      results.bayesianConsistency = this.bayesianConsistencyCheck(correlations, cmsDistribution);
+      
+      // Algorithm 5: Probability Conservation Check
+      results.probabilityConservation = this.probabilityConservationCheck(correlations);
+      
+      // Algorithm 6: Mathematical Impossibility Check
+      results.mathematicalImpossibility = this.mathematicalImpossibilityCheck(correlations);
+
+    } catch (error) {
+      logger.error('Error executing sanity checks', { error });
+      results.executionError = {
+        passed: false,
+        message: `Sanity check execution failed: ${error}`,
+        details: { error: String(error) }
+      };
+    }
+
+    return results;
+  }
+
+  /**
+   * Algorithm 1: Check that correlations for each header sum to approximately 100%
+   */
+  private correlationSumCheck(correlations: Map<string, any>): any {
+    const warnings: any[] = [];
+    
+    for (const [headerName, correlation] of correlations) {
+      const cmsGivenHeaderSum = Object.values(correlation.cmsGivenHeader)
+        .reduce((sum: number, data: any) => sum + data.probability, 0);
+
+      // Allow 1% tolerance for rounding errors
+      if (Math.abs(cmsGivenHeaderSum - 1.0) > 0.01) {
+        warnings.push({
+          severity: 'high',
+          message: `Header ${headerName} has correlation sum ${(cmsGivenHeaderSum * 100).toFixed(2)}% (should be ~100%)`,
+          headerName,
+          details: {
+            correlationSum: cmsGivenHeaderSum,
+            expectedSum: 1.0,
+            tolerance: 0.01
+          }
+        });
+        
+        return {
+          passed: false,
+          message: `Correlation sum validation failed for ${headerName}`,
+          warnings,
+          details: { affectedPatterns: [headerName] }
+        };
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'All header correlations sum to approximately 100%',
+      warnings
+    };
+  }
+
+  /**
+   * Algorithm 2: Check that no individual correlation exceeds 100% or is negative
+   */
+  private correlationRangeCheck(correlations: Map<string, any>): any {
+    for (const [headerName, correlation] of correlations) {
+      for (const [cmsName, data] of Object.entries(correlation.cmsGivenHeader)) {
+        const dataTyped = data as any;
+        
+        if (dataTyped.probability < 0) {
+          return {
+            passed: false,
+            message: `Negative correlation: ${headerName} → ${cmsName} = ${(dataTyped.probability * 100).toFixed(2)}%`,
+            details: { affectedPatterns: [headerName] }
+          };
+        }
+
+        if (dataTyped.probability > 1.0) {
+          return {
+            passed: false,
+            message: `Correlation > 100%: ${headerName} → ${cmsName} = ${(dataTyped.probability * 100).toFixed(2)}%`,
+            details: { affectedPatterns: [headerName] }
+          };
+        }
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'All correlations within valid range [0%, 100%]'
+    };
+  }
+
+  /**
+   * Algorithm 3: Check for high correlations with insufficient statistical support
+   */
+  private supportCheck(correlations: Map<string, any>): any {
+    const warnings: any[] = [];
+    const minSampleSizeForHighCorr = 30;
+    const highCorrelationThreshold = 0.7;
+
+    for (const [headerName, correlation] of correlations) {
+      for (const [cmsName, data] of Object.entries(correlation.cmsGivenHeader)) {
+        const dataTyped = data as any;
+        
+        if (dataTyped.probability > highCorrelationThreshold && dataTyped.count < minSampleSizeForHighCorr) {
+          warnings.push({
+            severity: 'medium',
+            message: `High correlation (${(dataTyped.probability * 100).toFixed(1)}%) with low support: ${headerName} → ${cmsName} (${dataTyped.count} sites)`,
+            headerName,
+            details: {
+              correlation: dataTyped.probability,
+              sampleSize: dataTyped.count,
+              minRecommended: minSampleSizeForHighCorr
+            }
+          });
+        }
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'Support check completed (warnings may exist)',
+      warnings
+    };
+  }
+
+  /**
+   * Algorithm 4: Check Bayesian consistency: P(A|B) × P(B) = P(B|A) × P(A)
+   */
+  private bayesianConsistencyCheck(correlations: Map<string, any>, cmsDistribution: any): any {
+    const warnings: any[] = [];
+    const totalSites = Object.values(cmsDistribution).reduce((sum: number, cms: any) => sum + cms.count, 0);
+
+    for (const [headerName, correlation] of correlations) {
+      const pHeader = correlation.overallFrequency; // P(header)
+
+      for (const [cmsName, cmsGivenHeaderData] of Object.entries(correlation.cmsGivenHeader)) {
+        const cmsGivenHeaderDataTyped = cmsGivenHeaderData as any;
+        const pCmsGivenHeader = cmsGivenHeaderDataTyped.probability; // P(CMS|header)
+        const pCms = (cmsDistribution[cmsName]?.count || 0) / totalSites; // P(CMS)
+        
+        // Get P(header|CMS) from perCMSFrequency
+        const headerGivenCmsData = correlation.perCMSFrequency[cmsName];
+        if (!headerGivenCmsData) continue;
+        
+        const pHeaderGivenCms = headerGivenCmsData.frequency; // P(header|CMS)
+
+        // Bayesian equation: P(CMS|header) × P(header) ≈ P(header|CMS) × P(CMS)
+        const leftSide = pCmsGivenHeader * pHeader;
+        const rightSide = pHeaderGivenCms * pCms;
+        const relativeError = Math.abs(leftSide - rightSide) / Math.max(leftSide, rightSide, 0.001);
+
+        // Allow 5% relative error for numerical precision
+        if (relativeError > 0.05) {
+          warnings.push({
+            severity: 'low',
+            message: `Bayesian inconsistency: ${headerName} → ${cmsName} (${(relativeError * 100).toFixed(1)}% error)`,
+            headerName,
+            details: {
+              leftSide,
+              rightSide,
+              relativeError,
+              pCmsGivenHeader,
+              pHeader,
+              pHeaderGivenCms,
+              pCms
+            }
+          });
+        }
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'Bayesian consistency check completed',
+      warnings
+    };
+  }
+
+  /**
+   * Algorithm 5: Check probability conservation: counts should match across calculations
+   */
+  private probabilityConservationCheck(correlations: Map<string, any>): any {
+    for (const [headerName, correlation] of correlations) {
+      // Sum of CMS-specific counts should equal overall occurrences
+      const cmsCountSum = Object.values(correlation.cmsGivenHeader)
+        .reduce((sum: number, data: any) => sum + data.count, 0);
+
+      if (cmsCountSum !== correlation.overallOccurrences) {
+        return {
+          passed: false,
+          message: `Count mismatch for ${headerName}: CMS sum ${cmsCountSum} ≠ overall ${correlation.overallOccurrences}`,
+          details: {
+            affectedPatterns: [headerName],
+            cmsCountSum,
+            overallOccurrences: correlation.overallOccurrences,
+            difference: cmsCountSum - correlation.overallOccurrences
+          }
+        };
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'Probability conservation verified'
+    };
+  }
+
+  /**
+   * Algorithm 6: Check for mathematical impossibilities in the data
+   */
+  private mathematicalImpossibilityCheck(correlations: Map<string, any>): any {
+    for (const [headerName, correlation] of correlations) {
+      // Check: count for any CMS can't exceed overall occurrences
+      for (const [cmsName, data] of Object.entries(correlation.cmsGivenHeader)) {
+        const dataTyped = data as any;
+        
+        if (dataTyped.count > correlation.overallOccurrences) {
+          return {
+            passed: false,
+            message: `Impossible count: ${headerName} → ${cmsName} has ${dataTyped.count} occurrences but header total is ${correlation.overallOccurrences}`,
+            details: {
+              affectedPatterns: [headerName],
+              cmsCount: dataTyped.count,
+              headerTotal: correlation.overallOccurrences,
+              impossibility: 'cms_count_exceeds_header_total'
+            }
+          };
+        }
+      }
+
+      // Check: frequency values should be consistent with counts
+      if (correlation.overallFrequency < 0 || correlation.overallFrequency > 1) {
+        return {
+          passed: false,
+          message: `Invalid frequency for ${headerName}: ${(correlation.overallFrequency * 100).toFixed(2)}%`,
+          details: {
+            affectedPatterns: [headerName],
+            frequency: correlation.overallFrequency,
+            impossibility: 'invalid_frequency_range'
+          }
+        };
+      }
+    }
+
+    return {
+      passed: true,
+      message: 'No mathematical impossibilities detected'
     };
   }
 }

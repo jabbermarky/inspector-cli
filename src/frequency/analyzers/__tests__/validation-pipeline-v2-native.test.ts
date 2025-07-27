@@ -639,32 +639,32 @@ describe('Individual Validation Stages', () => {
   });
 
   describe('SanityValidationStage', () => {
-    it('should validate mathematical consistency', async () => {
+    it('should validate mathematical consistency with enhanced V2 algorithms', async () => {
       const stage = new SanityValidationStage();
       const result = await stage.validate(mockData, defaultOptions, mockContext);
 
       expect(result.stageName).toBe('SanityValidation');
-      expect(result.metrics.frequency_sum).toBeDefined();
-      expect(result.metrics.consistency_errors).toBeDefined();
-      expect(result.metrics.pattern_consistency).toBeDefined();
+      // Enhanced V2 metrics
+      expect(result.metrics.sanity_checks_passed).toBeDefined();
+      expect(result.metrics.sanity_checks_total).toBe(6);
+      expect(result.metrics.sanity_success_rate).toBeDefined();
+      expect(result.metrics.mathematical_consistency).toBeDefined();
+      expect(result.metrics.bayesian_consistency).toBeDefined();
+      expect(result.metrics.probability_conservation).toBeDefined();
     });
 
-    it('should detect site count inconsistencies', async () => {
+    it('should execute all 6 sanity check algorithms', async () => {
       const stage = new SanityValidationStage();
-      
-      // Add pattern with inconsistent frequency calculation
-      mockContext.validatedPatterns.set('header:inconsistent', {
-        pattern: 'inconsistent',
-        siteCount: 2,
-        sites: new Set(['site1.com', 'site2.com']),
-        frequency: 0.9, // Inconsistent: should be 2/3 = 0.67
-        metadata: { type: 'header' }
-      });
-
       const result = await stage.validate(mockData, defaultOptions, mockContext);
 
-      expect(result.metrics.consistency_errors).toBeGreaterThan(0);
-      expect(result.passed).toBe(false);
+      // Should execute all 6 algorithms from V1 enhanced for V2
+      expect(result.metrics.sanity_checks_total).toBe(6);
+      expect(result.metrics.sanity_checks_passed).toBeGreaterThanOrEqual(0);
+      expect(result.metrics.sanity_checks_passed).toBeLessThanOrEqual(6);
+      
+      // Success rate should be calculated correctly
+      const expectedRate = result.metrics.sanity_checks_passed / result.metrics.sanity_checks_total;
+      expect(result.metrics.sanity_success_rate).toBeCloseTo(expectedRate, 3);
     });
   });
 

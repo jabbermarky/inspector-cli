@@ -25,6 +25,92 @@ describe('SemanticAnalyzerV2', () => {
       semanticFiltering: false
     };
 
+    // Set up vendor data injection for semantic analysis
+    const mockVendorData = {
+      vendorsByHeader: new Map([
+        ['cf-ray', {
+          vendor: { name: 'Cloudflare', category: 'cdn' as const, headerPatterns: ['cf-ray'], description: 'Cloudflare CDN' },
+          confidence: 0.9,
+          matchedHeaders: ['cf-ray'],
+          matchedSites: ['site1.com', 'site2.com'],
+          frequency: 0.67
+        }],
+        ['x-wp-total', {
+          vendor: { name: 'WordPress', category: 'cms' as const, headerPatterns: ['x-wp-*'], description: 'WordPress CMS' },
+          confidence: 0.85,
+          matchedHeaders: ['x-wp-total'],
+          matchedSites: ['site1.com'],
+          frequency: 0.33
+        }],
+        ['x-shopify-shop-id', {
+          vendor: { name: 'Shopify', category: 'ecommerce' as const, headerPatterns: ['x-shopify-*'], description: 'Shopify Platform' },
+          confidence: 0.95,
+          matchedHeaders: ['x-shopify-shop-id'],
+          matchedSites: ['site3.com'],
+          frequency: 0.33
+        }]
+      ]),
+      vendorStats: {
+        totalHeaders: 15,
+        vendorHeaders: 8,
+        vendorCoverage: 0.53, // 8/15 = 53%
+        vendorDistribution: [
+          {
+            vendor: 'Cloudflare',
+            category: 'cdn',
+            headerCount: 1,
+            percentage: 12.5, // 1/8 vendor headers
+            headers: ['cf-ray'],
+            confidence: 0.9
+          },
+          {
+            vendor: 'WordPress',
+            category: 'cms',
+            headerCount: 2,
+            percentage: 25.0, // 2/8 vendor headers
+            headers: ['x-wp-total', 'x-pingback'],
+            confidence: 0.85
+          },
+          {
+            vendor: 'Shopify',
+            category: 'ecommerce',
+            headerCount: 1,
+            percentage: 12.5,
+            headers: ['x-shopify-shop-id'],
+            confidence: 0.95
+          }
+        ],
+        categoryDistribution: {
+          'cdn': 12.5,
+          'cms': 25.0,
+          'ecommerce': 12.5,
+          'server': 25.0,
+          'security': 25.0
+        }
+      },
+      technologyStack: {
+        cms: 'WordPress',
+        ecommerce: 'Shopify',
+        cdn: ['Cloudflare'],
+        framework: 'React',
+        hosting: 'AWS',
+        confidence: 0.78,
+        complexity: 'moderate' as const
+      },
+      vendorConfidence: 0.76,
+      technologySignatures: new Map(),
+      conflictingVendors: new Map(),
+      summary: {
+        totalVendorsDetected: 3,
+        highConfidenceVendors: 2,
+        categoryCoverage: 3,
+        averageConfidence: 0.85
+      }
+    };
+
+    // Inject vendor data before analysis
+    analyzer.setVendorData(mockVendorData);
+
     // Create test data with headers that should trigger semantic analysis
     testData = {
       sites: new Map([

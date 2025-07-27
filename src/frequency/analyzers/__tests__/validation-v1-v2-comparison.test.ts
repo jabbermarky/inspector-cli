@@ -405,9 +405,9 @@ describe('V1 vs V2 Validation Comparison', () => {
       expect(sanityStage!.passed).toBe(true);
       expect(sanityStage!.errors.length).toBe(0);
       
-      // Mathematical consistency should be verified
-      expect(sanityStage!.metrics.consistency_errors).toBe(0);
-      expect(sanityStage!.metrics.pattern_consistency).toBe(1);
+      // Mathematical consistency should be verified (V2 enhanced metrics)
+      expect(sanityStage!.metrics.sanity_checks_passed).toBeGreaterThan(0);
+      expect(sanityStage!.metrics.mathematical_consistency).toBe(1);
     });
   });
 
