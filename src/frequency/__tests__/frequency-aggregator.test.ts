@@ -469,7 +469,7 @@ describe('FrequencyAggregator - Core Algorithm Testing', () => {
       // ARCHITECTURAL CORRECTNESS: Semantic analyzer now uses validated headers
       // If validation doesn't produce validated headers (due to small dataset), 
       // semantic analysis should use fallback method
-      if (result.validation.analyzerSpecific?.validatedPatterns?.headers.size > 0) {
+      if (result.validation.analyzerSpecific?.validatedPatterns?.size > 0) {
         // If validation found patterns, semantic analysis should use them
         expect(semantic.semanticAnalyses.size).toBeGreaterThan(0);
         expect(result.semantic.patterns.size).toBeGreaterThanOrEqual(0); // May be 0 if no patterns meet frequency threshold
@@ -500,24 +500,24 @@ describe('FrequencyAggregator - Core Algorithm Testing', () => {
 
       // Validate validation pipeline was performed
       expect(result.validation).toBeDefined();
-      expect(result.validation.metadata.analyzer).toBe('ValidationPipelineV2');
+      expect(result.validation.metadata.analyzer).toBe('ValidationPipelineV2Native');
       expect(result.validation.analyzerSpecific).toBeDefined();
       
       // Validate validation-specific data
       const validation = result.validation.analyzerSpecific!;
-      expect(validation.qualityScore).toBeDefined();
-      expect(validation.validationPassed).toBeDefined();
-      expect(validation.biasAnalysis).toBeDefined();
-      expect(validation.stages).toBeDefined();
+      expect(validation.qualityMetrics.overallScore).toBeDefined();
+      expect(validation.validationSummary.overallPassed).toBeDefined();
+      expect(validation.stageResults).toBeDefined();
+      expect(validation.validatedPatterns).toBeDefined();
       
-      // Validate bias analysis was performed
-      expect(validation.biasAnalysis.cmsDistribution).toBeDefined();
-      expect(validation.biasAnalysis.totalSites).toBe(2);
+      // Validate stage results were captured
+      expect(validation.stageResults.length).toBe(7); // 7-stage pipeline
+      expect(validation.validationSummary.totalStages).toBe(7);
       
-      // Validate 7-stage pipeline ran
-      expect(validation.stages.frequencyFilter).toBeDefined();
-      expect(validation.stages.sanityChecks).toBeDefined();
-      expect(validation.stages.significanceTesting).toBeDefined();
+      // Validate statistical metrics were calculated
+      expect(validation.statisticalMetrics).toBeDefined();
+      expect(validation.statisticalMetrics.chiSquareTests).toBeDefined();
+      expect(validation.statisticalMetrics.powerAnalysis).toBeDefined();
     });
   });
 

@@ -16,7 +16,7 @@ import { DataPreprocessor } from './data-preprocessor.js';
 import { HeaderAnalyzerV2 } from './analyzers/header-analyzer-v2.js';
 import { MetaAnalyzerV2 } from './analyzers/meta-analyzer-v2.js';
 import { ScriptAnalyzerV2 } from './analyzers/script-analyzer-v2.js';
-import { ValidationPipelineV2 } from './analyzers/validation-pipeline-v2.js';
+import { ValidationPipelineV2Native } from './analyzers/validation-pipeline-v2-native.js';
 import { SemanticAnalyzerV2 } from './analyzers/semantic-analyzer-v2.js';
 import { CooccurrenceAnalyzerV2 } from './analyzers/cooccurrence-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
@@ -36,7 +36,7 @@ export class FrequencyAggregator {
     this.analyzers.set('headers', new HeaderAnalyzerV2());
     this.analyzers.set('metaTags', new MetaAnalyzerV2());
     this.analyzers.set('scripts', new ScriptAnalyzerV2());
-    this.analyzers.set('validation', new ValidationPipelineV2()); // Post-processor after basic analysis
+    this.analyzers.set('validation', new ValidationPipelineV2Native()); // Native V2 validation with real statistics
     this.analyzers.set('semantic', new SemanticAnalyzerV2()); // After validation
     this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After validation
     // TODO: Add remaining V2 analyzers: discovery
@@ -101,9 +101,9 @@ export class FrequencyAggregator {
     const validationResult = await this.analyzers.get('validation')!.analyze(preprocessedData, analysisOptions);
 
     logger.info('Validation completed', {
-      validationPassed: validationResult.analyzerSpecific?.validationPassed || false,
-      qualityScore: validationResult.analyzerSpecific?.qualityScore || 0,
-      validatedHeaders: validationResult.analyzerSpecific?.validatedPatterns?.headers.size || 0
+      validationPassed: validationResult.analyzerSpecific?.validationSummary?.overallPassed || false,
+      qualityScore: validationResult.analyzerSpecific?.qualityMetrics?.overallScore || 0,
+      validatedPatterns: validationResult.analyzerSpecific?.validatedPatterns?.size || 0
     });
 
     // Phase 3: Run semantic analysis on validated data
@@ -116,10 +116,11 @@ export class FrequencyAggregator {
       metadata: {
         ...preprocessedData.metadata,
         validation: {
-          qualityScore: validationResult.analyzerSpecific?.qualityScore || 0,
-          validationPassed: validationResult.analyzerSpecific?.validationPassed || false,
-          validatedHeaders: validationResult.analyzerSpecific?.validatedPatterns?.headers,
-          statisticallySignificantHeaders: validationResult.analyzerSpecific?.statisticallySignificantHeaders || 0
+          qualityScore: validationResult.analyzerSpecific?.qualityMetrics?.overallScore || 0,
+          validationPassed: validationResult.analyzerSpecific?.validationSummary?.overallPassed || false,
+          validatedPatterns: validationResult.analyzerSpecific?.validatedPatterns,
+          statisticalReliability: validationResult.analyzerSpecific?.qualityMetrics?.statisticalReliability || 0,
+          stageResults: validationResult.analyzerSpecific?.stageResults || []
         }
       }
     };

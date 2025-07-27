@@ -1,6 +1,17 @@
 /**
- * ValidationPipelineV2 - Phase 3 implementation
- * Post-processor that validates results from all V2 analyzers using V1 validation logic
+ * ValidationPipelineV2 - Phase 3 implementation (DEPRECATED)
+ * 
+ * ⚠️  DEPRECATED: This V1 wrapper is deprecated as of Phase 3 completion.
+ * ⚠️  Use ValidationPipelineV2Native instead for new code.
+ * ⚠️  This wrapper exists only for backward compatibility and comparison testing.
+ * 
+ * Post-processor that validates results from all V2 analyzers using V1 validation logic.
+ * 
+ * Migration Path:
+ * - ValidationPipelineV2Native provides superior statistical validation
+ * - Real statistical implementations (chi-square, Fisher's exact, power analysis)
+ * - Enhanced quality metrics and actionable recommendations
+ * - Better performance and native V2 architecture
  */
 
 import type { 
@@ -59,7 +70,14 @@ export interface ValidationSpecificData {
  * 4. Returns validated patterns and quality metrics
  * 5. Used by FrequencyAggregator as final validation step
  */
+/**
+ * @deprecated Use ValidationPipelineV2Native instead. This wrapper will be removed in Phase 4.
+ */
 export class ValidationPipelineV2 implements FrequencyAnalyzer<ValidationSpecificData> {
+  constructor() {
+    logger.warn('ValidationPipelineV2 is deprecated. Use ValidationPipelineV2Native for new implementations.');
+  }
+
   getName(): string {
     return 'ValidationPipelineV2';
   }
@@ -516,6 +534,9 @@ export class ValidationPipelineV2 implements FrequencyAnalyzer<ValidationSpecifi
 }
 
 // Export factory function for backward compatibility
+/**
+ * @deprecated Use ValidationPipelineV2Native instead. This factory will be removed in Phase 4.
+ */
 export function createValidationPipeline(): ValidationPipelineV2 {
   return new ValidationPipelineV2();
 }
