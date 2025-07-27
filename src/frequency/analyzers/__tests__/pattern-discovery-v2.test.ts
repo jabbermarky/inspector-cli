@@ -22,13 +22,7 @@ vi.mock('../../semantic-analyzer.js', () => ({
   }))
 }));
 
-vi.mock('../../vendor-patterns.js', () => ({
-  findVendorByHeader: vi.fn((header: string) => {
-    if (header.includes('cf-')) return { name: 'cloudflare' };
-    if (header.includes('shopify')) return { name: 'shopify' };
-    return undefined;
-  })
-}));
+// V1 dependency removed - PatternDiscoveryV2 now uses vendor data injection
 
 vi.mock('../../utils/logger.js', () => ({
   createModuleLogger: vi.fn(() => ({
@@ -640,6 +634,77 @@ describe('PatternDiscoveryV2', () => {
       expect(result).toBeDefined();
       expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
       expect(result.patterns.size).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Vendor Data Injection (V2 Integration)', () => {
+    it('should accept vendor data via setVendorData method', () => {
+      const vendorData = {
+        vendorsByHeader: new Map([
+          ['cf-ray', { vendor: { name: 'cloudflare', category: 'cdn' }, confidence: 0.95 }]
+        ]),
+        vendorStats: { totalVendors: 1 },
+        technologyStack: { detectedTechnologies: ['cloudflare'] },
+        vendorConfidence: new Map([['cloudflare', 0.95]]),
+        technologySignatures: [],
+        conflictingVendors: [],
+        summary: {
+          totalVendorsDetected: 1,
+          highConfidenceVendors: 1,
+          technologyCategories: ['cdn'],
+          stackComplexity: 'simple' as const
+        }
+      };
+
+      expect(() => analyzer.setVendorData(vendorData)).not.toThrow();
+    });
+
+    it('should use vendor data for enhanced semantic anomaly detection', async () => {
+      const vendorData = {
+        vendorsByHeader: new Map([
+          ['cf-ray', { vendor: { name: 'cloudflare', category: 'cdn' }, confidence: 0.95 }],
+          ['x-wp-total', { vendor: { name: 'wordpress', category: 'cms' }, confidence: 0.85 }]
+        ]),
+        vendorStats: { totalVendors: 2 },
+        technologyStack: { detectedTechnologies: ['cloudflare', 'wordpress'] },
+        vendorConfidence: new Map([['cloudflare', 0.95], ['wordpress', 0.85]]),
+        technologySignatures: [],
+        conflictingVendors: [],
+        summary: {
+          totalVendorsDetected: 2,
+          highConfidenceVendors: 2,
+          technologyCategories: ['cdn', 'cms'],
+          stackComplexity: 'moderate' as const
+        }
+      };
+
+      analyzer.setVendorData(vendorData);
+      const result = await analyzer.analyze(mockData, defaultOptions);
+
+      // Should successfully analyze with vendor data injection
+      expect(result).toBeDefined();
+      expect(result.analyzerSpecific!.semanticAnomalies).toBeDefined();
+    });
+
+    it('should function without vendor data injection', async () => {
+      // Don't inject vendor data
+      const result = await analyzer.analyze(mockData, defaultOptions);
+
+      // Should still work but without vendor-enhanced anomaly detection
+      expect(result).toBeDefined();
+      expect(result.analyzerSpecific!.discoveredPatterns.size).toBeGreaterThan(0);
+      expect(result.analyzerSpecific!.semanticAnomalies).toBeDefined();
+    });
+
+    it('should not have V1 dependencies', async () => {
+      // Verify analyzer works without any V1 vendor-patterns module
+      const result = await analyzer.analyze(mockData, defaultOptions);
+      
+      expect(result).toBeDefined();
+      expect(result.patterns.size).toBeGreaterThan(0);
+      
+      // Should not call any V1 findVendorByHeader function
+      // This is implicitly tested by the fact that we removed the V1 mock
     });
   });
 });

@@ -102,6 +102,7 @@ export interface AggregatedResults {
   semantic: AnalysisResult<SemanticSpecificData>;
   validation: AnalysisResult<ValidationSpecificData>;
   vendor: AnalysisResult<VendorSpecificData>;
+  discovery: AnalysisResult<PatternDiscoverySpecificData>;
   cooccurrence: AnalysisResult<CooccurrenceSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
   correlations: BiasAnalysisResult;
@@ -149,6 +150,28 @@ export interface VendorSpecificData {
 
 export interface TechSpecificData {
   categories: Map<string, Set<string>>;
+}
+
+export interface PatternDiscoverySpecificData {
+  discoveredPatterns: Map<string, any>; // DiscoveredPattern from pattern-discovery-v2.ts
+  emergingVendors: Map<string, any>; // EmergingVendorPattern from pattern-discovery-v2.ts
+  patternEvolution: Map<string, any>; // PatternEvolution from pattern-discovery-v2.ts
+  semanticAnomalies: any[]; // SemanticAnomaly[] from pattern-discovery-v2.ts
+  patternNetworks: any[]; // PatternNetwork[] from pattern-discovery-v2.ts
+  insights: string[];
+  discoveryMetrics: {
+    totalPatternsDiscovered: number;
+    newVendorsDetected: number;
+    evolutionPatternsFound: number;
+    anomaliesDetected: number;
+    averagePatternConfidence: number;
+    coveragePercentage: number;
+  };
+  validationIntegration: {
+    validatedPatternsUsed: number;
+    validationBoostApplied: boolean;
+    qualityScore: number;
+  };
 }
 
 export interface CooccurrenceSpecificData {

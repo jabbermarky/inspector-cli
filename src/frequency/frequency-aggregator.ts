@@ -20,6 +20,7 @@ import { ValidationPipelineV2Native } from './analyzers/validation-pipeline-v2-n
 import { SemanticAnalyzerV2 } from './analyzers/semantic-analyzer-v2.js';
 import { VendorAnalyzerV2 } from './analyzers/vendor-analyzer-v2.js';
 import { CooccurrenceAnalyzerV2 } from './analyzers/cooccurrence-analyzer-v2.js';
+import { PatternDiscoveryV2 } from './analyzers/pattern-discovery-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyOptions } from './types.js';
 
@@ -40,8 +41,8 @@ export class FrequencyAggregator {
     this.analyzers.set('validation', new ValidationPipelineV2Native()); // Native V2 validation with real statistics
     this.analyzers.set('semantic', new SemanticAnalyzerV2()); // After validation
     this.analyzers.set('vendor', new VendorAnalyzerV2()); // Before co-occurrence for dependency injection
+    this.analyzers.set('discovery', new PatternDiscoveryV2()); // After vendor analysis for vendor data injection
     this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After vendor analysis
-    // TODO: Add remaining V2 analyzers: discovery
   }
 
   /**
@@ -148,7 +149,25 @@ export class FrequencyAggregator {
     
     const semanticResult = await semanticAnalyzer.analyze(validatedData, analysisOptions);
 
-    // Phase 5: Run co-occurrence analysis on validated data with vendor context
+    // Phase 5: Run pattern discovery analysis with vendor data injection
+    logger.info('Running pattern discovery analysis with vendor data');
+    
+    // Inject vendor data into pattern discovery analyzer for V1 dependency removal
+    const discoveryAnalyzer = this.analyzers.get('discovery')! as any;
+    if (discoveryAnalyzer.setVendorData && vendorResult.analyzerSpecific) {
+      discoveryAnalyzer.setVendorData(vendorResult.analyzerSpecific);
+      logger.info('Injected vendor data into pattern discovery analyzer');
+    }
+    
+    const discoveryResult = await discoveryAnalyzer.analyze(validatedData, analysisOptions);
+
+    logger.info('Pattern discovery completed', {
+      discoveredPatterns: discoveryResult.analyzerSpecific?.discoveredPatterns?.size || 0,
+      emergingVendors: discoveryResult.analyzerSpecific?.emergingVendors?.size || 0,
+      anomaliesDetected: discoveryResult.analyzerSpecific?.semanticAnomalies?.length || 0
+    });
+
+    // Phase 6: Run co-occurrence analysis on validated data with vendor context
     logger.info('Running co-occurrence analysis on validated data');
     
     // Inject vendor data into co-occurrence analyzer for V1 dependency removal
@@ -167,6 +186,7 @@ export class FrequencyAggregator {
       validationPatterns: validationResult.patterns.size,
       semanticPatterns: semanticResult.patterns.size,
       vendorPatterns: vendorResult.patterns.size,
+      discoveryPatterns: discoveryResult.patterns.size,
       cooccurrencePatterns: cooccurrenceResult.patterns.size
     });
 
@@ -204,6 +224,7 @@ export class FrequencyAggregator {
       validation: validationResult,
       semantic: semanticResult,
       vendor: vendorResult,
+      discovery: discoveryResult,
       cooccurrence: cooccurrenceResult,
       technologies: null as any, // TODO: Replace with actual result
       correlations: biasResult,

@@ -19,7 +19,7 @@ import {
   analyzeHeaderSemantics, 
   type HeaderPrimaryCategory 
 } from '../semantic-analyzer.js';
-import { findVendorByHeader } from '../vendor-patterns.js';
+import type { VendorSpecificData } from './vendor-analyzer-v2.js';
 import { createModuleLogger } from '../../utils/logger.js';
 
 const logger = createModuleLogger('pattern-discovery-v2');
@@ -156,8 +156,21 @@ export interface PatternDiscoverySpecificData {
 }
 
 export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpecificData> {
+  private vendorResults?: VendorSpecificData;
+
   getName(): string {
     return 'PatternDiscoveryV2';
+  }
+
+  /**
+   * Set vendor data for enhanced pattern discovery
+   */
+  setVendorData(vendorData: VendorSpecificData): void {
+    this.vendorResults = vendorData;
+    logger.info('Vendor data injected for pattern discovery enhancement', {
+      vendorCount: vendorData.vendorsByHeader.size,
+      hasVendorStats: !!vendorData.vendorStats
+    });
   }
 
   async analyze(
@@ -941,7 +954,9 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
     for (const [header, headerData] of headerFrequencyMap.entries()) {
       if (headerData.frequency > 0.01) {
         const semanticAnalysis = analyzeHeaderSemantics(header);
-        const knownVendor = findVendorByHeader(header);
+        
+        // Use V2 vendor data instead of V1 findVendorByHeader()
+        const knownVendor = this.vendorResults?.vendorsByHeader.get(header);
 
         // Simple category mismatch detection
         const expectedCategory = this.predictExpectedCategory(header);
