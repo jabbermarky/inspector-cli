@@ -26,6 +26,12 @@ export interface PreprocessedData {
     dateRange?: DateRange;
     version: string;
     preprocessedAt: string;
+    validation?: {
+      qualityScore: number;
+      validationPassed: boolean;
+      validatedHeaders?: Map<string, PatternData>;
+      statisticallySignificantHeaders: number;
+    };
   };
 }
 
@@ -89,6 +95,7 @@ export interface AggregatedResults {
   metaTags: AnalysisResult<MetaSpecificData>;
   scripts: AnalysisResult<ScriptSpecificData>;
   semantic: AnalysisResult<SemanticSpecificData>;
+  validation: AnalysisResult<ValidationSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
   correlations: BiasAnalysisResult;
   summary: FrequencySummary;
@@ -121,6 +128,28 @@ export interface SemanticSpecificData {
 
 export interface TechSpecificData {
   categories: Map<string, Set<string>>;
+}
+
+export interface ValidationSpecificData {
+  pipelineResult: any; // PipelineResult from analysis-pipeline.ts
+  qualityScore: number;
+  validationPassed: boolean;
+  sanityChecksPassed: boolean;
+  statisticallySignificantHeaders: number;
+  biasAnalysis: any; // DatasetBiasAnalysis from bias-detector.ts
+  validatedPatterns: {
+    headers: Map<string, PatternData>;
+    correlations: Map<string, any>; // Map<string, HeaderCMSCorrelation>
+  };
+  stages: {
+    frequencyFilter: { filtered: number; passed: number };
+    sampleSizeFilter: { filtered: number; passed: number };
+    distributionAnalysis: { filtered: number; passed: number };
+    correlationValidation: { errors: number; warnings: number };
+    sanityChecks: { passed: number; failed: number };
+    significanceTesting: { significant: number; total: number };
+    recommendationValidation: { highConfidence: number; lowConfidence: number };
+  };
 }
 
 export interface BiasAnalysisResult {

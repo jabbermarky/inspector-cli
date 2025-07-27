@@ -16,6 +16,7 @@ import { DataPreprocessor } from './data-preprocessor.js';
 import { HeaderAnalyzerV2 } from './analyzers/header-analyzer-v2.js';
 import { MetaAnalyzerV2 } from './analyzers/meta-analyzer-v2.js';
 import { ScriptAnalyzerV2 } from './analyzers/script-analyzer-v2.js';
+import { ValidationPipelineV2 } from './analyzers/validation-pipeline-v2.js';
 import { SemanticAnalyzerV2 } from './analyzers/semantic-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyOptions } from './types.js';
@@ -29,13 +30,14 @@ export class FrequencyAggregator {
   constructor(dataPath?: string) {
     this.preprocessor = new DataPreprocessor(dataPath);
     
-    // Initialize analyzers
+    // Initialize analyzers in correct pipeline order
     this.analyzers = new Map();
     this.analyzers.set('headers', new HeaderAnalyzerV2());
     this.analyzers.set('metaTags', new MetaAnalyzerV2());
     this.analyzers.set('scripts', new ScriptAnalyzerV2());
-    this.analyzers.set('semantic', new SemanticAnalyzerV2());
-    // TODO: Add remaining V2 analyzers: validation, cooccurrence, discovery
+    this.analyzers.set('validation', new ValidationPipelineV2()); // Post-processor after basic analysis
+    this.analyzers.set('semantic', new SemanticAnalyzerV2()); // After validation
+    // TODO: Add remaining V2 analyzers: cooccurrence, discovery
   }
 
   /**
@@ -80,16 +82,53 @@ export class FrequencyAggregator {
       });
     }
 
-    // Run all analyzers with the same data
+    // Phase 1: Run basic pattern analyzers
+    logger.info('Running basic pattern analyzers');
     const headerResult = await this.analyzers.get('headers')!.analyze(preprocessedData, analysisOptions);
     const metaResult = await this.analyzers.get('metaTags')!.analyze(preprocessedData, analysisOptions);
     const scriptResult = await this.analyzers.get('scripts')!.analyze(preprocessedData, analysisOptions);
-    const semanticResult = await this.analyzers.get('semantic')!.analyze(preprocessedData, analysisOptions);
 
-    logger.info('Analyzer results', {
+    logger.info('Basic analyzers completed', {
+      headerPatterns: headerResult.patterns.size,
+      metaPatterns: metaResult.patterns.size,
+      scriptPatterns: scriptResult.patterns.size
+    });
+
+    // Phase 2: Run validation pipeline on basic results
+    logger.info('Running validation pipeline');
+    const validationResult = await this.analyzers.get('validation')!.analyze(preprocessedData, analysisOptions);
+
+    logger.info('Validation completed', {
+      validationPassed: validationResult.analyzerSpecific?.validationPassed || false,
+      qualityScore: validationResult.analyzerSpecific?.qualityScore || 0,
+      validatedHeaders: validationResult.analyzerSpecific?.validatedPatterns?.headers.size || 0
+    });
+
+    // Phase 3: Run semantic analysis on validated data
+    logger.info('Running semantic analysis on validated data');
+    
+    // Create enhanced data that includes validation results for semantic analysis
+    const validatedData: PreprocessedData = {
+      ...preprocessedData,
+      // Add validation metadata that semantic analyzer can use
+      metadata: {
+        ...preprocessedData.metadata,
+        validation: {
+          qualityScore: validationResult.analyzerSpecific?.qualityScore || 0,
+          validationPassed: validationResult.analyzerSpecific?.validationPassed || false,
+          validatedHeaders: validationResult.analyzerSpecific?.validatedPatterns?.headers,
+          statisticallySignificantHeaders: validationResult.analyzerSpecific?.statisticallySignificantHeaders || 0
+        }
+      }
+    };
+    
+    const semanticResult = await this.analyzers.get('semantic')!.analyze(validatedData, analysisOptions);
+
+    logger.info('All analyzers completed', {
       headerPatterns: headerResult.patterns.size,
       metaPatterns: metaResult.patterns.size,
       scriptPatterns: scriptResult.patterns.size,
+      validationPatterns: validationResult.patterns.size,
       semanticPatterns: semanticResult.patterns.size
     });
 
@@ -124,6 +163,7 @@ export class FrequencyAggregator {
       headers: headerResult,
       metaTags: metaResult,
       scripts: scriptResult,
+      validation: validationResult,
       semantic: semanticResult,
       technologies: null as any, // TODO: Replace with actual result
       correlations: biasResult,

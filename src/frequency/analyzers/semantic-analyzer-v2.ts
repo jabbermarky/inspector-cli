@@ -122,6 +122,19 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
    * Extract unique headers from all preprocessed sites
    */
   private extractUniqueHeaders(data: PreprocessedData): string[] {
+    // ARCHITECTURAL FIX: Prioritize validated headers when available
+    if (data.metadata.validation?.validatedHeaders) {
+      logger.info('Using validated headers for semantic analysis', {
+        validatedCount: data.metadata.validation.validatedHeaders.size,
+        qualityScore: data.metadata.validation.qualityScore
+      });
+      
+      // Use only high-quality, statistically validated headers
+      return Array.from(data.metadata.validation.validatedHeaders.keys()).sort();
+    }
+    
+    // Fallback to extracting from all sites if no validation data
+    logger.warn('No validated headers available, falling back to raw extraction');
     const headerSet = new Set<string>();
     
     for (const [_, siteData] of data.sites) {
