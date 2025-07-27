@@ -15,11 +15,8 @@ import type {
   AnalysisResult, 
   PatternData
 } from '../types/analyzer-interface.js';
-import { 
-  analyzeHeaderSemantics, 
-  type HeaderPrimaryCategory 
-} from '../semantic-analyzer.js';
-import { findVendorByHeader } from '../vendor-patterns.js';
+import type { HeaderPrimaryCategory } from '../semantic-analyzer.js';
+import type { VendorSpecificData, VendorDetection } from './vendor-analyzer-v2.js';
 import { createModuleLogger } from '../../utils/logger.js';
 
 const logger = createModuleLogger('cooccurrence-analyzer-v2');
@@ -96,8 +93,17 @@ export interface CooccurrenceSpecificData {
 }
 
 export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpecificData> {
+  private vendorData?: VendorSpecificData;
+  
   getName(): string {
     return 'CooccurrenceAnalyzerV2';
+  }
+  
+  /**
+   * Inject vendor analysis results for dependency resolution
+   */
+  setVendorData(vendorData: VendorSpecificData): void {
+    this.vendorData = vendorData;
   }
 
   async analyze(
@@ -251,11 +257,13 @@ export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpe
           ? jointProbability * Math.log(jointProbability / expectedJoint)
           : 0;
 
-        // Get semantic information
-        const vendor1 = findVendorByHeader(header1)?.name;
-        const vendor2 = findVendorByHeader(header2)?.name;
-        const analysis1 = analyzeHeaderSemantics(header1);
-        const analysis2 = analyzeHeaderSemantics(header2);
+        // Get vendor information from injected vendor data
+        const vendor1 = this.vendorData?.vendorsByHeader.get(header1)?.vendor.name;
+        const vendor2 = this.vendorData?.vendorsByHeader.get(header2)?.vendor.name;
+        
+        // Get semantic information (simplified categorization for now)
+        const category1 = this.inferHeaderCategory(header1);
+        const category2 = this.inferHeaderCategory(header2);
 
         const pairKey = `${header1}+${header2}`;
         cooccurrences.set(pairKey, {
@@ -267,8 +275,8 @@ export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpe
           mutualInformation,
           vendor1,
           vendor2,
-          category1: analysis1.category.primary,
-          category2: analysis2.category.primary
+          category1,
+          category2
         });
       }
     }
@@ -699,6 +707,43 @@ export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpe
       averageMutualInformation: avgMI,
       topConditionalProbability: topCP
     };
+  }
+
+  /**
+   * Infer header category from header name (simplified V2 implementation)
+   */
+   private inferHeaderCategory(headerName: string): HeaderPrimaryCategory {
+    const lower = headerName.toLowerCase();
+    
+    // Security headers
+    if (lower.includes('csp') || lower.includes('security') || lower.includes('cors') || 
+        lower.includes('frame') || lower.includes('hsts')) {
+      return 'security';
+    }
+    
+    // Caching headers
+    if (lower.includes('cache') || lower.includes('etag') || lower.includes('vary') ||
+        lower.includes('expires') || lower.includes('modified')) {
+      return 'caching';
+    }
+    
+    // Infrastructure headers (request/response tracking, performance, content)
+    if (lower.includes('content') || lower.includes('type') || lower.includes('encoding') ||
+        lower.includes('language') || lower.includes('length') || lower.includes('request') || 
+        lower.includes('id') || lower.includes('trace') || lower.includes('correlation') || 
+        lower.includes('session') || lower.includes('timing') || lower.includes('performance') || 
+        lower.includes('speed')) {
+      return 'infrastructure';
+    }
+    
+    // Custom/vendor headers (x- prefix or vendor-specific)
+    if (lower.startsWith('x-') || lower.includes('cf-') || lower.includes('amz') ||
+        lower.includes('shopify') || lower.includes('wp-')) {
+      return 'custom';
+    }
+    
+    // Default to custom for unrecognized headers
+    return 'custom';
   }
 
   /**

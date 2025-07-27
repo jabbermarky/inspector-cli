@@ -18,6 +18,7 @@ import { MetaAnalyzerV2 } from './analyzers/meta-analyzer-v2.js';
 import { ScriptAnalyzerV2 } from './analyzers/script-analyzer-v2.js';
 import { ValidationPipelineV2Native } from './analyzers/validation-pipeline-v2-native.js';
 import { SemanticAnalyzerV2 } from './analyzers/semantic-analyzer-v2.js';
+import { VendorAnalyzerV2 } from './analyzers/vendor-analyzer-v2.js';
 import { CooccurrenceAnalyzerV2 } from './analyzers/cooccurrence-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
 import type { FrequencyOptions } from './types.js';
@@ -38,7 +39,8 @@ export class FrequencyAggregator {
     this.analyzers.set('scripts', new ScriptAnalyzerV2());
     this.analyzers.set('validation', new ValidationPipelineV2Native()); // Native V2 validation with real statistics
     this.analyzers.set('semantic', new SemanticAnalyzerV2()); // After validation
-    this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After validation
+    this.analyzers.set('vendor', new VendorAnalyzerV2()); // Before co-occurrence for dependency injection
+    this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After vendor analysis
     // TODO: Add remaining V2 analyzers: discovery
   }
 
@@ -118,18 +120,45 @@ export class FrequencyAggregator {
         validation: {
           qualityScore: validationResult.analyzerSpecific?.qualityMetrics?.overallScore || 0,
           validationPassed: validationResult.analyzerSpecific?.validationSummary?.overallPassed || false,
-          validatedPatterns: validationResult.analyzerSpecific?.validatedPatterns,
-          statisticalReliability: validationResult.analyzerSpecific?.qualityMetrics?.statisticalReliability || 0,
-          stageResults: validationResult.analyzerSpecific?.stageResults || []
+          validatedHeaders: validationResult.analyzerSpecific?.validatedPatterns,
+          statisticallySignificantHeaders: validationResult.analyzerSpecific?.statisticalMetrics?.significantPatterns || 0
         }
       }
     };
     
-    const semanticResult = await this.analyzers.get('semantic')!.analyze(validatedData, analysisOptions);
+    // Phase 4: Run vendor analysis on validated data
+    logger.info('Running vendor analysis on validated data');
+    const vendorResult = await this.analyzers.get('vendor')!.analyze(validatedData, analysisOptions);
 
-    // Phase 4: Run co-occurrence analysis on validated data
+    logger.info('Vendor analysis completed', {
+      vendorsDetected: vendorResult.analyzerSpecific?.summary?.totalVendorsDetected || 0,
+      highConfidenceVendors: vendorResult.analyzerSpecific?.summary?.highConfidenceVendors || 0,
+      technologyCategories: vendorResult.analyzerSpecific?.summary?.technologyCategories?.length || 0
+    });
+
+    // Phase 4.5: Run semantic analysis with vendor data injection
+    logger.info('Running semantic analysis with vendor data');
+    
+    // Inject vendor data into semantic analyzer for V1 dependency removal
+    const semanticAnalyzer = this.analyzers.get('semantic')! as any;
+    if (semanticAnalyzer.setVendorData && vendorResult.analyzerSpecific) {
+      semanticAnalyzer.setVendorData(vendorResult.analyzerSpecific);
+      logger.info('Injected vendor data into semantic analyzer');
+    }
+    
+    const semanticResult = await semanticAnalyzer.analyze(validatedData, analysisOptions);
+
+    // Phase 5: Run co-occurrence analysis on validated data with vendor context
     logger.info('Running co-occurrence analysis on validated data');
-    const cooccurrenceResult = await this.analyzers.get('cooccurrence')!.analyze(validatedData, analysisOptions);
+    
+    // Inject vendor data into co-occurrence analyzer for V1 dependency removal
+    const cooccurrenceAnalyzer = this.analyzers.get('cooccurrence')! as any;
+    if (cooccurrenceAnalyzer.setVendorData && vendorResult.analyzerSpecific) {
+      cooccurrenceAnalyzer.setVendorData(vendorResult.analyzerSpecific);
+      logger.info('Injected vendor data into co-occurrence analyzer');
+    }
+    
+    const cooccurrenceResult = await cooccurrenceAnalyzer.analyze(validatedData, analysisOptions);
 
     logger.info('All analyzers completed', {
       headerPatterns: headerResult.patterns.size,
@@ -137,6 +166,7 @@ export class FrequencyAggregator {
       scriptPatterns: scriptResult.patterns.size,
       validationPatterns: validationResult.patterns.size,
       semanticPatterns: semanticResult.patterns.size,
+      vendorPatterns: vendorResult.patterns.size,
       cooccurrencePatterns: cooccurrenceResult.patterns.size
     });
 
@@ -173,6 +203,7 @@ export class FrequencyAggregator {
       scripts: scriptResult,
       validation: validationResult,
       semantic: semanticResult,
+      vendor: vendorResult,
       cooccurrence: cooccurrenceResult,
       technologies: null as any, // TODO: Replace with actual result
       correlations: biasResult,

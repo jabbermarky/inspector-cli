@@ -17,11 +17,11 @@ import {
   type SemanticInsights,
   type HeaderPrimaryCategory
 } from '../semantic-analyzer.js';
-import { 
-  analyzeVendorPresence, 
-  inferTechnologyStack,
-  type VendorStats,
-  type TechnologyStack
+import type { VendorSpecificData } from './vendor-analyzer-v2.js';
+// Import V1 types for compatibility
+import type {
+  VendorStats,
+  TechnologyStack
 } from '../vendor-patterns.js';
 import { createModuleLogger } from '../../utils/logger.js';
 
@@ -55,8 +55,17 @@ export interface VendorPattern {
 }
 
 export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificData> {
+  private vendorData?: VendorSpecificData;
+  
   getName(): string {
     return 'SemanticAnalyzerV2';
+  }
+  
+  /**
+   * Inject vendor analysis results for dependency resolution
+   */
+  setVendorData(vendorData: VendorSpecificData): void {
+    this.vendorData = vendorData;
   }
 
   async analyze(
@@ -78,9 +87,9 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
     const semanticAnalyses = batchAnalyzeHeaders(uniqueHeaders);
     const insights = generateSemanticInsights(semanticAnalyses);
 
-    // Step 3: Perform vendor analysis using V1 logic
-    const vendorStats = analyzeVendorPresence(uniqueHeaders);
-    const technologyStack = inferTechnologyStack(uniqueHeaders);
+    // Step 3: Use vendor analysis from injected vendor data
+    const vendorStats = this.vendorData?.vendorStats || this.createFallbackVendorStats(uniqueHeaders);
+    const technologyStack = this.vendorData?.technologyStack || this.createFallbackTechnologyStack();
 
     // Step 4: Create V2-specific pattern aggregations
     const categoryPatterns = this.createCategoryPatterns(semanticAnalyses, data, options);
@@ -320,6 +329,29 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
       }
     }
     return sites;
+  }
+
+  /**
+   * Create fallback vendor stats when vendor data is not available
+   */
+  private createFallbackVendorStats(headers: string[]): VendorStats {
+    // Basic fallback - minimal vendor stats
+    return {
+      totalHeaders: headers.length,
+      vendorHeaders: 0,
+      vendorCoverage: 0,
+      vendorDistribution: [],
+      categoryDistribution: {}
+    };
+  }
+
+  /**
+   * Create fallback technology stack when vendor data is not available
+   */
+  private createFallbackTechnologyStack(): TechnologyStack {
+    return {
+      confidence: 0.1 // Low confidence fallback
+    };
   }
 }
 

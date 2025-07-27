@@ -423,7 +423,7 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
             }
 
             for (const [cms, correlation] of Object.entries(headerData.cmsCorrelation)) {
-              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + correlation;
+              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + (correlation as number);
             }
           }
         }
@@ -498,7 +498,7 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
             }
 
             for (const [cms, correlation] of Object.entries(headerData.cmsCorrelation)) {
-              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + correlation;
+              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + (correlation as number);
             }
           }
         }
@@ -572,7 +572,7 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
             }
 
             for (const [cms, correlation] of Object.entries(headerData.cmsCorrelation)) {
-              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + correlation;
+              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + (correlation as number);
             }
           }
         }
@@ -649,7 +649,7 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
             }
 
             for (const [cms, correlation] of Object.entries(headerData.cmsCorrelation)) {
-              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + correlation;
+              cmsCorrelation[cms] = (cmsCorrelation[cms] || 0) + (correlation as number);
             }
           }
         }

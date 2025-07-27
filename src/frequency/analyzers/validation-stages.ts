@@ -11,10 +11,13 @@ import type {
   ValidationContext,
   ValidationWarning,
   ValidationError,
-  ValidationRecommendation,
-  PreprocessedData,
-  AnalysisOptions
+  ValidationRecommendation
 } from './validation-pipeline-v2-native.js';
+import type {
+  PreprocessedData,
+  AnalysisOptions,
+  PatternData
+} from '../types/analyzer-interface.js';
 import { createModuleLogger } from '../../utils/logger.js';
 import { 
   StatisticalUtils,
@@ -610,7 +613,7 @@ export class SanityValidationStage implements ValidationStage {
     const maxReasonableSum = context.validatedPatterns.size * 0.5; // Rough heuristic
     if (frequencySum > maxReasonableSum) {
       warnings.push({
-        type: 'mathematical_inconsistency',
+        type: 'data_quality',
         severity: 'medium',
         message: `Pattern frequency sum (${frequencySum.toFixed(2)}) exceeds reasonable bounds`,
         affectedPatterns: ['frequency_calculations'],
@@ -630,7 +633,7 @@ export class SanityValidationStage implements ValidationStage {
       if (!consistencyCheck.passed) {
         siteCountInconsistencies++;
         errors.push({
-          type: 'mathematical_inconsistency',
+          type: 'data_quality',
           message: consistencyCheck.message,
           affectedData: [pattern.pattern],
           recoverable: true
@@ -640,7 +643,7 @@ export class SanityValidationStage implements ValidationStage {
 
     if (siteCountInconsistencies > 0) {
       errors.push({
-        type: 'mathematical_inconsistency',
+        type: 'data_quality',
         message: `Found ${siteCountInconsistencies} patterns with site count/frequency inconsistencies`,
         affectedData: ['pattern_calculations'],
         recoverable: true

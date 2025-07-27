@@ -26,10 +26,12 @@ import {
   RecommendationValidationStage
 } from './validation-stages.js';
 import { 
-  StatisticalUtils,
-  type ChiSquareResult,
-  type SignificanceTestResult,
-  type PowerAnalysisResult
+  StatisticalUtils
+} from './statistical-utils.js';
+import type {
+  ChiSquareResult,
+  SignificanceTestResult,
+  PowerAnalysisResult
 } from './statistical-utils.js';
 
 const logger = createModuleLogger('validation-pipeline-v2-native');
@@ -86,7 +88,7 @@ export interface ValidationWarning {
  * Validation error
  */
 export interface ValidationError {
-  type: 'critical_failure' | 'data_corruption' | 'mathematical_inconsistency';
+  type: 'critical_failure' | 'data_corruption' | 'mathematical_inconsistency' | 'data_quality';
   message: string;
   affectedData: string[];
   recoverable: boolean;
@@ -142,16 +144,7 @@ export interface StatisticalValidationMetrics {
   powerAnalysis: PowerAnalysisResult;
 }
 
-/**
- * Chi-square test result
- */
-export interface ChiSquareResult {
-  statistic: number;
-  pValue: number;
-  degreesOfFreedom: number;
-  significant: boolean;
-  interpretation: string;
-}
+// ChiSquareResult imported from statistical-utils.ts
 
 /**
  * Correlation test result
@@ -165,17 +158,7 @@ export interface CorrelationTestResult {
   confidenceInterval: [number, number];
 }
 
-/**
- * Significance test result
- */
-export interface SignificanceTestResult {
-  pattern: string;
-  testType: 'binomial' | 'chi_square' | 'fisher_exact';
-  statistic: number;
-  pValue: number;
-  significant: boolean;
-  effectSize: number;
-}
+// SignificanceTestResult imported from statistical-utils.ts
 
 /**
  * Confidence interval
@@ -188,15 +171,7 @@ export interface ConfidenceInterval {
   confidenceLevel: number;
 }
 
-/**
- * Power analysis result
- */
-export interface PowerAnalysisResult {
-  observedPower: number;
-  requiredSampleSize: number;
-  effectSize: number;
-  adequatePower: boolean;
-}
+// PowerAnalysisResult imported from statistical-utils.ts
 
 /**
  * Validation-specific data for analyzer
@@ -535,10 +510,11 @@ export class ValidationPipelineV2Native implements FrequencyAnalyzer<ValidationS
               statistic: chiSquareResult.statistic,
               pValue: chiSquareResult.pValue,
               degreesOfFreedom: chiSquareResult.degreesOfFreedom,
-              significant: chiSquareResult.isSignificant,
-              interpretation: chiSquareResult.isSignificant 
-                ? 'Patterns show significant association with CMS'
-                : 'Patterns show no significant association with CMS'
+              isSignificant: chiSquareResult.isSignificant,
+              criticalValue: chiSquareResult.criticalValue || 0,
+              observed: chiSquareResult.observed || [],
+              expected: chiSquareResult.expected || [],
+              yatesCorrection: chiSquareResult.yatesCorrection || false
             });
           }
         }
@@ -612,12 +588,12 @@ export class ValidationPipelineV2Native implements FrequencyAnalyzer<ValidationS
       );
       
       results.push({
-        pattern: pattern.pattern,
-        testType: 'binomial',
-        statistic: pattern.frequency,
-        pValue: binomialResult.pValue,
-        significant: binomialResult.isSignificant,
-        effectSize: Math.abs(pattern.frequency - baselineRate)
+        method: 'binomial',
+        result: binomialResult,
+        recommendation: binomialResult.isSignificant ? 'use' : 'caution',
+        reason: binomialResult.isSignificant 
+          ? 'Pattern shows significant frequency'
+          : 'Pattern frequency not significant'
       });
     }
     

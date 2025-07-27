@@ -32,6 +32,11 @@ export interface PreprocessedData {
       validatedHeaders?: Map<string, PatternData>;
       statisticallySignificantHeaders: number;
     };
+    semantic?: {
+      categoryCount: number;
+      headerCategories: Map<string, string>;
+      vendorMappings: Map<string, string>;
+    };
   };
 }
 
@@ -96,6 +101,7 @@ export interface AggregatedResults {
   scripts: AnalysisResult<ScriptSpecificData>;
   semantic: AnalysisResult<SemanticSpecificData>;
   validation: AnalysisResult<ValidationSpecificData>;
+  vendor: AnalysisResult<VendorSpecificData>;
   cooccurrence: AnalysisResult<CooccurrenceSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
   correlations: BiasAnalysisResult;
@@ -125,6 +131,20 @@ export interface SemanticSpecificData {
   technologyStack: any; // TechnologyStack from vendor-patterns.ts
   categoryPatterns: Map<string, any>; // CategoryPattern from semantic-analyzer-v2.ts
   vendorPatterns: Map<string, any>; // VendorPattern from semantic-analyzer-v2.ts
+}
+export interface VendorSpecificData {
+  vendorsByHeader: Map<string, any>; // VendorDetection from vendor-analyzer-v2.ts
+  vendorStats: any; // VendorStats from vendor-analyzer-v2.ts
+  technologyStack: any; // TechnologyStack from vendor-analyzer-v2.ts
+  vendorConfidence: Map<string, number>;
+  technologySignatures: any[]; // TechnologySignature from vendor-analyzer-v2.ts
+  conflictingVendors: any[]; // TechnologyConflict from vendor-analyzer-v2.ts
+  summary: {
+    totalVendorsDetected: number;
+    highConfidenceVendors: number;
+    technologyCategories: string[];
+    stackComplexity: 'simple' | 'moderate' | 'complex';
+  };
 }
 
 export interface TechSpecificData {
