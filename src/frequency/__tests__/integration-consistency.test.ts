@@ -104,7 +104,12 @@ describe('Cross-Component Consistency', () => {
     mockPreprocessor = {
       load: vi.fn().mockResolvedValue(testData),
       clearCache: vi.fn(),
-      getCacheStats: vi.fn().mockReturnValue({ entries: 0, keys: [] })
+      getCacheStats: vi.fn().mockReturnValue({ entries: 0, keys: [] }),
+      classifyHeader: vi.fn().mockReturnValue({
+        category: 'custom',
+        discriminativeScore: 0.5,
+        filterRecommendation: 'context-dependent'
+      })
     };
 
     // Replace the real DataPreprocessor with our mock

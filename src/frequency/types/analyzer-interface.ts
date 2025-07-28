@@ -3,6 +3,8 @@
  * This ensures consistent counting methodology across all analyzers
  */
 
+import type { BiasSpecificData } from './bias-analysis-types-v2.js';
+
 export interface FrequencyAnalyzer<T> {
   /**
    * Analyze preprocessed data and return standardized results
@@ -35,6 +37,7 @@ export interface PreprocessedData {
     semantic?: {
       categoryCount: number;
       headerCategories: Map<string, string>;
+      headerClassifications: Map<string, any>; // Full HeaderClassification objects
       vendorMappings: Map<string, string>;
     };
   };
@@ -105,7 +108,7 @@ export interface AggregatedResults {
   discovery: AnalysisResult<PatternDiscoverySpecificData>;
   cooccurrence: AnalysisResult<CooccurrenceSpecificData>;
   technologies: AnalysisResult<TechSpecificData>;
-  correlations: BiasAnalysisResult;
+  correlations: AnalysisResult<BiasSpecificData>;
   summary: FrequencySummary;
 }
 
@@ -126,12 +129,61 @@ export interface ScriptSpecificData {
 }
 
 export interface SemanticSpecificData {
-  semanticAnalyses: Map<string, any>; // HeaderSemanticAnalysis from semantic-analyzer.ts
-  insights: any; // SemanticInsights from semantic-analyzer.ts  
-  vendorStats: any; // VendorStats from vendor-patterns.ts
-  technologyStack: any; // TechnologyStack from vendor-patterns.ts
-  categoryPatterns: Map<string, any>; // CategoryPattern from semantic-analyzer-v2.ts
-  vendorPatterns: Map<string, any>; // VendorPattern from semantic-analyzer-v2.ts
+  // Pure V2 semantic analysis data structures
+  categoryDistribution: Map<string, CategoryDistribution>;
+  headerPatterns: Map<string, SemanticPattern>;
+  vendorDetections: Map<string, VendorSemanticData>;
+  insights: SemanticInsightsV2;
+  qualityMetrics: SemanticQualityMetrics;
+}
+
+// V2-native semantic analysis types
+export interface CategoryDistribution {
+  category: string;
+  headerCount: number;
+  siteCount: number;
+  frequency: number;
+  averageConfidence: number;
+  topHeaders: string[];
+}
+
+export interface SemanticPattern {
+  pattern: string;
+  category: string;
+  confidence: number;
+  discriminativeScore: number;
+  filterRecommendation: string;
+  siteCount: number;
+  sites: Set<string>;
+  vendor?: string;
+  platformName?: string;
+}
+
+export interface VendorSemanticData {
+  vendor: string;
+  headerCount: number;
+  confidence: number;
+  headers: string[];
+  category: string;
+}
+
+export interface SemanticInsightsV2 {
+  totalHeaders: number;
+  categorizedHeaders: number;
+  uncategorizedHeaders: number;
+  mostCommonCategory: string;
+  highConfidenceHeaders: number;
+  vendorHeaders: number;
+  customHeaders: number;
+  potentialSecurity: string[];
+  recommendations: string[];
+}
+
+export interface SemanticQualityMetrics {
+  categorizationCoverage: number; // 0-1
+  averageConfidence: number; // 0-1
+  vendorDetectionRate: number; // 0-1
+  customHeaderRatio: number; // 0-1
 }
 export interface VendorSpecificData {
   vendorsByHeader: Map<string, any>; // VendorDetection from vendor-analyzer-v2.ts
@@ -211,20 +263,6 @@ export interface ValidationSpecificData {
   };
 }
 
-export interface BiasAnalysisResult {
-  recommendations: BiasRecommendation[];
-  metadata: AnalysisMetadata;
-}
-
-export interface BiasRecommendation {
-  pattern: string;
-  type: string;
-  correlation: number;
-  cms: string;
-  cmsCount: number;
-  totalSites: number;
-  confidence: number;
-}
 
 export interface FrequencySummary {
   totalSitesAnalyzed: number;

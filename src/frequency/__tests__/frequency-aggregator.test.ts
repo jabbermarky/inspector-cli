@@ -457,25 +457,24 @@ describe('FrequencyAggregator - Core Algorithm Testing', () => {
       expect(result.semantic.metadata.analyzer).toBe('SemanticAnalyzerV2');
       expect(result.semantic.analyzerSpecific).toBeDefined();
       
-      // Validate semantic-specific data structure exists
+      // Validate semantic-specific data structure exists (V2 pure implementation)
       const semantic = result.semantic.analyzerSpecific!;
-      expect(semantic.semanticAnalyses).toBeDefined();
+      expect(semantic.categoryDistribution).toBeDefined();
+      expect(semantic.headerPatterns).toBeDefined();
+      expect(semantic.vendorDetections).toBeDefined();
       expect(semantic.insights).toBeDefined();
-      expect(semantic.vendorStats).toBeDefined();
-      expect(semantic.technologyStack).toBeDefined();
-      expect(semantic.categoryPatterns).toBeDefined();
-      expect(semantic.vendorPatterns).toBeDefined();
+      expect(semantic.qualityMetrics).toBeDefined();
 
       // ARCHITECTURAL CORRECTNESS: Semantic analyzer now uses validated headers
       // If validation doesn't produce validated headers (due to small dataset), 
       // semantic analysis should use fallback method
       if (result.validation.analyzerSpecific?.validatedPatterns?.size > 0) {
         // If validation found patterns, semantic analysis should use them
-        expect(semantic.semanticAnalyses.size).toBeGreaterThan(0);
+        expect(semantic.headerPatterns.size).toBeGreaterThan(0);
         expect(result.semantic.patterns.size).toBeGreaterThanOrEqual(0); // May be 0 if no patterns meet frequency threshold
       } else {
         // If validation didn't find patterns, semantic should fall back to raw headers
-        expect(semantic.semanticAnalyses.size).toBeGreaterThanOrEqual(0);
+        expect(semantic.headerPatterns.size).toBeGreaterThanOrEqual(0);
       }
     });
 
@@ -595,12 +594,71 @@ function createRealisticTestData(sites: Array<{
     });
   });
 
+  // Generate semantic metadata for headers found in the test data
+  const headerCategories = new Map<string, string>();
+  const headerClassifications = new Map<string, any>();
+  const vendorMappings = new Map<string, string>();
+  
+  // Collect all unique headers
+  const allHeaders = new Set<string>();
+  siteMap.forEach(site => {
+    site.headers.forEach((_, headerName) => {
+      allHeaders.add(headerName);
+    });
+  });
+  
+  // Classify headers for semantic metadata
+  allHeaders.forEach(header => {
+    let category = 'custom';
+    let vendor: string | undefined;
+    let discriminativeScore = 0.5;
+    
+    // Basic classification logic for test headers
+    if (header.includes('wp-') || header === 'x-pingback') {
+      category = 'cms';
+      vendor = 'WordPress';
+      discriminativeScore = 0.9;
+    } else if (header.includes('drupal')) {
+      category = 'cms';
+      vendor = 'Drupal';
+      discriminativeScore = 0.9;
+    } else if (header === 'server' || header === 'content-type') {
+      category = 'infrastructure';
+      discriminativeScore = 0.8;
+    } else if (header.includes('security') || header.includes('frame-options') || header === 'content-security-policy') {
+      category = 'security';
+      discriminativeScore = 0.95;
+    } else if (header === 'x-powered-by') {
+      category = 'infrastructure';
+      discriminativeScore = 0.7;
+    }
+    
+    headerCategories.set(header, category);
+    headerClassifications.set(header, {
+      category,
+      discriminativeScore,
+      filterRecommendation: discriminativeScore > 0.8 ? 'include' : 'context-dependent',
+      vendor,
+      platformName: vendor
+    });
+    
+    if (vendor) {
+      vendorMappings.set(header, vendor);
+    }
+  });
+
   return {
     sites: siteMap,
     totalSites: sites.length,
     metadata: {
       version: '1.0.0',
-      preprocessedAt: new Date().toISOString()
+      preprocessedAt: new Date().toISOString(),
+      semantic: {
+        categoryCount: headerCategories.size,
+        headerCategories,
+        headerClassifications,
+        vendorMappings
+      }
     }
   };
 }

@@ -3,12 +3,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeFrequencyV2, analyzeFrequency } from '../analyzer-v2.js';
+import { analyzeFrequencyV2 } from '../analyzer-v2.js';
 import { FrequencyAggregator } from '../frequency-aggregator.js';
 import { DataPreprocessor } from '../data-preprocessor.js';
 import { RecommendationsCoordinator } from '../analyzers/recommendations-coordinator.js';
 import { formatOutput } from '../reporter.js';
-import type { FrequencyOptions } from '../types.js';
+import type { FrequencyOptions } from '../types-v1.js';
 
 // Mock the FrequencyAggregator
 vi.mock('../frequency-aggregator.js');
@@ -187,46 +187,6 @@ describe('AnalyzerV2', () => {
   });
 
   describe('Backward Compatibility', () => {
-    it('should export analyzeFrequency as alias to analyzeFrequencyV2', async () => {
-      const result1 = await analyzeFrequencyV2();
-      const result2 = await analyzeFrequency();
-
-      // Both should return the same structure (excluding timestamps which vary by execution time)
-      const { metadata: meta1, ...rest1 } = result1;
-      const { metadata: meta2, ...rest2 } = result2;
-      
-      expect(rest1).toEqual(rest2);
-      
-      // Check metadata separately, excluding the timestamp
-      const { analysisDate: date1, ...metaRest1 } = meta1;
-      const { analysisDate: date2, ...metaRest2 } = meta2;
-      
-      expect(metaRest1).toEqual(metaRest2);
-      
-      // Verify both timestamps are valid ISO strings (but don't compare exact values)
-      expect(new Date(date1).getTime()).toBeGreaterThan(0);
-      expect(new Date(date2).getTime()).toBeGreaterThan(0);
-    });
-
-    it('should maintain the same API as original analyzeFrequency', async () => {
-      const options: FrequencyOptions = {
-        minOccurrences: 10,
-        output: 'json',
-        includeRecommendations: false
-      };
-
-      const result = await analyzeFrequency(options);
-
-      // Should accept same options and return same structure
-      expect(result).toHaveProperty('headers');
-      expect(result).toHaveProperty('metadata');
-      expect(result).toHaveProperty('filteringReport');
-      expect(result.metadata.options.minOccurrences).toBe(10);
-      expect(result.metadata.options.output).toBe('json');
-      expect(result.metadata.options.includeRecommendations).toBe(false);
-    });
-  });
-
   describe('Error Handling', () => {
     it('should propagate aggregator errors', async () => {
       const error = new Error('Aggregator failed');

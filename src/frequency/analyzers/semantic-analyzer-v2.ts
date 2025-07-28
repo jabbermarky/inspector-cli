@@ -1,361 +1,516 @@
 /**
- * SemanticAnalyzerV2 - Phase 3 implementation
- * Provides semantic analysis of headers, vendor detection, and technology classification
+ * SemanticAnalyzerV2 - Pure V2 Implementation
+ *
+ * Uses only preprocessed semantic metadata from DataPreprocessor.
+ * No V1 dependencies, no independent preprocessing, true V2 architecture.
  */
 
-import type { 
-  FrequencyAnalyzer, 
-  PreprocessedData, 
-  AnalysisOptions, 
-  AnalysisResult, 
-  PatternData
-} from '../types/analyzer-interface.js';
-import { 
-  batchAnalyzeHeaders, 
-  generateSemanticInsights,
-  type HeaderSemanticAnalysis,
-  type SemanticInsights,
-  type HeaderPrimaryCategory
-} from '../semantic-analyzer.js';
-import type { VendorSpecificData } from './vendor-analyzer-v2.js';
-// Import V1 types for compatibility
 import type {
-  VendorStats,
-  TechnologyStack
-} from '../vendor-patterns.js';
+    FrequencyAnalyzer,
+    PreprocessedData,
+    AnalysisOptions,
+    AnalysisResult,
+    PatternData,
+    SemanticSpecificData,
+    CategoryDistribution,
+    SemanticPattern,
+    VendorSemanticData,
+    SemanticInsightsV2,
+    SemanticQualityMetrics,
+} from '../types/analyzer-interface.js';
+import type { HeaderClassification } from '../data-preprocessor-v2.js';
 import { createModuleLogger } from '../../utils/logger.js';
 
-const logger = createModuleLogger('semantic-analyzer-v2');
+const logger = createModuleLogger('semantic-analyzer-v2-pure');
 
-export interface SemanticSpecificData {
-  semanticAnalyses: Map<string, HeaderSemanticAnalysis>;
-  insights: SemanticInsights;
-  vendorStats: VendorStats;
-  technologyStack: TechnologyStack;
-  categoryPatterns: Map<HeaderPrimaryCategory, CategoryPattern>;
-  vendorPatterns: Map<string, VendorPattern>;
-}
-
-export interface CategoryPattern {
-  category: HeaderPrimaryCategory;
-  headerCount: number;
-  frequency: number;
-  examples: string[];
-  topVendors: string[];
-  confidence: number;
-}
-
-export interface VendorPattern {
-  vendor: string;
-  headerCount: number;
-  frequency: number;
-  examples: string[];
-  categories: string[]; // Allow both primary and secondary categories
-  confidence: number;
-}
-
+/**
+ * Pure V2 SemanticAnalyzerV2 - uses only preprocessed data
+ */
 export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificData> {
-  private vendorData?: VendorSpecificData;
-  
-  getName(): string {
-    return 'SemanticAnalyzerV2';
-  }
-  
-  /**
-   * Inject vendor analysis results for dependency resolution
-   */
-  setVendorData(vendorData: VendorSpecificData): void {
-    this.vendorData = vendorData;
-  }
-
-  async analyze(
-    data: PreprocessedData, 
-    options: AnalysisOptions
-  ): Promise<AnalysisResult<SemanticSpecificData>> {
-    logger.info('Starting semantic analysis V2', {
-      totalSites: data.totalSites,
-      minOccurrences: options.minOccurrences
-    });
-
-    const startTime = Date.now();
-
-    // Step 1: Extract unique headers from all sites
-    const uniqueHeaders = this.extractUniqueHeaders(data);
-    logger.info('Extracted unique headers', { count: uniqueHeaders.length });
-
-    // Step 2: Perform batch semantic analysis using V1 logic
-    const semanticAnalyses = batchAnalyzeHeaders(uniqueHeaders);
-    const insights = generateSemanticInsights(semanticAnalyses);
-
-    // Step 3: Use vendor analysis from injected vendor data
-    const vendorStats = this.vendorData?.vendorStats || this.createFallbackVendorStats(uniqueHeaders);
-    const technologyStack = this.vendorData?.technologyStack || this.createFallbackTechnologyStack();
-
-    // Step 4: Create V2-specific pattern aggregations
-    const categoryPatterns = this.createCategoryPatterns(semanticAnalyses, data, options);
-    const vendorPatterns = this.createVendorPatterns(semanticAnalyses, vendorStats, data, options);
-
-    // Step 5: Create standard V2 patterns for compatibility
-    const patterns = this.createSemanticPatterns(semanticAnalyses, data, options);
-
-    const duration = Date.now() - startTime;
-    logger.info('Semantic analysis V2 completed', {
-      duration,
-      patterns: patterns.size,
-      categories: categoryPatterns.size,
-      vendors: vendorPatterns.size
-    });
-
-    return {
-      patterns,
-      totalSites: data.totalSites,
-      metadata: {
-        analyzer: this.getName(),
-        analyzedAt: new Date().toISOString(),
-        totalPatternsFound: patterns.size,
-        totalPatternsAfterFiltering: patterns.size, // No filtering for semantic data
-        options
-      },
-      analyzerSpecific: {
-        semanticAnalyses,
-        insights,
-        vendorStats,
-        technologyStack,
-        categoryPatterns,
-        vendorPatterns
-      }
-    };
-  }
-
-  /**
-   * Extract unique headers from all preprocessed sites
-   */
-  private extractUniqueHeaders(data: PreprocessedData): string[] {
-    // ARCHITECTURAL FIX: Prioritize validated headers when available
-    if (data.metadata.validation?.validatedHeaders) {
-      logger.info('Using validated headers for semantic analysis', {
-        validatedCount: data.metadata.validation.validatedHeaders.size,
-        qualityScore: data.metadata.validation.qualityScore
-      });
-      
-      // Use only high-quality, statistically validated headers
-      return Array.from(data.metadata.validation.validatedHeaders.keys()).sort();
-    }
-    
-    // Fallback to extracting from all sites if no validation data
-    logger.warn('No validated headers available, falling back to raw extraction');
-    const headerSet = new Set<string>();
-    
-    for (const [_, siteData] of data.sites) {
-      for (const [headerName, _] of siteData.headers) {
-        headerSet.add(headerName.toLowerCase());
-      }
-    }
-    
-    return Array.from(headerSet).sort();
-  }
-
-  /**
-   * Create category-based patterns for V2 compatibility
-   */
-  private createCategoryPatterns(
-    analyses: Map<string, HeaderSemanticAnalysis>,
-    data: PreprocessedData,
-    options: AnalysisOptions
-  ): Map<HeaderPrimaryCategory, CategoryPattern> {
-    const categoryPatterns = new Map<HeaderPrimaryCategory, CategoryPattern>();
-    
-    // Group headers by category
-    const headersByCategory = new Map<HeaderPrimaryCategory, string[]>();
-    for (const [headerName, analysis] of analyses) {
-      const category = analysis.category.primary;
-      if (!headersByCategory.has(category)) {
-        headersByCategory.set(category, []);
-      }
-      headersByCategory.get(category)!.push(headerName);
+    getName(): string {
+        return 'SemanticAnalyzerV2';
     }
 
-    // Create patterns for each category
-    for (const [category, headers] of headersByCategory) {
-      if (headers.length < options.minOccurrences) continue;
+    async analyze(
+        data: PreprocessedData,
+        options: AnalysisOptions
+    ): Promise<AnalysisResult<SemanticSpecificData>> {
+        const startTime = Date.now();
 
-      // Count sites using headers in this category
-      const sitesWithCategory = this.countSitesWithAnyHeader(headers, data);
-      
-      // Get top vendors for this category
-      const categoryVendors = new Map<string, number>();
-      for (const headerName of headers) {
-        const analysis = analyses.get(headerName);
-        if (analysis?.category.vendor) {
-          categoryVendors.set(
-            analysis.category.vendor,
-            (categoryVendors.get(analysis.category.vendor) || 0) + 1
-          );
+        logger.info('Starting pure V2 semantic analysis', {
+            totalSites: data.totalSites,
+            headerClassifications: data.metadata.semantic?.headerClassifications?.size || 0,
+            vendorMappings: data.metadata.semantic?.vendorMappings?.size || 0,
+        });
+
+        // Use preprocessed semantic metadata - no independent classification
+        const headerCategories = data.metadata.semantic?.headerCategories || new Map();
+        const headerClassifications = data.metadata.semantic?.headerClassifications || new Map();
+        const vendorMappings = data.metadata.semantic?.vendorMappings || new Map();
+
+        if (headerCategories.size === 0) {
+            logger.warn('No semantic metadata available in preprocessed data');
         }
-      }
-      
-      const topVendors = Array.from(categoryVendors.entries())
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5)
-        .map(([vendor, _]) => vendor);
 
-      categoryPatterns.set(category, {
-        category,
-        headerCount: headers.length,
-        frequency: sitesWithCategory / data.totalSites,
-        examples: headers.slice(0, 5),
-        topVendors,
-        confidence: Math.min(1.0, headers.length / 10) // Higher confidence with more headers
-      });
+        // Step 1: Analyze category distribution using preprocessed classifications
+        const categoryDistribution = this.analyzeCategoryDistribution(
+            headerCategories,
+            headerClassifications,
+            data
+        );
+
+        // Step 2: Create semantic patterns using preprocessed data
+        const headerPatterns = this.createSemanticPatterns(headerClassifications, data, options);
+
+        // Step 3: Analyze vendor detections from preprocessed mappings
+        const vendorDetections = this.analyzeVendorDetections(
+            vendorMappings,
+            headerClassifications,
+            data
+        );
+
+        // Step 4: Generate V2-native insights
+        const insights = this.generateSemanticInsights(
+            headerCategories,
+            headerClassifications,
+            vendorMappings,
+            data
+        );
+
+        // Step 5: Calculate quality metrics
+        const qualityMetrics = this.calculateQualityMetrics(
+            headerCategories,
+            headerClassifications,
+            data
+        );
+
+        // Step 6: Create standard V2 patterns for FrequencyAnalyzer interface
+        const patterns = this.createStandardPatterns(headerPatterns, options);
+
+        const duration = Date.now() - startTime;
+        logger.info('Pure V2 semantic analysis completed', {
+            duration,
+            categories: categoryDistribution.size,
+            headerPatterns: headerPatterns.size,
+            vendorDetections: vendorDetections.size,
+            standardPatterns: patterns.size,
+        });
+
+        return {
+            patterns,
+            totalSites: data.totalSites,
+            metadata: {
+                analyzer: this.getName(),
+                analyzedAt: new Date().toISOString(),
+                totalPatternsFound: headerPatterns.size,
+                totalPatternsAfterFiltering: patterns.size,
+                options,
+            },
+            analyzerSpecific: {
+                categoryDistribution,
+                headerPatterns,
+                vendorDetections,
+                insights,
+                qualityMetrics,
+            },
+        };
     }
 
-    return categoryPatterns;
-  }
-
-  /**
-   * Create vendor-based patterns for V2 compatibility
-   */
-  private createVendorPatterns(
-    analyses: Map<string, HeaderSemanticAnalysis>,
-    vendorStats: VendorStats,
-    data: PreprocessedData,
-    options: AnalysisOptions
-  ): Map<string, VendorPattern> {
-    const vendorPatterns = new Map<string, VendorPattern>();
-
-    for (const vendorData of vendorStats.vendorDistribution) {
-      // Count sites using this vendor's headers
-      const sitesWithVendor = this.countSitesWithAnyHeader(vendorData.headers, data);
-      
-      // Check if vendor appears on enough sites (not header types)
-      if (sitesWithVendor < options.minOccurrences) continue;
-
-      // Get categories for this vendor (including secondary categories)
-      const vendorCategories = new Set<string>();
-      for (const headerName of vendorData.headers) {
-        const analysis = analyses.get(headerName);
-        if (analysis) {
-          vendorCategories.add(analysis.category.primary);
-          // Add secondary categories if they exist
-          if (analysis.category.secondary) {
-            for (const secondaryCategory of analysis.category.secondary) {
-              vendorCategories.add(secondaryCategory);
+    /**
+     * Analyze category distribution from preprocessed classifications
+     */
+    private analyzeCategoryDistribution(
+        headerCategories: Map<string, string>,
+        headerClassifications: Map<string, HeaderClassification>,
+        data: PreprocessedData
+    ): Map<string, CategoryDistribution> {
+        const distribution = new Map<string, CategoryDistribution>();
+        const categoryStats = new Map<
+            string,
+            {
+                headers: Set<string>;
+                sites: Set<string>;
+                confidences: number[];
             }
-          }
+        >();
+
+        // Count headers per category and collect statistics
+        for (const [header, category] of headerCategories) {
+            if (!categoryStats.has(category)) {
+                categoryStats.set(category, {
+                    headers: new Set(),
+                    sites: new Set(),
+                    confidences: [],
+                });
+            }
+
+            const stats = categoryStats.get(category)!;
+            stats.headers.add(header);
+
+            // Get confidence from classification
+            const classification = headerClassifications.get(header);
+            if (classification) {
+                stats.confidences.push(classification.discriminativeScore);
+            }
+
+            // Count sites that use this header
+            for (const [siteUrl, siteData] of data.sites) {
+                if (siteData.headers.has(header)) {
+                    stats.sites.add(siteUrl);
+                }
+            }
         }
-      }
 
-      vendorPatterns.set(vendorData.vendor, {
-        vendor: vendorData.vendor,
-        headerCount: vendorData.headerCount,
-        frequency: sitesWithVendor / data.totalSites,
-        examples: vendorData.headers.slice(0, 5),
-        categories: Array.from(vendorCategories),
-        confidence: Math.min(1.0, vendorData.headerCount / 5) // Higher confidence with more headers
-      });
-    }
+        // Create distribution objects
+        for (const [category, stats] of categoryStats) {
+            const averageConfidence =
+                stats.confidences.length > 0
+                    ? stats.confidences.reduce((sum, conf) => sum + conf, 0) /
+                      stats.confidences.length
+                    : 0.5;
 
-    return vendorPatterns;
-  }
+            // Get top headers for this category (by site count)
+            const headerSiteCounts = Array.from(stats.headers).map(header => ({
+                header,
+                siteCount: this.countSitesForHeader(header, data),
+            }));
 
-  /**
-   * Create standard V2 patterns for each semantic category
-   */
-  private createSemanticPatterns(
-    analyses: Map<string, HeaderSemanticAnalysis>,
-    data: PreprocessedData,
-    options: AnalysisOptions
-  ): Map<string, PatternData> {
-    const patterns = new Map<string, PatternData>();
+            const topHeaders = headerSiteCounts
+                .sort((a, b) => b.siteCount - a.siteCount)
+                .slice(0, 5)
+                .map(item => item.header);
 
-    // Group by category and create patterns
-    const categoryGroups = new Map<HeaderPrimaryCategory, string[]>();
-    for (const [headerName, analysis] of analyses) {
-      const category = analysis.category.primary;
-      if (!categoryGroups.has(category)) {
-        categoryGroups.set(category, []);
-      }
-      categoryGroups.get(category)!.push(headerName);
-    }
-
-    for (const [category, headers] of categoryGroups) {
-      if (headers.length < options.minOccurrences) continue;
-
-      const sitesWithCategory = this.countSitesWithAnyHeader(headers, data);
-      const sitesSet = this.getSitesWithAnyHeader(headers, data);
-
-      patterns.set(`category:${category}`, {
-        pattern: `category:${category}`,
-        siteCount: sitesWithCategory,
-        sites: sitesSet,
-        frequency: sitesWithCategory / data.totalSites,
-        examples: new Set(headers.slice(0, 5).map(h => `header:${h}`)),
-        metadata: {
-          category,
-          headerCount: headers.length,
-          semanticType: 'category'
+            distribution.set(category, {
+                category,
+                headerCount: stats.headers.size,
+                siteCount: stats.sites.size,
+                frequency: stats.sites.size / data.totalSites,
+                averageConfidence,
+                topHeaders,
+            });
         }
-      });
+
+        return distribution;
     }
 
-    return patterns;
-  }
+    /**
+     * Create semantic patterns from preprocessed classifications
+     */
+    private createSemanticPatterns(
+        headerClassifications: Map<string, HeaderClassification>,
+        data: PreprocessedData,
+        options: AnalysisOptions
+    ): Map<string, SemanticPattern> {
+        const patterns = new Map<string, SemanticPattern>();
 
-  /**
-   * Count sites that have any of the specified headers
-   */
-  private countSitesWithAnyHeader(headers: string[], data: PreprocessedData): number {
-    let count = 0;
-    for (const [_, siteData] of data.sites) {
-      const hasAnyHeader = headers.some(header => 
-        siteData.headers.has(header) || siteData.headers.has(header.toLowerCase())
-      );
-      if (hasAnyHeader) count++;
+        for (const [header, classification] of headerClassifications) {
+            const siteCount = this.countSitesForHeader(header, data);
+
+            // Apply minOccurrences filter
+            if (siteCount < options.minOccurrences) {
+                continue;
+            }
+
+            // Get sites that use this header
+            const sites = new Set<string>();
+            for (const [siteUrl, siteData] of data.sites) {
+                if (siteData.headers.has(header)) {
+                    sites.add(siteUrl);
+                }
+            }
+
+            patterns.set(header, {
+                pattern: header,
+                category: classification.category,
+                confidence: classification.discriminativeScore,
+                discriminativeScore: classification.discriminativeScore,
+                filterRecommendation: classification.filterRecommendation,
+                siteCount,
+                sites,
+                vendor: classification.vendor,
+                platformName: classification.platformName,
+            });
+        }
+
+        return patterns;
     }
-    return count;
-  }
 
-  /**
-   * Get set of sites that have any of the specified headers
-   */
-  private getSitesWithAnyHeader(headers: string[], data: PreprocessedData): Set<string> {
-    const sites = new Set<string>();
-    for (const [siteUrl, siteData] of data.sites) {
-      const hasAnyHeader = headers.some(header => 
-        siteData.headers.has(header) || siteData.headers.has(header.toLowerCase())
-      );
-      if (hasAnyHeader) {
-        sites.add(siteUrl);
-      }
+    /**
+     * Analyze vendor detections from preprocessed mappings
+     */
+    private analyzeVendorDetections(
+        vendorMappings: Map<string, string>,
+        headerClassifications: Map<string, HeaderClassification>,
+        _data: PreprocessedData
+    ): Map<string, VendorSemanticData> {
+        const vendorDetections = new Map<string, VendorSemanticData>();
+        const vendorStats = new Map<
+            string,
+            {
+                headers: Set<string>;
+                confidences: number[];
+                categories: Set<string>;
+            }
+        >();
+
+        // Group data by vendor
+        for (const [header, vendor] of vendorMappings) {
+            if (!vendorStats.has(vendor)) {
+                vendorStats.set(vendor, {
+                    headers: new Set(),
+                    confidences: [],
+                    categories: new Set(),
+                });
+            }
+
+            const stats = vendorStats.get(vendor)!;
+            stats.headers.add(header);
+
+            const classification = headerClassifications.get(header);
+            if (classification) {
+                stats.confidences.push(classification.discriminativeScore);
+                stats.categories.add(classification.category);
+            }
+        }
+
+        // Create vendor detection objects
+        for (const [vendor, stats] of vendorStats) {
+            const averageConfidence =
+                stats.confidences.length > 0
+                    ? stats.confidences.reduce((sum, conf) => sum + conf, 0) /
+                      stats.confidences.length
+                    : 0.5;
+
+            // Choose primary category (most common)
+            const categoryArray = Array.from(stats.categories);
+            const primaryCategory = categoryArray.length > 0 ? categoryArray[0] : 'custom';
+
+            vendorDetections.set(vendor, {
+                vendor,
+                headerCount: stats.headers.size,
+                confidence: averageConfidence,
+                headers: Array.from(stats.headers),
+                category: primaryCategory,
+            });
+        }
+
+        return vendorDetections;
     }
-    return sites;
-  }
 
-  /**
-   * Create fallback vendor stats when vendor data is not available
-   */
-  private createFallbackVendorStats(headers: string[]): VendorStats {
-    // Basic fallback - minimal vendor stats
-    return {
-      totalHeaders: headers.length,
-      vendorHeaders: 0,
-      vendorCoverage: 0,
-      vendorDistribution: [],
-      categoryDistribution: {}
-    };
-  }
+    /**
+     * Generate V2-native semantic insights
+     */
+    private generateSemanticInsights(
+        headerCategories: Map<string, string>,
+        headerClassifications: Map<string, HeaderClassification>,
+        vendorMappings: Map<string, string>,
+        _data: PreprocessedData
+    ): SemanticInsightsV2 {
+        const totalHeaders = headerCategories.size;
+        const categorizedHeaders = Array.from(headerCategories.values()).filter(
+            cat => cat !== 'custom'
+        ).length;
+        const uncategorizedHeaders = totalHeaders - categorizedHeaders;
 
-  /**
-   * Create fallback technology stack when vendor data is not available
-   */
-  private createFallbackTechnologyStack(): TechnologyStack {
-    return {
-      confidence: 0.1 // Low confidence fallback
-    };
-  }
+        // Find most common category
+        const categoryCounts = new Map<string, number>();
+        for (const category of headerCategories.values()) {
+            categoryCounts.set(category, (categoryCounts.get(category) || 0) + 1);
+        }
+        const mostCommonCategory =
+            Array.from(categoryCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'custom';
+
+        // Count high confidence headers
+        const highConfidenceHeaders = Array.from(headerClassifications.values()).filter(
+            classification => classification.discriminativeScore > 0.8
+        ).length;
+
+        const vendorHeaders = vendorMappings.size;
+        const customHeaders = Array.from(headerCategories.values()).filter(
+            cat => cat === 'custom'
+        ).length;
+
+        // Identify potential security headers
+        const potentialSecurity = Array.from(headerCategories.entries())
+            .filter(
+                ([header, category]) =>
+                    category === 'security' ||
+                    header.toLowerCase().includes('security') ||
+                    header.toLowerCase().includes('csp') ||
+                    header.toLowerCase().includes('cors')
+            )
+            .map(([header]) => header);
+
+        // Generate recommendations
+        const recommendations = this.generateRecommendations(
+            headerCategories,
+            headerClassifications,
+            vendorMappings
+        );
+
+        return {
+            totalHeaders,
+            categorizedHeaders,
+            uncategorizedHeaders,
+            mostCommonCategory,
+            highConfidenceHeaders,
+            vendorHeaders,
+            customHeaders,
+            potentialSecurity,
+            recommendations,
+        };
+    }
+
+    /**
+     * Calculate semantic quality metrics
+     */
+    private calculateQualityMetrics(
+        headerCategories: Map<string, string>,
+        headerClassifications: Map<string, HeaderClassification>,
+        _data: PreprocessedData
+    ): SemanticQualityMetrics {
+        const totalHeaders = headerCategories.size;
+
+        if (totalHeaders === 0) {
+            return {
+                categorizationCoverage: 0,
+                averageConfidence: 0,
+                vendorDetectionRate: 0,
+                customHeaderRatio: 0,
+            };
+        }
+
+        // Categorization coverage (non-custom headers / total headers)
+        const categorizedHeaders = Array.from(headerCategories.values()).filter(
+            cat => cat !== 'custom'
+        ).length;
+        const categorizationCoverage = categorizedHeaders / totalHeaders;
+
+        // Average confidence
+        const confidences = Array.from(headerClassifications.values()).map(
+            classification => classification.discriminativeScore
+        );
+        const averageConfidence =
+            confidences.length > 0
+                ? confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length
+                : 0;
+
+        // Vendor detection rate (headers with vendors / total headers)
+        const headersWithVendors = Array.from(headerClassifications.values()).filter(
+            classification => classification.vendor || classification.platformName
+        ).length;
+        const vendorDetectionRate = headersWithVendors / totalHeaders;
+
+        // Custom header ratio
+        const customHeaders = Array.from(headerCategories.values()).filter(
+            cat => cat === 'custom'
+        ).length;
+        const customHeaderRatio = customHeaders / totalHeaders;
+
+        return {
+            categorizationCoverage,
+            averageConfidence,
+            vendorDetectionRate,
+            customHeaderRatio,
+        };
+    }
+
+    /**
+     * Create standard patterns for FrequencyAnalyzer interface compatibility
+     */
+    private createStandardPatterns(
+        headerPatterns: Map<string, SemanticPattern>,
+        options: AnalysisOptions
+    ): Map<string, PatternData> {
+        const patterns = new Map<string, PatternData>();
+
+        for (const [header, semanticPattern] of headerPatterns) {
+            patterns.set(header, {
+                pattern: header,
+                siteCount: semanticPattern.siteCount,
+                frequency: semanticPattern.siteCount / (semanticPattern.sites.size || 1),
+                sites: semanticPattern.sites,
+                examples: options.includeExamples ? new Set([header]) : undefined,
+                metadata: {
+                    type: 'semantic',
+                    category: semanticPattern.category,
+                    confidence: semanticPattern.confidence,
+                    discriminativeScore: semanticPattern.discriminativeScore,
+                    filterRecommendation: semanticPattern.filterRecommendation,
+                    vendor: semanticPattern.vendor,
+                    platformName: semanticPattern.platformName,
+                    source: 'semantic_analyzer_v2_pure',
+                },
+            });
+        }
+
+        return patterns;
+    }
+
+    /**
+     * Count sites that use a specific header
+     */
+    private countSitesForHeader(header: string, data: PreprocessedData): number {
+        let count = 0;
+        for (const siteData of data.sites.values()) {
+            if (siteData.headers.has(header)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Generate semantic recommendations
+     */
+    private generateRecommendations(
+        headerCategories: Map<string, string>,
+        headerClassifications: Map<string, HeaderClassification>,
+        vendorMappings: Map<string, string>
+    ): string[] {
+        const recommendations: string[] = [];
+
+        // Check for security headers
+        const hasSecurityHeaders = Array.from(headerCategories.values()).includes('security');
+        if (!hasSecurityHeaders) {
+            recommendations.push('Consider implementing security headers for improved protection');
+        }
+
+        // Check for high custom header ratio
+        const customHeaders = Array.from(headerCategories.values()).filter(
+            cat => cat === 'custom'
+        ).length;
+        const customRatio = customHeaders / headerCategories.size;
+        if (customRatio > 0.3) {
+            recommendations.push(
+                'High ratio of custom headers detected - consider standardization'
+            );
+        }
+
+        // Check for low confidence classifications
+        const lowConfidenceHeaders = Array.from(headerClassifications.values()).filter(
+            classification => classification.discriminativeScore < 0.5
+        ).length;
+        if (lowConfidenceHeaders > 0) {
+            recommendations.push(
+                `${lowConfidenceHeaders} headers have low classification confidence`
+            );
+        }
+
+        // Check vendor diversity
+        if (vendorMappings.size > 10) {
+            recommendations.push(
+                'High vendor diversity detected - consider consolidation for maintenance'
+            );
+        }
+
+        return recommendations;
+    }
 }
 
-// Export factory function for backward compatibility
+/**
+ * Factory function for SemanticAnalyzerV2
+ */
 export function createSemanticAnalyzer(): SemanticAnalyzerV2 {
-  return new SemanticAnalyzerV2();
+    return new SemanticAnalyzerV2();
 }

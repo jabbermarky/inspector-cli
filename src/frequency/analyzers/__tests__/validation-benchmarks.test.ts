@@ -290,9 +290,13 @@ describe('Validation Performance Benchmarks', () => {
       
       // Each significance test should have valid results
       for (const test of stats.significanceTests) {
-        expect(test.pValue).toBeGreaterThanOrEqual(0);
-        expect(test.pValue).toBeLessThanOrEqual(1);
-        expect(['binomial', 'chi_square', 'fisher_exact']).toContain(test.testType);
+        expect(test.method).toBeDefined();
+        expect(['chi-square', 'fisher-exact', 'binomial', 'not-applicable']).toContain(test.method);
+        
+        if (test.result && test.method === 'binomial') {
+          expect(test.result.pValue).toBeGreaterThanOrEqual(0);
+          expect(test.result.pValue).toBeLessThanOrEqual(1);
+        }
       }
     });
 

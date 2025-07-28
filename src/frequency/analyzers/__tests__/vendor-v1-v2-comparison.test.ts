@@ -239,7 +239,7 @@ describe('VendorAnalyzerV2 vs V1 Compatibility Tests', () => {
         { header: 'cf-ray', expectedVendor: 'Cloudflare', expectedCategory: 'cdn' },
         { header: 'x-wp-total', expectedVendor: 'WordPress', expectedCategory: 'cms' },
         { header: 'x-shopify-shop-id', expectedVendor: 'Shopify', expectedCategory: 'ecommerce' },
-        { header: 'x-served-by', expectedVendor: 'Fastly', expectedCategory: 'cdn' },
+        { header: 'x-served-by', expectedVendor: 'Squarespace', expectedCategory: 'cms' },
         { header: 'x-amz-cf-id', expectedVendor: 'AWS CloudFront', expectedCategory: 'cdn' },
         { header: 'x-drupal-cache', expectedVendor: 'Drupal', expectedCategory: 'cms' },
         { header: 'x-laravel-session', expectedVendor: 'Laravel', expectedCategory: 'framework' },

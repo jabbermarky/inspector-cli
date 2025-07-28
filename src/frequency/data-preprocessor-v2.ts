@@ -414,6 +414,42 @@ export class DataPreprocessor {
       }
     }
 
+    // Step 3: Populate semantic metadata during preprocessing
+    logger.info('Classifying headers for semantic metadata...');
+    const headerCategories = new Map<string, string>();
+    const headerClassifications = new Map<string, HeaderClassification>();
+    const vendorMappings = new Map<string, string>();
+    
+    for (const [siteUrl, siteData] of sites) {
+      for (const [headerName] of siteData.headers) {
+        if (!headerCategories.has(headerName)) {
+          try {
+            const classification = this.classifyHeader(headerName);
+            headerCategories.set(headerName, classification.category);
+            headerClassifications.set(headerName, classification);
+            
+            // If classification found a platform/vendor, add to vendor mappings
+            if (classification.platformName) {
+              vendorMappings.set(headerName, classification.platformName);
+            } else if (classification.vendor) {
+              vendorMappings.set(headerName, classification.vendor);
+            }
+          } catch (error) {
+            logger.debug(`Failed to classify header ${headerName}: ${error}`);
+            const fallbackClassification: HeaderClassification = {
+              category: 'custom',
+              discriminativeScore: 0.5,
+              filterRecommendation: 'context-dependent'
+            };
+            headerCategories.set(headerName, 'custom');
+            headerClassifications.set(headerName, fallbackClassification);
+          }
+        }
+      }
+    }
+    
+    logger.info(`Classified ${headerCategories.size} unique headers, identified ${vendorMappings.size} vendor mappings`);
+
     const preprocessedData: PreprocessedData = {
       sites,
       totalSites: sites.size,
@@ -421,7 +457,13 @@ export class DataPreprocessor {
       metadata: {
         dateRange: options.dateRange,
         version: '1.0.0',
-        preprocessedAt: new Date().toISOString()
+        preprocessedAt: new Date().toISOString(),
+        semantic: {
+          categoryCount: headerCategories.size,
+          headerCategories,
+          headerClassifications,
+          vendorMappings
+        }
       }
     };
 

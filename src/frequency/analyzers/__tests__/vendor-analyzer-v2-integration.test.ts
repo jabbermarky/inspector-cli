@@ -35,7 +35,12 @@ vi.mock('../../data-preprocessor.js', () => ({
       }
     }),
     clearCache: vi.fn(),
-    getCacheStats: vi.fn().mockReturnValue({ entries: 0, keys: [] })
+    getCacheStats: vi.fn().mockReturnValue({ entries: 0, keys: [] }),
+    classifyHeader: vi.fn().mockReturnValue({
+      category: 'custom',
+      discriminativeScore: 0.5,
+      filterRecommendation: 'context-dependent'
+    })
   }))
 }));
 
@@ -239,10 +244,10 @@ describe('VendorAnalyzerV2 - Pipeline Integration Tests', () => {
         vendorCategories.set(header, detection.vendor.category);
       }
       
-      // Get semantic categories
+      // Get semantic categories (V2 interface)
       const semanticCategories = new Map<string, string>();
-      for (const [header, analysis] of semanticResult.analyzerSpecific!.semanticAnalyses) {
-        semanticCategories.set(header, analysis.category.primary);
+      for (const [header, pattern] of semanticResult.analyzerSpecific!.headerPatterns) {
+        semanticCategories.set(header, pattern.category);
       }
       
       // Check for consistency where both have data
