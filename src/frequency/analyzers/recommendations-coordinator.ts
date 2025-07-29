@@ -49,6 +49,7 @@ export class RecommendationsCoordinator {
             includeCurrentFilters: true,
             debugCalculations: false,
             enableValidation: true,
+            includeValidation: true,  // For reporter compatibility
             skipStatisticalTests: false,
             validationStopOnError: false,
             validationDebugMode: false,

@@ -53,8 +53,8 @@ export type {
 };
 
 // Type for options with all required except dateRange
-export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange'>> &
-    Pick<FrequencyOptions, 'dateRange'>;
+export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode'>> &
+    Pick<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode'>;
 
 export interface FrequencyOptions {
     // Data source options
@@ -83,6 +83,7 @@ export interface FrequencyOptions {
 
     // Phase 3: Validation options
     enableValidation?: boolean;
+    includeValidation?: boolean;      // For reporter compatibility
     skipStatisticalTests?: boolean;
     validationStopOnError?: boolean;
     validationDebugMode?: boolean;

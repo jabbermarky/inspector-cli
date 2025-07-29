@@ -93,6 +93,7 @@ program
                 dateRange,
                 // Phase 3: Validation options
                 enableValidation: options.validation !== false,
+                includeValidation: options.validation !== false,  // For reporter compatibility
                 skipStatisticalTests: Boolean(options.skipStatisticalTests),
                 validationStopOnError: Boolean(options.validationStopOnError),
                 validationDebugMode: Boolean(options.validationDebug),
@@ -114,17 +115,18 @@ program
             // Run analysis
             const result = await analyzeFrequencyV2(frequencyOptions);
 
-            // If no output file specified, print to console manually
+            // Format and output results
+            const { formatOutputV2: formatOutput } = await import(
+                '../frequency/reporter-v2/index.js'
+            );
+            await formatOutput(result, frequencyOptions);
+            
             if (!frequencyOptions.outputFile) {
-                const { formatOutputV2: formatOutput } = await import(
-                    '../frequency/simple-reporter-v2.js'
-                );
-                await formatOutput(result, frequencyOptions);
                 logger.info('Frequency analysis completed successfully');
             } else {
-                console.log(
-                    `Frequency analysis complete. Results saved to: ${frequencyOptions.outputFile}`
-                );
+                logger.info('Frequency analysis completed successfully', { 
+                    outputFile: frequencyOptions.outputFile 
+                });
             }
         } catch (error) {
             logger.error('Frequency analysis failed', error as Error);

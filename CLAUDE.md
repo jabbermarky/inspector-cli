@@ -12,13 +12,16 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 
 ## Development Philosophy
 
-- Don't make assumptions. Clarify assumptions with questions before coding.
-- Plan before you code. Plan must include a test plan with full algorithmic testing.
-- If you don't understand completely, ask questions until you do.
-- Be systematic.
-- KISS - keep it simple stupid; in other words, don't over-engineer solutions to problems.
-- When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
-- NO BS! Do not use overconfident language - be precise and honest in your assessments and reviews.
+- **Don't make assumptions**: Clarify assumptions with questions before coding.
+- **Plan**: Plan before you code. Implementation plans must include a test plan with full algorithmic testing. When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
+- **Ask**: If you don't understand completely, ask questions until you do.
+- **Be systematic**:.
+- **KISS**: - keep it simple stupid; in other words, don't over-engineer solutions to problems.
+- **NO BS!**: Do not use overconfident language - be precise and honest in your assessments and reviews.
+- **Modular Architecture**: Separate concerns into focused modules
+- **Pure Functions**: Testable without dependency injection
+- **No God Functions**: Small, focused functions with single responsibilities
+- **Type Safety**: Leverage TypeScript with types throughout
 
 ## Module and Import Conventions
 
