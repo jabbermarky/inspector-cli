@@ -106,6 +106,15 @@ export interface SemanticOpportunity {
     readonly applicabilityScope: ApplicabilityScope;
 }
 
+export interface TechnologyStackOpportunity {
+    readonly type: 'technology-stack';
+    readonly technologyStack: TechnologyContext[];
+    readonly detectionSignature: string;
+    readonly confidence: ConfidenceScore;
+    readonly platformIndicators: string[];
+    readonly reasoning: RecommendationReasoning;
+}
+
 // ============================================================================
 // Ground Truth Recommendations
 // ============================================================================
@@ -314,7 +323,7 @@ export abstract class RecommendationAnalysisError extends Error {
     ) {
         super(message);
         this.name = this.constructor.name;
-        this.cause = cause;
+        // Note: cause property not available in all TypeScript versions
     }
 }
 
