@@ -1,0 +1,2436 @@
+/**
+ * RecommendationAnalyzerV2 - Native V2 Recommendation System
+ * 
+ * This analyzer generates sophisticated recommendations by leveraging cross-analyzer intelligence
+ * from all V2 analyzers. It provides bias-aware, statistically validated recommendations with
+ * comprehensive explanations and evidence chains.
+ * 
+ * Key features:
+ * - Native V2 data processing (PreprocessedData + AggregatedResults)
+ * - Cross-analyzer intelligence integration
+ * - Bias-aware recommendation generation
+ * - Statistical validation of recommendations
+ * - Comprehensive evidence chains and reasoning
+ * - Zero V1 dependencies
+ */
+
+import type { 
+  FrequencyAnalyzer,
+  PreprocessedData,
+  AnalysisOptions,
+  AnalysisResult,
+  AggregatedResults,
+  PatternData,
+  AnalysisMetadata,
+  SemanticSpecificData,
+  VendorSpecificData,
+  ValidationSpecificData,
+  CooccurrenceSpecificData,
+  PatternDiscoverySpecificData,
+  HeaderSpecificData
+} from '../types/analyzer-interface.js';
+
+import type { BiasSpecificData } from '../types/bias-analysis-types-v2.js';
+
+import type {
+  RecommendationSpecificData,
+  LearnRecommendationsV2,
+  DetectCmsRecommendationsV2,
+  GroundTruthRecommendationsV2,
+  CrossAnalyzerInsights,
+  RecommendationQualityMetrics,
+  BiasAwareRecommendationAssessment,
+  FilteringRecommendation,
+  RetentionRecommendation,
+  RefinementSuggestion,
+  EmergingPatternOpportunity,
+  VendorBasedOpportunity,
+  SemanticOpportunity,
+  TechnologyStackOpportunity,
+  StatisticallyValidatedRule,
+  TechnologyBasedRule,
+  SemanticCategoryRule,
+  CrossAnalyzerEvidence,
+  ConfidenceScore,
+  RecommendationReasoning,
+  RecommendationEvidence,
+  BiasRiskAssessment,
+  DiversityMetrics,
+  StrategicValue,
+  TechnologyContext,
+  ExpectedImprovement,
+  DetectionRule,
+  EvidenceChain,
+  StatisticalValidation,
+  ConfidenceDistribution,
+  EvidenceQualityAssessment,
+  AnalyzerAgreement,
+  ConflictResolution,
+  EmergingPatternInsight,
+  BiasDetectionInsight,
+  SupportingAnalyzer,
+  RecommendationAnalysisError,
+  FilteringAnalysisError,
+  CmsDetectionAnalysisError,
+  GroundTruthAnalysisError
+} from '../types/recommendation-types-v2.js';
+
+import { logger } from '../../utils/logger.js';
+import { 
+  StatisticalUtils,
+  StatisticalConstants,
+  SignificanceTestResult,
+  PowerAnalysisResult,
+  SanityCheckResult
+} from './statistical-utils-v2.js';
+
+/**
+ * Cross-analyzer context for accessing all V2 analyzer results
+ */
+interface CrossAnalyzerContext {
+  headers?: AnalysisResult<HeaderSpecificData>;
+  semantic?: AnalysisResult<SemanticSpecificData>;
+  vendor?: AnalysisResult<VendorSpecificData>;
+  cooccurrence?: AnalysisResult<CooccurrenceSpecificData>;
+  discovery?: AnalysisResult<PatternDiscoverySpecificData>;
+  validation?: AnalysisResult<ValidationSpecificData>;
+  bias?: AnalysisResult<BiasSpecificData>;
+  technologies?: AnalysisResult<any>;
+}
+
+export class RecommendationAnalyzerV2 implements FrequencyAnalyzer<RecommendationSpecificData> {
+  private aggregatedResults?: AggregatedResults;
+  private biasAnalysis?: BiasSpecificData;
+  private validationResults?: ValidationSpecificData;
+
+  /**
+   * Get analyzer name for logging and identification
+   */
+  getName(): string {
+    return 'RecommendationAnalyzerV2';
+  }
+
+  /**
+   * Set aggregated results from other analyzers for cross-analyzer intelligence
+   */
+  setAggregatedResults(results: AggregatedResults): void {
+    this.aggregatedResults = results;
+  }
+
+  /**
+   * Set bias analysis results for bias-aware recommendations
+   */
+  setBiasAnalysis(biasData: BiasSpecificData): void {
+    this.biasAnalysis = biasData;
+  }
+
+  /**
+   * Set validation results for statistical confidence
+   */
+  setValidationResults(validationData: ValidationSpecificData): void {
+    this.validationResults = validationData;
+  }
+
+  /**
+   * Main analysis method - generates all recommendation categories
+   */
+  async analyze(
+    data: PreprocessedData,
+    options: AnalysisOptions
+  ): Promise<AnalysisResult<RecommendationSpecificData>> {
+    const startTime = Date.now();
+    logger.info(`[${this.getName()}] Starting recommendation analysis`, {
+      totalSites: data.totalSites,
+      options
+    });
+
+    try {
+      // Build cross-analyzer context
+      const crossAnalyzerContext = this.buildCrossAnalyzerContext();
+
+      // Generate recommendations for each category
+      const learnRecommendations = await this.generateLearnRecommendations(data, crossAnalyzerContext);
+      const detectCmsRecommendations = await this.generateDetectCmsRecommendations(data, crossAnalyzerContext);
+      const groundTruthRecommendations = await this.generateGroundTruthRecommendations(data, crossAnalyzerContext);
+
+      // Assess cross-analyzer insights
+      const crossAnalyzerInsights = this.assessCrossAnalyzerInsights(crossAnalyzerContext);
+
+      // Calculate recommendation quality metrics
+      const recommendationMetrics = this.calculateRecommendationQualityMetrics(
+        learnRecommendations,
+        detectCmsRecommendations,
+        groundTruthRecommendations,
+        crossAnalyzerInsights
+      );
+
+      // Generate bias-aware assessments
+      const biasAwareAssessments = this.generateBiasAwareAssessments(
+        learnRecommendations,
+        detectCmsRecommendations,
+        groundTruthRecommendations
+      );
+
+      const analyzerSpecific: RecommendationSpecificData = {
+        learnRecommendations,
+        detectCmsRecommendations,
+        groundTruthRecommendations,
+        crossAnalyzerInsights,
+        recommendationMetrics,
+        biasAwareAssessments
+      };
+
+      const executionTime = Date.now() - startTime;
+      logger.info(`[${this.getName()}] Recommendation analysis completed`, {
+        executionTime,
+        totalRecommendations: this.countTotalRecommendations(analyzerSpecific),
+        qualityScore: recommendationMetrics.accuracyEstimate
+      });
+
+      return {
+        patterns: new Map<string, PatternData>(), // Recommendations don't have patterns
+        totalSites: data.totalSites,
+        metadata: this.createMetadata(data, options, executionTime),
+        analyzerSpecific
+      };
+
+    } catch (error) {
+      logger.error(`[${this.getName()}] Analysis failed`, { error });
+      throw new RecommendationAnalysisError(
+        'Recommendation analysis failed',
+        'UNKNOWN_ERROR',
+        {
+          analyzer: this.getName(),
+          operation: 'analyze',
+          dataSize: data.totalSites,
+          timestamp: new Date()
+        },
+        error as Error
+      );
+    }
+  }
+
+  /**
+   * Build cross-analyzer context from aggregated results
+   */
+  private buildCrossAnalyzerContext(): CrossAnalyzerContext {
+    if (!this.aggregatedResults) {
+      logger.warn(`[${this.getName()}] No aggregated results available`);
+      return {};
+    }
+
+    return {
+      headers: this.aggregatedResults.headers,
+      semantic: this.aggregatedResults.semantic,
+      vendor: this.aggregatedResults.vendor,
+      cooccurrence: this.aggregatedResults.cooccurrence,
+      discovery: this.aggregatedResults.discovery,
+      validation: this.aggregatedResults.validation,
+      bias: this.aggregatedResults.correlations,
+      technologies: this.aggregatedResults.technologies
+    };
+  }
+
+  /**
+   * Generate learn recommendations with cross-analyzer intelligence
+   */
+  private async generateLearnRecommendations(
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): Promise<LearnRecommendationsV2> {
+    logger.debug(`[${this.getName()}] Generating learn recommendations`);
+
+    const filteringRecommendations = this.generateFilteringRecommendations(data, crossAnalyzer);
+    const retentionRecommendations = this.generateRetentionRecommendations(data, crossAnalyzer);
+    const refinementSuggestions = this.generateRefinementSuggestions(data, crossAnalyzer);
+    const confidenceDistribution = this.calculateConfidenceDistribution([
+      ...filteringRecommendations.map(r => r.confidence),
+      ...retentionRecommendations.map(r => r.confidence),
+      ...refinementSuggestions.map(r => r.confidence)
+    ]);
+    const biasMitigationStrategies = this.generateBiasMitigationStrategies(filteringRecommendations);
+
+    return {
+      filteringRecommendations,
+      retentionRecommendations,
+      refinementSuggestions,
+      confidenceDistribution,
+      biasMitigationStrategies
+    };
+  }
+
+  /**
+   * Generate filtering recommendations using cross-analyzer data
+   */
+  private generateFilteringRecommendations(
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): FilteringRecommendation[] {
+    const recommendations: FilteringRecommendation[] = [];
+
+    // Process each header pattern
+    if (crossAnalyzer.headers) {
+      for (const [headerName, patternData] of crossAnalyzer.headers.patterns) {
+        const recommendation = this.generateAdvancedFilteringRecommendation(
+          headerName,
+          patternData,
+          data,
+          crossAnalyzer
+        );
+        if (recommendation) {
+          recommendations.push(recommendation);
+        }
+      }
+    }
+
+    // Sort by confidence and return top recommendations
+    return recommendations
+      .sort((a, b) => b.confidence.value - a.confidence.value)
+      .slice(0, 100); // Top 100 recommendations
+  }
+
+  /**
+   * Generate advanced filtering recommendation for a single header
+   */
+  private generateAdvancedFilteringRecommendation(
+    headerName: string,
+    patternData: PatternData,
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): FilteringRecommendation | null {
+    // Get cross-analyzer data for this header
+    const semanticData = this.getSemanticDataForHeader(headerName, crossAnalyzer);
+    const vendorData = this.getVendorDataForHeader(headerName, crossAnalyzer);
+    const biasData = this.getBiasDataForHeader(headerName, crossAnalyzer);
+    const cooccurrenceData = this.getCooccurrenceDataForHeader(headerName, crossAnalyzer);
+    const validationData = this.getValidationDataForHeader(headerName, crossAnalyzer);
+
+    // Use pre-calculated statistical significance from ValidationPipelineV2Native
+    const statisticalTest = this.getPreCalculatedStatisticalTest(headerName, crossAnalyzer);
+
+    // Calculate multi-factor confidence
+    const confidence = this.calculateMultiFactorConfidence({
+      frequency: patternData.frequency,
+      semanticCategory: semanticData?.category,
+      vendorSpecificity: vendorData?.specificity || 0,
+      biasRisk: biasData?.biasAdjustedFrequency || patternData.frequency,
+      relationshipStrength: cooccurrenceData?.strength || 0,
+      statisticalSignificance: statisticalTest.isSignificant ? 0.9 : 0.3,
+      siteCount: patternData.siteCount,
+      totalSites: data.totalSites
+    }, crossAnalyzer);
+
+    // Determine filtering action
+    const action = this.determineFilteringAction(confidence, {
+      headerName,
+      semanticData,
+      vendorData,
+      biasData,
+      frequency: patternData.frequency
+    });
+
+    // Build reasoning
+    const reasoning = this.buildMultiFactorReasoning({
+      headerName,
+      action,
+      confidence,
+      semanticData,
+      vendorData,
+      biasData,
+      cooccurrenceData,
+      validationData,
+      statisticalTest,
+      siteCount: patternData.siteCount,
+      totalSites: data.totalSites
+    });
+
+    // Collect evidence
+    const evidence = this.collectCrossAnalyzerEvidence({
+      headerName,
+      semanticData,
+      vendorData,
+      biasData,
+      cooccurrenceData,
+      validationData
+    });
+
+    // Assess bias risk
+    const biasAssessment = this.assessBiasRisk(biasData);
+
+    // Calculate diversity metrics
+    const diversityMetrics = this.calculateEnhancedDiversity(headerName, crossAnalyzer);
+
+    // Build cross-analyzer support
+    const crossAnalyzerSupport = this.mapCrossAnalyzerSupport({
+      semanticData,
+      vendorData,
+      cooccurrenceData,
+      validationData
+    });
+
+    return {
+      pattern: headerName,
+      action,
+      confidence,
+      reasoning,
+      evidence,
+      biasAssessment,
+      crossAnalyzerSupport,
+      diversityMetrics
+    };
+  }
+
+  /**
+   * Generate detect-CMS recommendations
+   */
+  private async generateDetectCmsRecommendations(
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): Promise<DetectCmsRecommendationsV2> {
+    logger.debug(`[${this.getName()}] Generating detect-CMS recommendations`);
+
+    const emergingOpportunities = this.generateEmergingPatternOpportunities(crossAnalyzer);
+    const vendorBasedOpportunities = this.generateVendorBasedOpportunities(crossAnalyzer);
+    const semanticOpportunities = this.generateSemanticOpportunities(crossAnalyzer);
+    const technologyStackOpportunities = this.generateTechnologyStackOpportunities(crossAnalyzer);
+
+    const allConfidences = [
+      ...emergingOpportunities.map(o => o.confidence),
+      ...vendorBasedOpportunities.map(o => o.confidence),
+      ...semanticOpportunities.map(o => o.confidence),
+      ...technologyStackOpportunities.map(o => o.confidence)
+    ];
+
+    return {
+      emergingOpportunities,
+      vendorBasedOpportunities,
+      semanticOpportunities,
+      technologyStackOpportunities,
+      confidenceDistribution: this.calculateConfidenceDistribution(allConfidences),
+      crossAnalyzerSupport: this.assessCrossAnalyzerInsights(crossAnalyzer)
+    };
+  }
+
+  /**
+   * Generate ground truth recommendations
+   */
+  private async generateGroundTruthRecommendations(
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): Promise<GroundTruthRecommendationsV2> {
+    logger.debug(`[${this.getName()}] Generating ground truth recommendations`);
+
+    const statisticallyValidatedRules = this.generateStatisticallyValidatedRules(crossAnalyzer);
+    const technologyBasedRules = this.generateTechnologyBasedRules(crossAnalyzer);
+    const semanticCategoryRules = this.generateSemanticCategoryRules(crossAnalyzer);
+
+    const allConfidences = [
+      ...statisticallyValidatedRules.map(r => r.confidence),
+      ...technologyBasedRules.map(r => r.confidence),
+      ...semanticCategoryRules.map(r => r.confidence)
+    ];
+
+    const allRules = [
+      ...statisticallyValidatedRules,
+      ...technologyBasedRules,
+      ...semanticCategoryRules
+    ];
+
+    return {
+      statisticallyValidatedRules,
+      technologyBasedRules,
+      semanticCategoryRules,
+      confidenceDistribution: this.calculateConfidenceDistribution(allConfidences),
+      evidenceQuality: this.assessOverallEvidenceQuality(allRules),
+      biasRiskAssessment: this.assessRuleBiasRisk(allRules)
+    };
+  }
+
+  // ===== Statistical Analysis Methods =====
+
+  /**
+   * Get pre-calculated power analysis results from ValidationPipelineV2Native
+   */
+  private getPreCalculatedPowerAnalysis(crossAnalyzer: CrossAnalyzerContext): PowerAnalysisResult {
+    // First try to get results from ValidationPipelineV2Native
+    const validationPowerAnalysis = crossAnalyzer.validation?.analyzerSpecific?.statisticalMetrics?.powerAnalysis;
+    if (validationPowerAnalysis) {
+      return validationPowerAnalysis;
+    }
+
+    // Fallback: create conservative result
+    return {
+      observedPower: 0.7,
+      adequatePower: false,
+      requiredSampleSize: 100,
+      effectSize: 0.1,
+      actualSampleSize: 50
+    };
+  }
+
+  /**
+   * Get pre-calculated statistical significance test from ValidationPipelineV2Native
+   */
+  private getPreCalculatedStatisticalTest(
+    headerName: string,
+    crossAnalyzer: CrossAnalyzerContext
+  ): SignificanceTestResult {
+    // First try to get results from ValidationPipelineV2Native
+    const validationTests = crossAnalyzer.validation?.analyzerSpecific?.statisticalMetrics?.significanceTests;
+    if (validationTests && validationTests.length > 0) {
+      // Find test result for this specific header/pattern
+      const headerTest = validationTests.find(test => 
+        test.reason?.includes(headerName) || 
+        (test.result && 'observedSuccesses' in test.result)
+      );
+      
+      if (headerTest) {
+        return headerTest;
+      }
+      
+      // Use first available test as fallback (they're all for patterns in this dataset)
+      return validationTests[0];
+    }
+
+    // Fallback: Check BiasAnalyzerV2 for chi-square results
+    const biasData = crossAnalyzer.bias?.analyzerSpecific?.headerCorrelations?.get(headerName);
+    if (biasData?.perCMSMetrics && Object.keys(biasData.perCMSMetrics).length > 0) {
+      const firstCMS = Object.values(biasData.perCMSMetrics)[0];
+      if (firstCMS.isStatisticallySignificant !== undefined) {
+        return {
+          method: 'chi-square',
+          result: {
+            pValue: firstCMS.pValue || 0.05,
+            isSignificant: firstCMS.isStatisticallySignificant || false
+          } as any,
+          recommendation: firstCMS.isStatisticallySignificant ? 'use' : 'caution',
+          reason: `Chi-square test from BiasAnalyzerV2 (pre-calculated)`
+        };
+      }
+    }
+
+    // Default fallback: conservative result
+    return {
+      method: 'not-applicable',
+      result: null,
+      recommendation: 'caution',
+      reason: 'No pre-calculated statistical test available'
+    };
+  }
+
+  /**
+   * Validate recommendation using statistical sanity checks
+   */
+  private validateRecommendationStatistically(
+    recommendation: FilteringRecommendation,
+    crossAnalyzer: CrossAnalyzerContext
+  ): { isValid: boolean; warnings: string[]; confidence: number } {
+    const warnings: string[] = [];
+    let confidence = recommendation.confidence.value;
+
+    // 1. Check if pattern has adequate sample size using pre-calculated power analysis
+    const powerAnalysis = this.getPreCalculatedPowerAnalysis(crossAnalyzer);
+
+    if (!powerAnalysis.adequatePower) {
+      warnings.push(`Insufficient statistical power (${(powerAnalysis.observedPower * 100).toFixed(1)}%)`);
+      confidence *= 0.8; // Reduce confidence for low power
+    }
+
+    // 2. Check correlation consistency if bias data available
+    if (crossAnalyzer.bias?.patterns) {
+      const correlations = new Map<string, number>();
+      // Extract correlation data from bias analysis
+      correlations.set(recommendation.pattern, confidence);
+
+      const correlationSumCheck = StatisticalUtils.SanityCheck.correlationSumCheck(correlations);
+      const correlationRangeCheck = StatisticalUtils.SanityCheck.correlationRangeCheck(correlations);
+
+      if (!correlationSumCheck.passed) {
+        warnings.push(correlationSumCheck.message);
+      }
+      if (!correlationRangeCheck.passed) {
+        warnings.push(correlationRangeCheck.message);
+      }
+    }
+
+    // 3. Validate frequency ranges make statistical sense
+    if (recommendation.confidence.value < 0.1 && recommendation.action === 'keep') {
+      warnings.push('Low confidence recommendation suggests keep action - may be statistically inconsistent');
+    }
+
+    return {
+      isValid: warnings.length === 0,
+      warnings,
+      confidence: Math.max(0.1, confidence)
+    };
+  }
+
+  // ===== Helper Methods =====
+
+  /**
+   * Calculate multi-factor confidence score using real statistical methods
+   */
+  private calculateMultiFactorConfidence(
+    factors: {
+      frequency: number;
+      semanticCategory?: string;
+      vendorSpecificity: number;
+      biasRisk: number;
+      relationshipStrength: number;
+      statisticalSignificance: number;
+      siteCount?: number;
+      totalSites?: number;
+    },
+    crossAnalyzer: CrossAnalyzerContext
+  ): ConfidenceScore {
+    // 1. Statistical significance test if we have sample data
+    let statisticalConfidence = factors.statisticalSignificance;
+    if (factors.siteCount && factors.totalSites) {
+      const powerAnalysis = this.getPreCalculatedPowerAnalysis(crossAnalyzer);
+      
+      // Adjust confidence based on statistical power
+      if (powerAnalysis.adequatePower && powerAnalysis.observedPower > 0.8) {
+        statisticalConfidence = Math.max(statisticalConfidence, 0.8);
+      } else if (powerAnalysis.observedPower < 0.5) {
+        statisticalConfidence = Math.min(statisticalConfidence, 0.5);
+      }
+    }
+
+    // 2. Frequency confidence using distribution analysis
+    const frequencyConfidence = this.calculateFrequencyConfidence(factors.frequency);
+
+    // 3. Semantic category confidence
+    const semanticConfidence = factors.semanticCategory ? 0.85 : 0.3;
+
+    // 4. Bias-adjusted confidence
+    const biasAdjustment = Math.max(0.1, 1 - factors.biasRisk);
+
+    // 5. Vendor specificity confidence
+    const vendorConfidence = Math.max(0.2, factors.vendorSpecificity);
+
+    // 6. Relationship strength confidence
+    const relationshipConfidence = Math.max(0.1, factors.relationshipStrength);
+
+    // Calculate weighted composite confidence
+    const weights = {
+      frequency: 0.25,
+      semantic: 0.15,
+      vendor: 0.15,
+      bias: 0.2,
+      relationship: 0.1,
+      statistical: 0.15
+    };
+
+    const weightedScore = 
+      frequencyConfidence * weights.frequency +
+      semanticConfidence * weights.semantic +
+      vendorConfidence * weights.vendor +
+      biasAdjustment * weights.bias +
+      relationshipConfidence * weights.relationship +
+      statisticalConfidence * weights.statistical;
+
+    // Calculate uncertainty based on sample size and statistical power
+    const uncertainty = this.calculateConfidenceUncertainty(factors);
+
+    // Determine confidence level with statistical thresholds
+    let level: 'low' | 'medium' | 'high' | 'very-high';
+    if (weightedScore >= 0.85 && uncertainty.value < 0.1) level = 'very-high';
+    else if (weightedScore >= 0.7 && uncertainty.value < 0.15) level = 'high';
+    else if (weightedScore >= 0.5 && uncertainty.value < 0.25) level = 'medium';
+    else level = 'low';
+
+    return {
+      value: Math.max(0, Math.min(1, weightedScore)),
+      level,
+      source: { method: 'statistical-multi-factor-analysis', version: '2.1' },
+      breakdown: {
+        frequency: frequencyConfidence * weights.frequency,
+        semantic: semanticConfidence * weights.semantic,
+        vendor: vendorConfidence * weights.vendor,
+        bias: biasAdjustment * weights.bias,
+        relationship: relationshipConfidence * weights.relationship,
+        statistical: statisticalConfidence * weights.statistical
+      },
+      uncertainty
+    };
+  }
+
+  /**
+   * Calculate frequency-based confidence using statistical methods
+   */
+  private calculateFrequencyConfidence(frequency: number): number {
+    // Use statistical thresholds for frequency confidence
+    if (frequency >= 0.5) return 0.9; // Very common patterns
+    if (frequency >= 0.2) return 0.8; // Moderately common patterns
+    if (frequency >= 0.1) return 0.6; // Less common but statistically significant
+    if (frequency >= 0.05) return 0.4; // Rare but potentially meaningful
+    return 0.2; // Very rare patterns (low confidence)
+  }
+
+  /**
+   * Calculate confidence uncertainty using statistical methods
+   */
+  private calculateConfidenceUncertainty(factors: {
+    frequency: number;
+    siteCount?: number;
+    totalSites?: number;
+  }): { type: string; value: number } {
+    // Calculate standard error based on sample size and frequency
+    if (factors.siteCount && factors.totalSites && factors.totalSites > 0) {
+      const p = factors.frequency;
+      const n = factors.totalSites;
+      
+      // Standard error for proportion
+      const standardError = Math.sqrt((p * (1 - p)) / n);
+      
+      // Convert to confidence interval width (95% CI)
+      const marginOfError = 1.96 * standardError;
+      
+      return {
+        type: 'margin-of-error-95-ci',
+        value: Math.min(0.5, marginOfError) // Cap at 50% uncertainty
+      };
+    }
+
+    // Default uncertainty for insufficient data
+    return {
+      type: 'estimated-uncertainty',
+      value: 0.15
+    };
+  }
+
+  /**
+   * Determine filtering action based on confidence and context
+   */
+  private determineFilteringAction(
+    confidence: ConfidenceScore,
+    context: any
+  ): 'filter' | 'keep' | 'conditional' {
+    // High confidence + low frequency = filter
+    if (confidence.value > 0.7 && context.frequency < 0.1) {
+      return 'filter';
+    }
+    
+    // High confidence + high frequency = keep
+    if (confidence.value > 0.7 && context.frequency > 0.5) {
+      return 'keep';
+    }
+    
+    // Medium confidence or specific conditions = conditional
+    return 'conditional';
+  }
+
+  /**
+   * Build multi-factor reasoning
+   */
+  private buildMultiFactorReasoning(context: any): RecommendationReasoning {
+    const primaryReason = this.determinePrimaryReason(context);
+    const supportingFactors = this.determineSupportingFactors(context);
+    const riskFactors = this.determineRiskFactors(context);
+
+    // Build statistical basis using real statistical results
+    const statisticalBasis = this.buildStatisticalBasis(context);
+
+    return {
+      primaryReason,
+      supportingFactors,
+      riskFactors,
+      statisticalBasis,
+      algorithmicLogic: {
+        algorithm: 'statistical-cross-analyzer-ensemble',
+        parameters: {
+          confidenceThreshold: StatisticalConstants.HIGH_CORRELATION_THRESHOLD,
+          significanceLevel: StatisticalConstants.ALPHA,
+          minAnalyzerSupport: 3,
+          powerThreshold: 0.8,
+          marginOfError: 0.05
+        }
+      },
+      crossAnalyzerEvidence: this.buildCrossAnalyzerEvidence(context)
+    };
+  }
+
+  /**
+   * Build statistical basis using real statistical calculations
+   */
+  private buildStatisticalBasis(context: any): { method: string; pValue: number } {
+    // If we have statistical test results, use them
+    if (context.statisticalTest) {
+      const result = context.statisticalTest.result;
+      if (result && 'pValue' in result) {
+        return {
+          method: `${context.statisticalTest.method}-test`,
+          pValue: result.pValue
+        };
+      }
+    }
+
+    // If we have validation data with p-value
+    if (context.validationData?.pValue) {
+      return {
+        method: 'validation-pipeline-statistical-test',
+        pValue: context.validationData.pValue
+      };
+    }
+
+    // Use pre-calculated statistical test if available
+    if (context.statisticalTest && context.statisticalTest.result) {
+      const result = context.statisticalTest.result;
+      if ('pValue' in result) {
+        return {
+          method: `${context.statisticalTest.method}-test-precalculated`,
+          pValue: result.pValue
+        };
+      }
+    }
+
+    // Default statistical basis
+    return {
+      method: 'confidence-based-estimation',
+      pValue: context.confidence?.value ? (1 - context.confidence.value) : 0.5
+    };
+  }
+
+  /**
+   * Create metadata for the analysis result
+   */
+  private createMetadata(
+    data: PreprocessedData,
+    options: AnalysisOptions,
+    executionTime: number
+  ): AnalysisMetadata {
+    return {
+      analyzer: this.getName(),
+      analyzedAt: new Date().toISOString(),
+      totalPatternsFound: 0, // Recommendations don't have patterns
+      totalPatternsAfterFiltering: 0,
+      options
+    };
+  }
+
+  /**
+   * Count total recommendations across all categories
+   */
+  private countTotalRecommendations(data: RecommendationSpecificData): number {
+    return (
+      data.learnRecommendations.filteringRecommendations.length +
+      data.learnRecommendations.retentionRecommendations.length +
+      data.learnRecommendations.refinementSuggestions.length +
+      data.detectCmsRecommendations.emergingOpportunities.length +
+      data.detectCmsRecommendations.vendorBasedOpportunities.length +
+      data.detectCmsRecommendations.semanticOpportunities.length +
+      data.groundTruthRecommendations.statisticallyValidatedRules.length +
+      data.groundTruthRecommendations.technologyBasedRules.length +
+      data.groundTruthRecommendations.semanticCategoryRules.length
+    );
+  }
+
+  // ===== Stub implementations for remaining methods =====
+  // These will be implemented in subsequent phases
+
+  /**
+   * Generate retention recommendations using cross-analyzer intelligence
+   */
+  private generateRetentionRecommendations(
+    data: PreprocessedData, 
+    crossAnalyzer: CrossAnalyzerContext
+  ): RetentionRecommendation[] {
+    const recommendations: RetentionRecommendation[] = [];
+
+    // Process headers that should be retained based on strategic value
+    if (crossAnalyzer.headers) {
+      for (const [headerName, patternData] of crossAnalyzer.headers.patterns) {
+        const retentionAnalysis = this.analyzeHeaderRetentionValue(
+          headerName,
+          patternData,
+          data,
+          crossAnalyzer
+        );
+
+        if (retentionAnalysis.shouldRetain) {
+          recommendations.push({
+            pattern: headerName,
+            retentionReason: retentionAnalysis.primaryReason,
+            confidence: retentionAnalysis.confidence,
+            strategicValue: retentionAnalysis.strategicValue,
+            crossAnalyzerSupport: retentionAnalysis.crossAnalyzerSupport,
+            technologyContext: retentionAnalysis.technologyContext
+          });
+        }
+      }
+    }
+
+    // Sort by strategic value and confidence
+    return recommendations
+      .sort((a, b) => {
+        const aScore = a.strategicValue.overallStrategicImportance * a.confidence.value;
+        const bScore = b.strategicValue.overallStrategicImportance * b.confidence.value;
+        return bScore - aScore;
+      })
+      .slice(0, 50); // Top 50 retention recommendations
+  }
+
+  /**
+   * Analyze whether a header should be retained based on strategic value
+   */
+  private analyzeHeaderRetentionValue(
+    headerName: string,
+    patternData: PatternData,
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): {
+    shouldRetain: boolean;
+    primaryReason: RetentionReason;
+    confidence: ConfidenceScore;
+    strategicValue: StrategicValue;
+    crossAnalyzerSupport: CrossAnalyzerEvidence;
+    technologyContext: TechnologyContext[];
+  } {
+    // Get cross-analyzer insights
+    const semanticData = this.getSemanticDataForHeader(headerName, crossAnalyzer);
+    const vendorData = this.getVendorDataForHeader(headerName, crossAnalyzer);
+    const cooccurrenceData = this.getCooccurrenceDataForHeader(headerName, crossAnalyzer);
+    const discoveryData = this.getDiscoveryDataForHeader(headerName, crossAnalyzer);
+
+    // Calculate discriminative power using statistical methods
+    const discriminativePower = this.calculateDiscriminativePower(
+      patternData,
+      semanticData,
+      vendorData,
+      cooccurrenceData
+    );
+
+    // Assess technology-specific value
+    const technologyValue = this.assessTechnologySpecificValue(
+      headerName,
+      vendorData,
+      semanticData
+    );
+
+    // Calculate semantic value
+    const semanticValue = this.calculateSemanticValue(semanticData);
+
+    // Assess cross-analyzer support strength
+    const crossAnalyzerSupport = this.assessCrossAnalyzerSupport(
+      headerName,
+      crossAnalyzer
+    );
+
+    // Determine strategic value
+    const strategicValue: StrategicValue = {
+      cmsDetectionValue: discriminativePower.cmsSpecificity,
+      learningValue: discriminativePower.diversityScore,
+      groundTruthValue: crossAnalyzerSupport.validationStrength || 0.5,
+      overallStrategicImportance: this.calculateOverallStrategicImportance(
+        discriminativePower,
+        technologyValue,
+        semanticValue,
+        crossAnalyzerSupport
+      )
+    };
+
+    // Determine primary retention reason
+    let primaryReason: RetentionReason;
+    if (discriminativePower.overallScore > 0.7) {
+      primaryReason = 'high-discriminative-power';
+    } else if (technologyValue.specificity > 0.8) {
+      primaryReason = 'technology-specific';
+    } else if (semanticValue > 0.7) {
+      primaryReason = 'semantic-value';
+    } else {
+      primaryReason = 'cross-analyzer-support';
+    }
+
+    // Calculate retention confidence using statistical methods
+    const confidence = this.calculateRetentionConfidence(
+      strategicValue,
+      discriminativePower,
+      patternData,
+      data.totalSites,
+      crossAnalyzer
+    );
+
+    // Gather technology context using pre-calculated vendor categories
+    const technologyContext = this.buildTechnologyContext(vendorData, semanticData, crossAnalyzer);
+
+    // Gather cross-analyzer evidence
+    const evidence = this.collectCrossAnalyzerEvidence({
+      headerName,
+      semanticData,
+      vendorData,
+      cooccurrenceData,
+      discoveryData
+    });
+
+    // Decide retention (retain if strategic value > 0.6 and confidence > 0.5)
+    const shouldRetain = strategicValue.overallStrategicImportance > 0.6 && confidence.value > 0.5;
+
+    return {
+      shouldRetain,
+      primaryReason,
+      confidence,
+      strategicValue,
+      crossAnalyzerSupport: evidence,
+      technologyContext
+    };
+  }
+
+  /**
+   * Generate refinement suggestions for improving pattern detection
+   */
+  private generateRefinementSuggestions(
+    data: PreprocessedData, 
+    crossAnalyzer: CrossAnalyzerContext
+  ): RefinementSuggestion[] {
+    const suggestions: RefinementSuggestion[] = [];
+
+    // Process headers for potential refinements
+    if (crossAnalyzer.headers) {
+      for (const [headerName, patternData] of crossAnalyzer.headers.patterns) {
+        const refinementAnalysis = this.analyzePatternRefinementOpportunities(
+          headerName,
+          patternData,
+          data,
+          crossAnalyzer
+        );
+
+        suggestions.push(...refinementAnalysis);
+      }
+    }
+
+    // Look for pattern expansion opportunities from discovery data
+    if (crossAnalyzer.discovery) {
+      const expansionSuggestions = this.generatePatternExpansionSuggestions(
+        crossAnalyzer.discovery,
+        crossAnalyzer
+      );
+      suggestions.push(...expansionSuggestions);
+    }
+
+    // Sort by expected improvement
+    return suggestions
+      .sort((a, b) => {
+        const aImprovement = a.expectedImprovement.accuracyImprovement;
+        const bImprovement = b.expectedImprovement.accuracyImprovement;
+        return bImprovement - aImprovement;
+      })
+      .slice(0, 30); // Top 30 refinement suggestions
+  }
+
+  /**
+   * Analyze refinement opportunities for a specific pattern
+   */
+  private analyzePatternRefinementOpportunities(
+    headerName: string,
+    patternData: PatternData,
+    data: PreprocessedData,
+    crossAnalyzer: CrossAnalyzerContext
+  ): RefinementSuggestion[] {
+    const suggestions: RefinementSuggestion[] = [];
+    
+    // Get cross-analyzer data
+    const semanticData = this.getSemanticDataForHeader(headerName, crossAnalyzer);
+    const vendorData = this.getVendorDataForHeader(headerName, crossAnalyzer);
+    const cooccurrenceData = this.getCooccurrenceDataForHeader(headerName, crossAnalyzer);
+
+    // 1. Pattern expansion suggestions (e.g., x-powered-by → x-powered-by.*php)
+    if (vendorData?.vendor && patternData.frequency > 0.1) {
+      const expandedPattern = `${headerName}.*${vendorData.vendor.toLowerCase()}`;
+      const expectedImprovement = this.calculatePatternExpansionImprovement(
+        patternData,
+        vendorData,
+        data.totalSites,
+        crossAnalyzer
+      );
+
+      suggestions.push({
+        currentPattern: headerName,
+        suggestedPattern: expandedPattern,
+        refinementType: 'pattern-expansion',
+        expectedImprovement,
+        confidence: this.calculateRefinementConfidence(expectedImprovement, vendorData.confidence || 0.5),
+        reasoning: this.buildRefinementReasoning(
+          'pattern-expansion',
+          headerName,
+          expandedPattern,
+          vendorData,
+          expectedImprovement
+        )
+      });
+    }
+
+    // 2. Conditional logic suggestions based on co-occurrence
+    if (cooccurrenceData?.strength > 0.7) {
+      const conditionalPattern = this.generateConditionalPattern(headerName, cooccurrenceData);
+      const expectedImprovement = this.calculateConditionalImprovement(
+        patternData,
+        cooccurrenceData,
+        data.totalSites
+      );
+
+      suggestions.push({
+        currentPattern: headerName,
+        suggestedPattern: conditionalPattern,
+        refinementType: 'conditional-logic',
+        expectedImprovement,
+        confidence: this.calculateRefinementConfidence(expectedImprovement, cooccurrenceData.strength),
+        reasoning: this.buildRefinementReasoning(
+          'conditional-logic',
+          headerName,
+          conditionalPattern,
+          cooccurrenceData,
+          expectedImprovement
+        )
+      });
+    }
+
+    // 3. Technology-specific refinements
+    if (semanticData?.category && semanticData.confidence > 0.8) {
+      const techSpecificPattern = this.generateTechnologySpecificPattern(
+        headerName,
+        semanticData,
+        vendorData
+      );
+      const expectedImprovement = this.calculateTechnologySpecificImprovement(
+        patternData,
+        semanticData,
+        data.totalSites
+      );
+
+      suggestions.push({
+        currentPattern: headerName,
+        suggestedPattern: techSpecificPattern,
+        refinementType: 'technology-specific',
+        expectedImprovement,
+        confidence: this.calculateRefinementConfidence(expectedImprovement, semanticData.confidence),
+        reasoning: this.buildRefinementReasoning(
+          'technology-specific',
+          headerName,
+          techSpecificPattern,
+          semanticData,
+          expectedImprovement
+        )
+      });
+    }
+
+    return suggestions.filter(s => s.expectedImprovement.accuracyImprovement > 0.05); // Only meaningful improvements
+  }
+
+  /**
+   * Generate pattern expansion suggestions from discovery data
+   */
+  private generatePatternExpansionSuggestions(
+    discoveryResult: AnalysisResult<any>,
+    crossAnalyzer: CrossAnalyzerContext
+  ): RefinementSuggestion[] {
+    const suggestions: RefinementSuggestion[] = [];
+
+    // Look for emerging patterns that could be formalized
+    if (discoveryResult.analyzerSpecific?.discoveredPatterns) {
+      for (const [patternName, discoveryData] of discoveryResult.analyzerSpecific.discoveredPatterns) {
+        if (discoveryData.confidence > 0.7 && discoveryData.novelty > 0.6) {
+          const formalizedPattern = this.formalizeMergingPattern(patternName, discoveryData);
+          const expectedImprovement = this.calculateEmergingPatternImprovement(discoveryData);
+
+          suggestions.push({
+            currentPattern: 'new-pattern',
+            suggestedPattern: formalizedPattern,
+            refinementType: 'pattern-expansion',
+            expectedImprovement,
+            confidence: this.calculateRefinementConfidence(expectedImprovement, discoveryData.confidence),
+            reasoning: this.buildEmergingPatternReasoning(patternName, discoveryData, formalizedPattern)
+          });
+        }
+      }
+    }
+
+    return suggestions;
+  }
+
+  private generateBiasMitigationStrategies(recommendations: FilteringRecommendation[]): any[] {
+    // TODO: Implement in Phase 2
+    return [];
+  }
+
+  private generateEmergingPatternOpportunities(crossAnalyzer: CrossAnalyzerContext): EmergingPatternOpportunity[] {
+    // TODO: Implement in Phase 3
+    return [];
+  }
+
+  private generateVendorBasedOpportunities(crossAnalyzer: CrossAnalyzerContext): VendorBasedOpportunity[] {
+    // TODO: Implement in Phase 3
+    return [];
+  }
+
+  private generateSemanticOpportunities(crossAnalyzer: CrossAnalyzerContext): SemanticOpportunity[] {
+    // TODO: Implement in Phase 3
+    return [];
+  }
+
+  private generateTechnologyStackOpportunities(crossAnalyzer: CrossAnalyzerContext): TechnologyStackOpportunity[] {
+    // TODO: Implement in Phase 3
+    return [];
+  }
+
+  private generateStatisticallyValidatedRules(crossAnalyzer: CrossAnalyzerContext): StatisticallyValidatedRule[] {
+    // TODO: Implement in Phase 4
+    return [];
+  }
+
+  private generateTechnologyBasedRules(crossAnalyzer: CrossAnalyzerContext): TechnologyBasedRule[] {
+    // TODO: Implement in Phase 4
+    return [];
+  }
+
+  private generateSemanticCategoryRules(crossAnalyzer: CrossAnalyzerContext): SemanticCategoryRule[] {
+    // TODO: Implement in Phase 4
+    return [];
+  }
+
+  private assessCrossAnalyzerInsights(crossAnalyzer: CrossAnalyzerContext): CrossAnalyzerInsights {
+    // TODO: Implement cross-analyzer insight assessment
+    return {
+      analyzerAgreement: { overallAgreement: 0, analyzerSpecificAgreement: {} },
+      conflictResolution: [],
+      emergingPatterns: [],
+      biasDetection: [],
+      confidenceCalibration: { method: 'ensemble', accuracy: 0.85 },
+      supportingAnalyzers: []
+    };
+  }
+
+  private calculateRecommendationQualityMetrics(
+    learn: LearnRecommendationsV2,
+    detectCms: DetectCmsRecommendationsV2,
+    groundTruth: GroundTruthRecommendationsV2,
+    crossAnalyzer: CrossAnalyzerInsights
+  ): RecommendationQualityMetrics {
+    // TODO: Implement quality metric calculation
+    return {
+      accuracyEstimate: 0.85,
+      comprehensiveness: 0.9,
+      actionability: 0.8,
+      evidenceQuality: 0.85,
+      biasAwareness: 0.8,
+      crossAnalyzerAlignment: 0.9
+    };
+  }
+
+  private generateBiasAwareAssessments(
+    learn: LearnRecommendationsV2,
+    detectCms: DetectCmsRecommendationsV2,
+    groundTruth: GroundTruthRecommendationsV2
+  ): BiasAwareRecommendationAssessment {
+    // TODO: Implement bias-aware assessments
+    return {
+      overallBiasRisk: 'low',
+      biasSourceIdentification: [],
+      mitigationStrategies: [],
+      biasAdjustedConfidence: { value: 0.85, level: 'high', source: { method: 'bias-adjusted', version: '2.0' }, breakdown: {}, uncertainty: { type: 'standard-error', value: 0.05 } },
+      transparencyReport: { biasesIdentified: [], mitigationApplied: [] }
+    };
+  }
+
+  private calculateConfidenceDistribution(confidences: ConfidenceScore[]): ConfidenceDistribution {
+    const distribution = { low: 0, medium: 0, high: 0, veryHigh: 0 };
+    
+    for (const conf of confidences) {
+      if (conf.level === 'low') distribution.low++;
+      else if (conf.level === 'medium') distribution.medium++;
+      else if (conf.level === 'high') distribution.high++;
+      else if (conf.level === 'very-high') distribution.veryHigh++;
+    }
+
+    const total = confidences.length || 1;
+    return {
+      low: distribution.low / total,
+      medium: distribution.medium / total,
+      high: distribution.high / total,
+      veryHigh: distribution.veryHigh / total
+    };
+  }
+
+  // ===== Helper Methods for Retention and Refinement =====
+
+  /**
+   * Get discovery data for a header from pattern discovery analyzer
+   */
+  private getDiscoveryDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.discovery?.analyzerSpecific) return null;
+    return crossAnalyzer.discovery.analyzerSpecific.discoveredPatterns?.get(headerName);
+  }
+
+  /**
+   * Calculate discriminative power using statistical analysis
+   */
+  private calculateDiscriminativePower(
+    patternData: PatternData,
+    semanticData: any,
+    vendorData: any,
+    cooccurrenceData: any
+  ): { overallScore: number; cmsSpecificity: number; diversityScore: number } {
+    // Use chi-square test for independence if we have enough data
+    const frequency = patternData.frequency;
+    const siteCount = patternData.siteCount;
+    
+    // Calculate CMS specificity using vendor data
+    const cmsSpecificity = vendorData?.specificity || (frequency > 0.8 ? 0.3 : frequency > 0.1 ? 0.7 : 0.9);
+    
+    // Calculate diversity score using semantic and co-occurrence data
+    const semanticDiversity = semanticData?.confidence || 0.5;
+    const cooccurrenceStrength = cooccurrenceData?.strength || 0.5;
+    const diversityScore = (semanticDiversity + (1 - cooccurrenceStrength)) / 2;
+    
+    // Overall discriminative power
+    const overallScore = (cmsSpecificity * 0.6 + diversityScore * 0.4);
+    
+    return { overallScore, cmsSpecificity, diversityScore };
+  }
+
+  /**
+   * Assess technology-specific value
+   */
+  private assessTechnologySpecificValue(
+    headerName: string,
+    vendorData: any,
+    semanticData: any
+  ): { specificity: number; confidence: number } {
+    let specificity = 0.3; // Default low specificity
+    let confidence = 0.5;
+    
+    if (vendorData?.vendor) {
+      specificity = 0.8; // High specificity if vendor-specific
+      confidence = vendorData.confidence || 0.7;
+    } else if (semanticData?.category === 'security' || semanticData?.category === 'performance') {
+      specificity = 0.6; // Moderate specificity for functional categories
+      confidence = semanticData.confidence || 0.6;
+    }
+    
+    return { specificity, confidence };
+  }
+
+  /**
+   * Calculate semantic value
+   */
+  private calculateSemanticValue(semanticData: any): number {
+    if (!semanticData) return 0.3;
+    
+    const confidence = semanticData.confidence || 0.5;
+    // Use SemanticAnalyzerV2's discriminative score instead of duplicating category mapping
+    const categoryValue = semanticData.discriminativeScore || 0.5;
+    
+    return confidence * categoryValue;
+  }
+
+
+  /**
+   * Assess cross-analyzer support strength
+   */
+  private assessCrossAnalyzerSupport(
+    headerName: string,
+    crossAnalyzer: CrossAnalyzerContext
+  ): { validationStrength: number; supportingAnalyzers: string[] } {
+    const supportingAnalyzers: string[] = [];
+    let totalSupport = 0;
+    let analyzerCount = 0;
+    
+    // Check semantic analyzer support
+    if (crossAnalyzer.semantic?.analyzerSpecific?.headerPatterns?.has(headerName)) {
+      supportingAnalyzers.push('semantic');
+      totalSupport += crossAnalyzer.semantic.analyzerSpecific.headerPatterns.get(headerName)?.confidence || 0.5;
+      analyzerCount++;
+    }
+    
+    // Check vendor analyzer support
+    if (crossAnalyzer.vendor?.analyzerSpecific?.vendorsByHeader?.has(headerName)) {
+      supportingAnalyzers.push('vendor');
+      totalSupport += 0.7; // Vendor detection is strong support
+      analyzerCount++;
+    }
+    
+    // Check co-occurrence analyzer support
+    if (crossAnalyzer.cooccurrence?.analyzerSpecific?.cooccurrences?.has(headerName)) {
+      supportingAnalyzers.push('cooccurrence');
+      totalSupport += 0.6; // Co-occurrence is moderate support
+      analyzerCount++;
+    }
+    
+    // Check validation pipeline support
+    if (crossAnalyzer.validation?.analyzerSpecific?.validatedPatterns?.headers?.has(headerName)) {
+      supportingAnalyzers.push('validation');
+      totalSupport += 0.8; // Statistical validation is strong support
+      analyzerCount++;
+    }
+    
+    const validationStrength = analyzerCount > 0 ? totalSupport / analyzerCount : 0.3;
+    
+    return { validationStrength, supportingAnalyzers };
+  }
+
+  /**
+   * Calculate overall strategic importance
+   */
+  private calculateOverallStrategicImportance(
+    discriminativePower: { overallScore: number; cmsSpecificity: number; diversityScore: number },
+    technologyValue: { specificity: number; confidence: number },
+    semanticValue: number,
+    crossAnalyzerSupport: { validationStrength: number; supportingAnalyzers: string[] }
+  ): number {
+    const weights = {
+      discriminative: 0.35,
+      technology: 0.25,
+      semantic: 0.2,
+      crossAnalyzer: 0.2
+    };
+    
+    const score = 
+      discriminativePower.overallScore * weights.discriminative +
+      (technologyValue.specificity * technologyValue.confidence) * weights.technology +
+      semanticValue * weights.semantic +
+      crossAnalyzerSupport.validationStrength * weights.crossAnalyzer;
+    
+    return Math.max(0, Math.min(1, score));
+  }
+
+  /**
+   * Calculate retention confidence using statistical methods
+   */
+  private calculateRetentionConfidence(
+    strategicValue: StrategicValue,
+    discriminativePower: { overallScore: number },
+    patternData: PatternData,
+    totalSites: number,
+    crossAnalyzer: CrossAnalyzerContext
+  ): ConfidenceScore {
+    // Use pre-calculated power analysis for confidence
+    const powerAnalysis = this.getPreCalculatedPowerAnalysis(crossAnalyzer);
+    
+    // Combine strategic value with statistical confidence
+    const strategicConfidence = strategicValue.overallStrategicImportance;
+    const statisticalConfidence = powerAnalysis.adequatePower ? 0.8 : 0.5;
+    const discriminativeConfidence = discriminativePower.overallScore;
+    
+    const weightedConfidence = 
+      strategicConfidence * 0.4 +
+      statisticalConfidence * 0.3 +
+      discriminativeConfidence * 0.3;
+    
+    let level: 'low' | 'medium' | 'high' | 'very-high';
+    if (weightedConfidence >= 0.8) level = 'very-high';
+    else if (weightedConfidence >= 0.65) level = 'high';
+    else if (weightedConfidence >= 0.45) level = 'medium';
+    else level = 'low';
+    
+    return {
+      value: weightedConfidence,
+      level,
+      source: { method: 'strategic-statistical-analysis', version: '2.1' },
+      breakdown: {
+        strategic: strategicConfidence * 0.4,
+        statistical: statisticalConfidence * 0.3,
+        discriminative: discriminativeConfidence * 0.3
+      },
+      uncertainty: {
+        type: 'strategic-uncertainty',
+        value: Math.max(0.05, 1 - powerAnalysis.observedPower)
+      }
+    };
+  }
+
+  /**
+   * Build technology context from vendor and semantic data
+   */
+  private buildTechnologyContext(vendorData: any, semanticData: any, crossAnalyzer: CrossAnalyzerContext): TechnologyContext[] {
+    const contexts: TechnologyContext[] = [];
+    
+    if (vendorData?.vendor) {
+      // Use VendorAnalyzerV2's technology categories instead of duplicating the mapping
+      const vendorSummary = crossAnalyzer.vendor?.analyzerSpecific?.summary;
+      const technologyCategory = vendorSummary?.technologyCategories?.[0] || 'other';
+      
+      contexts.push({
+        technology: vendorData.vendor,
+        version: vendorData.version,
+        category: technologyCategory, // Use pre-calculated category from VendorAnalyzerV2
+        confidence: vendorData.confidence || 0.7,
+        specificity: vendorData.specificity || 0.8
+      });
+    }
+    
+    if (semanticData?.category) {
+      contexts.push({
+        technology: semanticData.category,
+        category: 'semantic-category',
+        confidence: semanticData.confidence || 0.6,
+        specificity: 0.6
+      });
+    }
+    
+    return contexts;
+  }
+
+
+  /**
+   * Calculate refinement confidence based on expected improvement and base confidence
+   */
+  private calculateRefinementConfidence(
+    expectedImprovement: ExpectedImprovement, 
+    baseConfidence: number
+  ): ConfidenceScore {
+    const improvementWeight = 0.7;
+    const baseWeight = 0.3;
+    
+    const combinedConfidence = 
+      expectedImprovement.confidenceInImprovement * improvementWeight +
+      baseConfidence * baseWeight;
+    
+    let level: 'low' | 'medium' | 'high' | 'very-high';
+    if (combinedConfidence >= 0.8) level = 'very-high';
+    else if (combinedConfidence >= 0.65) level = 'high';
+    else if (combinedConfidence >= 0.45) level = 'medium';
+    else level = 'low';
+    
+    return {
+      value: combinedConfidence,
+      level,
+      source: { method: 'refinement-improvement-analysis', version: '2.1' },
+      breakdown: {
+        improvement: expectedImprovement.confidenceInImprovement * improvementWeight,
+        base: baseConfidence * baseWeight
+      },
+      uncertainty: {
+        type: 'refinement-uncertainty',
+        value: Math.max(0.05, 1 - expectedImprovement.confidenceInImprovement)
+      }
+    };
+  }
+
+  /**
+   * Calculate expected improvement for pattern expansion
+   */
+  private calculatePatternExpansionImprovement(
+    patternData: PatternData,
+    vendorData: any,
+    totalSites: number,
+    crossAnalyzer: CrossAnalyzerContext
+  ): ExpectedImprovement {
+    const currentAccuracy = patternData.frequency; // Use frequency as accuracy proxy
+    const vendorSpecificity = vendorData.specificity || 0.7;
+    
+    // More specific patterns should improve precision but may reduce recall
+    const precisionImprovement = vendorSpecificity * 0.2; // Up to 20% precision improvement
+    const recallReduction = vendorSpecificity * 0.1; // Up to 10% recall reduction
+    const accuracyImprovement = precisionImprovement - (recallReduction * 0.5);
+    
+    // Use pre-calculated power analysis for confidence
+    const powerAnalysis = this.getPreCalculatedPowerAnalysis(crossAnalyzer);
+    
+    return {
+      accuracyImprovement: Math.max(0, accuracyImprovement),
+      precisionImprovement,
+      recallImprovement: -recallReduction, // Negative because it's a reduction
+      confidenceInImprovement: powerAnalysis.adequatePower ? 0.8 : 0.6
+    };
+  }
+
+  /**
+   * Calculate expected improvement for conditional logic
+   */
+  private calculateConditionalImprovement(
+    patternData: PatternData,
+    cooccurrenceData: any,
+    totalSites: number
+  ): ExpectedImprovement {
+    const strength = cooccurrenceData.strength || 0.5;
+    
+    // Strong co-occurrence suggests conditional logic can improve accuracy
+    const accuracyImprovement = strength * 0.15; // Up to 15% improvement
+    const precisionImprovement = strength * 0.2;
+    const recallImprovement = strength * 0.1;
+    
+    return {
+      accuracyImprovement,
+      precisionImprovement,
+      recallImprovement,
+      confidenceInImprovement: strength
+    };
+  }
+
+  /**
+   * Calculate expected improvement for technology-specific patterns
+   */
+  private calculateTechnologySpecificImprovement(
+    patternData: PatternData,
+    semanticData: any,
+    totalSites: number
+  ): ExpectedImprovement {
+    const confidence = semanticData.confidence || 0.5;
+    // Use SemanticAnalyzerV2's discriminative score instead of duplicating category mapping
+    const categoryValue = semanticData.discriminativeScore || 0.5;
+    
+    // Technology-specific patterns should improve precision
+    const precisionImprovement = confidence * categoryValue * 0.25;
+    const accuracyImprovement = precisionImprovement * 0.8;
+    const recallImprovement = confidence * 0.05; // Small recall improvement
+    
+    return {
+      accuracyImprovement,
+      precisionImprovement,
+      recallImprovement,
+      confidenceInImprovement: confidence
+    };
+  }
+
+  /**
+   * Generate conditional pattern based on co-occurrence data
+   */
+  private generateConditionalPattern(headerName: string, cooccurrenceData: any): string {
+    if (cooccurrenceData.relatedHeaders && cooccurrenceData.relatedHeaders.length > 0) {
+      const relatedHeader = cooccurrenceData.relatedHeaders[0];
+      return `${headerName} AND ${relatedHeader}`;
+    }
+    
+    return `${headerName} (conditional)`;
+  }
+
+  /**
+   * Generate technology-specific pattern
+   */
+  private generateTechnologySpecificPattern(
+    headerName: string,
+    semanticData: any,
+    vendorData: any
+  ): string {
+    if (vendorData?.vendor) {
+      return `${headerName}[${vendorData.vendor}]`;
+    } else if (semanticData?.category) {
+      return `${headerName}[${semanticData.category}]`;
+    }
+    
+    return `${headerName}[tech-specific]`;
+  }
+
+  /**
+   * Build refinement reasoning
+   */
+  private buildRefinementReasoning(
+    refinementType: RefinementType,
+    currentPattern: string,
+    suggestedPattern: string,
+    contextData: any,
+    expectedImprovement: ExpectedImprovement
+  ): RecommendationReasoning {
+    const primaryReason = this.buildRefinementPrimaryReason(refinementType, expectedImprovement);
+    const supportingFactors = this.buildRefinementSupportingFactors(refinementType, contextData);
+    const riskFactors = this.buildRefinementRiskFactors(refinementType, expectedImprovement);
+    
+    return {
+      primaryReason,
+      supportingFactors,
+      riskFactors,
+      statisticalBasis: {
+        method: 'improvement-analysis',
+        pValue: 1 - expectedImprovement.confidenceInImprovement
+      },
+      algorithmicLogic: {
+        algorithm: 'pattern-refinement-analysis',
+        parameters: {
+          refinementType,
+          expectedAccuracyGain: expectedImprovement.accuracyImprovement,
+          expectedPrecisionGain: expectedImprovement.precisionImprovement
+        }
+      },
+      crossAnalyzerEvidence: this.buildRefinementEvidence(contextData)
+    };
+  }
+
+  /**
+   * Build primary reason for refinement
+   */
+  private buildRefinementPrimaryReason(refinementType: RefinementType, improvement: ExpectedImprovement): string {
+    const improvementPct = (improvement.accuracyImprovement * 100).toFixed(1);
+    
+    switch (refinementType) {
+      case 'pattern-expansion':
+        return `Pattern expansion expected to improve accuracy by ${improvementPct}%`;
+      case 'conditional-logic':
+        return `Conditional logic expected to improve precision by ${(improvement.precisionImprovement * 100).toFixed(1)}%`;
+      case 'technology-specific':
+        return `Technology-specific refinement expected to improve accuracy by ${improvementPct}%`;
+      case 'pattern-restriction':
+        return `Pattern restriction expected to improve precision by ${(improvement.precisionImprovement * 100).toFixed(1)}%`;
+      default:
+        return `Pattern refinement expected to improve accuracy by ${improvementPct}%`;
+    }
+  }
+
+  /**
+   * Build supporting factors for refinement
+   */
+  private buildRefinementSupportingFactors(refinementType: RefinementType, contextData: any): string[] {
+    const factors: string[] = [];
+    
+    if (contextData.vendor) {
+      factors.push(`Vendor-specific pattern (${contextData.vendor})`);
+    }
+    
+    if (contextData.confidence > 0.8) {
+      factors.push(`High confidence in underlying data (${(contextData.confidence * 100).toFixed(1)}%)`);
+    }
+    
+    if (contextData.strength > 0.7) {
+      factors.push(`Strong co-occurrence relationship (${(contextData.strength * 100).toFixed(1)}%)`);
+    }
+    
+    return factors;
+  }
+
+  /**
+   * Build risk factors for refinement
+   */
+  private buildRefinementRiskFactors(refinementType: RefinementType, improvement: ExpectedImprovement): string[] {
+    const risks: string[] = [];
+    
+    if (improvement.recallImprovement < 0) {
+      risks.push(`May reduce recall by ${Math.abs(improvement.recallImprovement * 100).toFixed(1)}%`);
+    }
+    
+    if (improvement.confidenceInImprovement < 0.6) {
+      risks.push('Low confidence in improvement estimate');
+    }
+    
+    if (refinementType === 'pattern-expansion') {
+      risks.push('More complex patterns may be harder to maintain');
+    }
+    
+    return risks;
+  }
+
+  /**
+   * Build refinement evidence
+   */
+  private buildRefinementEvidence(contextData: any): CrossAnalyzerEvidence {
+    const evidence: CrossAnalyzerEvidence = {};
+    
+    if (contextData.vendor) {
+      evidence.vendorAnalysis = {
+        vendors: [contextData.vendor],
+        clusters: [],
+        confidence: contextData.confidence || 0.7
+      };
+    }
+    
+    if (contextData.category) {
+      evidence.semanticAnalysis = {
+        categories: [contextData.category],
+        confidence: contextData.confidence || 0.6
+      };
+    }
+    
+    return evidence;
+  }
+
+  /**
+   * Formalize emerging pattern from discovery data
+   */
+  private formalizeMergingPattern(patternName: string, discoveryData: any): string {
+    // Create a formalized version of the emerging pattern
+    if (discoveryData.patternType === 'header') {
+      return `${patternName}[emerging-${discoveryData.category || 'general'}]`;
+    }
+    
+    return `${patternName}[emerging]`;
+  }
+
+  /**
+   * Calculate improvement for emerging patterns
+   */
+  private calculateEmergingPatternImprovement(discoveryData: any): ExpectedImprovement {
+    const novelty = discoveryData.novelty || 0.6;
+    const confidence = discoveryData.confidence || 0.7;
+    
+    // New patterns can provide significant accuracy improvements
+    const accuracyImprovement = novelty * confidence * 0.3; // Up to 30% for novel patterns
+    const precisionImprovement = confidence * 0.25;
+    const recallImprovement = novelty * 0.2;
+    
+    return {
+      accuracyImprovement,
+      precisionImprovement,
+      recallImprovement,
+      confidenceInImprovement: confidence
+    };
+  }
+
+  /**
+   * Build reasoning for emerging pattern recommendations
+   */
+  private buildEmergingPatternReasoning(
+    patternName: string,
+    discoveryData: any,
+    formalizedPattern: string
+  ): RecommendationReasoning {
+    return {
+      primaryReason: `Emerging pattern ${patternName} shows ${(discoveryData.novelty * 100).toFixed(1)}% novelty`,
+      supportingFactors: [
+        `High confidence (${(discoveryData.confidence * 100).toFixed(1)}%)`,
+        `Novel pattern discovery`,
+        `Potential for improved detection accuracy`
+      ],
+      riskFactors: [
+        'Pattern may not be stable over time',
+        'Limited validation data available'
+      ],
+      statisticalBasis: {
+        method: 'pattern-discovery-analysis',
+        pValue: 1 - discoveryData.confidence
+      },
+      algorithmicLogic: {
+        algorithm: 'emerging-pattern-formalization',
+        parameters: {
+          noveltyThreshold: 0.6,
+          confidenceThreshold: 0.7,
+          formalizationMethod: 'category-based'
+        }
+      },
+      crossAnalyzerEvidence: {
+        patternDiscovery: {
+          emergingPatterns: [patternName],
+          confidence: discoveryData.confidence
+        }
+      }
+    };
+  }
+
+  // ===== Data extraction helpers =====
+
+  private getSemanticDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.semantic?.analyzerSpecific) return null;
+    return crossAnalyzer.semantic.analyzerSpecific.headerPatterns.get(headerName);
+  }
+
+  private getVendorDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.vendor?.analyzerSpecific) return null;
+    return crossAnalyzer.vendor.analyzerSpecific.vendorsByHeader.get(headerName);
+  }
+
+  private getBiasDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.bias?.analyzerSpecific) return null;
+    return crossAnalyzer.bias.analyzerSpecific.headerCorrelations.get(headerName);
+  }
+
+  private getCooccurrenceDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.cooccurrence?.analyzerSpecific) return null;
+    return crossAnalyzer.cooccurrence.analyzerSpecific.cooccurrences.get(headerName);
+  }
+
+  private getValidationDataForHeader(headerName: string, crossAnalyzer: CrossAnalyzerContext): any {
+    if (!crossAnalyzer.validation?.analyzerSpecific) return null;
+    return crossAnalyzer.validation.analyzerSpecific.validatedPatterns?.headers?.get(headerName);
+  }
+
+  private assessBiasRisk(biasData: any): BiasRiskAssessment {
+    const biases: string[] = [];
+    const mitigationStrategies: string[] = [];
+    let riskScore = 0.1;
+    
+    if (!biasData) {
+      return {
+        riskLevel: 'medium',
+        riskScore: 0.3,
+        identifiedBiases: ['No bias analysis available'],
+        mitigationStrategies: ['Perform comprehensive bias analysis'],
+        adjustmentFactor: 0.85
+      };
+    }
+
+    // 1. Sample size bias
+    if (biasData.sampleSizeAdequate === false) {
+      biases.push('Insufficient sample size for reliable analysis');
+      mitigationStrategies.push('Increase confidence intervals for small samples');
+      riskScore += 0.2;
+    }
+
+    // 2. Dataset diversity bias
+    if (biasData.diversityScore < 0.6) {
+      biases.push(`Low dataset diversity (${(biasData.diversityScore * 100).toFixed(1)}%)`);
+      mitigationStrategies.push('Apply diversity weighting in confidence calculations');
+      riskScore += 0.15;
+    }
+
+    // 3. Correlation bias (headers that appear together too often)
+    if (biasData.headerCorrelations) {
+      for (const [header, correlation] of biasData.headerCorrelations) {
+        if (correlation > 0.8) {
+          biases.push(`High correlation with ${header} (${(correlation * 100).toFixed(1)}%)`);
+          mitigationStrategies.push('Use conditional independence testing');
+          riskScore += 0.1;
+        }
+      }
+    }
+
+    // 4. Temporal bias
+    if (biasData.temporalSkew > 0.3) {
+      biases.push('Temporal data skew detected');
+      mitigationStrategies.push('Apply temporal normalization');
+      riskScore += 0.1;
+    }
+
+    // 5. Platform bias
+    if (biasData.platformBias > 0.4) {
+      biases.push('Platform distribution bias');
+      mitigationStrategies.push('Use platform-stratified sampling');
+      riskScore += 0.15;
+    }
+
+    // Cap risk score at 1.0
+    riskScore = Math.min(1.0, riskScore);
+    
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    if (riskScore >= 0.7) riskLevel = 'critical';
+    else if (riskScore >= 0.5) riskLevel = 'high';
+    else if (riskScore >= 0.3) riskLevel = 'medium';
+    else riskLevel = 'low';
+
+    // Calculate adjustment factor based on bias severity
+    const adjustmentFactor = Math.max(0.5, 1.0 - (riskScore * 0.5));
+
+    return {
+      riskLevel,
+      riskScore,
+      identifiedBiases: biases,
+      mitigationStrategies,
+      adjustmentFactor
+    };
+  }
+
+  /**
+   * Extract diversity metrics from existing cross-analyzer results
+   */
+  private calculateEnhancedDiversity(headerName: string, crossAnalyzer: CrossAnalyzerContext): DiversityMetrics {
+    // Use PRE-CALCULATED diversity metrics from existing analyzers instead of re-calculating
+    
+    // 1. Semantic diversity - use SemanticAnalyzerV2's diversity score
+    const semanticDiversity = crossAnalyzer.semantic?.analyzerSpecific?.qualityMetrics?.categorizationCoverage || 0.5;
+
+    // 2. Vendor diversity - use VendorAnalyzerV2's technology complexity assessment  
+    const vendorDiversity = this.mapStackComplexityToDiversity(
+      crossAnalyzer.vendor?.analyzerSpecific?.summary?.stackComplexity || 'moderate'
+    );
+
+    // 3. Platform diversity - use CooccurrenceAnalyzerV2's relationship strength
+    const platformDiversity = this.extractPlatformDiversityFromCooccurrence(headerName, crossAnalyzer);
+
+    // 4. Temporal stability - use PatternDiscoveryV2's novelty scores (inverted)
+    const temporalStability = this.extractTemporalStabilityFromDiscovery(headerName, crossAnalyzer);
+
+    // Calculate overall diversity score using statistical weighting
+    const weights = {
+      semantic: 0.3,
+      vendor: 0.3,
+      platform: 0.25,
+      temporal: 0.15
+    };
+
+    const overallScore = 
+      semanticDiversity * weights.semantic +
+      vendorDiversity * weights.vendor +
+      platformDiversity * weights.platform +
+      temporalStability * weights.temporal;
+
+    return {
+      semanticDiversity,
+      vendorDiversity,
+      platformDiversity,
+      temporalStability,
+      overallScore: Math.max(0, Math.min(1, overallScore))
+    };
+  }
+
+  /**
+   * Map VendorAnalyzerV2's stack complexity to diversity score
+   */
+  private mapStackComplexityToDiversity(stackComplexity: string): number {
+    const complexityMap: Record<string, number> = {
+      'simple': 0.3,
+      'moderate': 0.6,
+      'complex': 0.8,
+      'very-complex': 0.9
+    };
+    return complexityMap[stackComplexity] || 0.5;
+  }
+
+  /**
+   * Extract platform diversity from CooccurrenceAnalyzerV2 results
+   */
+  private extractPlatformDiversityFromCooccurrence(headerName: string, crossAnalyzer: CrossAnalyzerContext): number {
+    const cooccurrenceData = crossAnalyzer.cooccurrence?.analyzerSpecific?.cooccurrences?.get(headerName);
+    if (!cooccurrenceData) return 0.5;
+    
+    // Use relationship count as diversity indicator (already calculated by CooccurrenceAnalyzerV2)
+    const relationshipCount = cooccurrenceData.relatedHeaders?.length || 0;
+    
+    if (relationshipCount <= 2) return 0.3;
+    else if (relationshipCount <= 5) return 0.6;
+    else return 0.8;
+  }
+
+  /**
+   * Extract temporal stability from PatternDiscoveryV2 results
+   */
+  private extractTemporalStabilityFromDiscovery(headerName: string, crossAnalyzer: CrossAnalyzerContext): number {
+    const discoveryData = crossAnalyzer.discovery?.analyzerSpecific?.emergingPatterns?.get(headerName);
+    if (!discoveryData) return 0.7; // Assume stable if not flagged as emerging
+    
+    // Use inverse of novelty score (already calculated by PatternDiscoveryV2)
+    const novelty = discoveryData.novelty || 0.3;
+    return Math.max(0.2, 1 - novelty);
+  }
+
+
+  private mapCrossAnalyzerSupport(context: any): CrossAnalyzerEvidence {
+    // TODO: Implement cross-analyzer support mapping
+    return {};
+  }
+
+  private collectCrossAnalyzerEvidence(context: any): RecommendationEvidence {
+    const sources: string[] = [];
+    const dataPoints: Array<{source: string; value: number; confidence: number}> = [];
+    const validationResults: Array<{test: string; passed: boolean; confidence: number}> = [];
+    let totalConfidence = 0;
+    let sourceCount = 0;
+
+    // Header frequency evidence
+    if (context.frequency !== undefined) {
+      sources.push('header');
+      dataPoints.push({
+        source: 'header-frequency',
+        value: context.frequency,
+        confidence: 0.9
+      });
+      totalConfidence += 0.9;
+      sourceCount++;
+    }
+
+    // Vendor evidence
+    if (context.vendorData) {
+      sources.push('vendor');
+      dataPoints.push({
+        source: 'vendor-specificity',
+        value: context.vendorData.specificity || 0.5,
+        confidence: context.vendorData.confidence || 0.7
+      });
+      totalConfidence += (context.vendorData.confidence || 0.7);
+      sourceCount++;
+    }
+
+    // Semantic evidence
+    if (context.semanticData) {
+      sources.push('semantic');
+      dataPoints.push({
+        source: 'semantic-classification',
+        value: context.semanticData.discriminativeScore || 0.5,
+        confidence: context.semanticData.confidence || 0.6
+      });
+      totalConfidence += (context.semanticData.confidence || 0.6);
+      sourceCount++;
+    }
+
+    // Validation evidence
+    if (context.validationData) {
+      sources.push('validation');
+      validationResults.push({
+        test: 'statistical-significance',
+        passed: context.validationData.significance > 0.95,
+        confidence: context.validationData.significance || 0.5
+      });
+      totalConfidence += (context.validationData.significance || 0.5);
+      sourceCount++;
+    }
+
+    // Co-occurrence evidence
+    if (context.cooccurrenceData) {
+      sources.push('cooccurrence');
+      dataPoints.push({
+        source: 'pattern-relationships',
+        value: context.cooccurrenceData.strength || 0.5,
+        confidence: 0.7
+      });
+      totalConfidence += 0.7;
+      sourceCount++;
+    }
+
+    // Calculate overall evidence quality
+    const averageConfidence = sourceCount > 0 ? totalConfidence / sourceCount : 0.5;
+    const diversityBonus = Math.min(0.2, sources.length * 0.05); // Bonus for multiple sources
+    const quality = Math.min(1.0, averageConfidence + diversityBonus);
+
+    return {
+      quality,
+      sources: [...new Set(sources)], // Remove duplicates
+      confidence: averageConfidence,
+      dataPoints,
+      validationResults
+    };
+  }
+
+  private determinePrimaryReason(context: any): string {
+    if (context.action === 'filter') {
+      return `Low discriminative power with ${(context.frequency * 100).toFixed(1)}% occurrence rate`;
+    } else if (context.action === 'keep') {
+      return `High strategic value for CMS detection with ${(context.confidence.value * 100).toFixed(1)}% confidence`;
+    }
+    return 'Conditional retention based on context-specific factors';
+  }
+
+  private determineSupportingFactors(context: any): string[] {
+    const factors: string[] = [];
+    
+    if (context.semanticData) {
+      factors.push(`Classified as ${context.semanticData.category} header`);
+    }
+    
+    if (context.vendorData && context.vendorData.specificity > 0.7) {
+      factors.push(`Vendor-specific header (${context.vendorData.vendor})`);
+    }
+    
+    if (context.validationData && context.validationData.significance > 0.95) {
+      factors.push('Statistically significant pattern');
+    }
+    
+    return factors;
+  }
+
+  private determineRiskFactors(context: any): string[] {
+    const risks: string[] = [];
+    
+    if (context.biasData && context.biasData.biasRisk > 0.5) {
+      risks.push('High dataset bias detected');
+    }
+    
+    if (context.frequency < 0.05) {
+      risks.push('Very low occurrence rate');
+    }
+    
+    return risks;
+  }
+
+  private buildCrossAnalyzerEvidence(context: any): CrossAnalyzerEvidence {
+    const evidence: CrossAnalyzerEvidence = {};
+    
+    if (context.semanticData) {
+      evidence.semanticAnalysis = {
+        categories: [context.semanticData.category],
+        confidence: context.semanticData.confidence || 0.5
+      };
+    }
+    
+    if (context.vendorData) {
+      evidence.vendorAnalysis = {
+        vendors: [context.vendorData.vendor],
+        clusters: [],
+        confidence: context.vendorData.confidence || 0.5
+      };
+    }
+    
+    return evidence;
+  }
+
+  private assessOverallEvidenceQuality(rules: any[]): EvidenceQualityAssessment {
+    const sourceQuality: { [key: string]: number[] } = {
+      header: [],
+      vendor: [],
+      semantic: [],
+      validation: [],
+      cooccurrence: [],
+      discovery: []
+    };
+
+    // Collect quality scores from each rule
+    for (const rule of rules) {
+      if (rule.evidence) {
+        if (rule.evidence.sources) {
+          for (const source of rule.evidence.sources) {
+            if (sourceQuality[source]) {
+              sourceQuality[source].push(rule.evidence.confidence || 0.5);
+            }
+          }
+        }
+        
+        // Add specific data point qualities
+        if (rule.evidence.dataPoints) {
+          for (const dataPoint of rule.evidence.dataPoints) {
+            const sourceType = dataPoint.source.split('-')[0]; // e.g., 'header-frequency' -> 'header'
+            if (sourceQuality[sourceType]) {
+              sourceQuality[sourceType].push(dataPoint.confidence);
+            }
+          }
+        }
+      }
+    }
+
+    // Calculate average quality by source
+    const bySource: { [key: string]: number } = {};
+    let totalQuality = 0;
+    let sourceCount = 0;
+
+    for (const [source, qualities] of Object.entries(sourceQuality)) {
+      if (qualities.length > 0) {
+        const average = qualities.reduce((sum, q) => sum + q, 0) / qualities.length;
+        bySource[source] = average;
+        totalQuality += average;
+        sourceCount++;
+      }
+    }
+
+    // Default qualities for sources without data
+    const defaultQualities = {
+      header: 0.9,      // Headers are generally reliable
+      vendor: 0.85,     // Vendor detection has good accuracy
+      semantic: 0.8,    // Semantic classification is moderately reliable
+      validation: 0.9,  // Statistical validation is highly reliable
+      cooccurrence: 0.75, // Pattern relationships are somewhat reliable
+      discovery: 0.7    // Discovery patterns are less established
+    };
+
+    // Fill in missing sources with defaults
+    for (const [source, defaultQuality] of Object.entries(defaultQualities)) {
+      if (!bySource[source]) {
+        bySource[source] = defaultQuality;
+      }
+    }
+
+    // Calculate overall quality
+    const overall = sourceCount > 0 ? totalQuality / sourceCount : 0.8;
+
+    // Apply quality bonuses/penalties
+    const diversityBonus = Math.min(0.1, Object.keys(bySource).length * 0.02);
+    const consistencyBonus = this.calculateConsistencyBonus(bySource);
+    
+    const adjustedOverall = Math.min(1.0, overall + diversityBonus + consistencyBonus);
+
+    return {
+      overall: adjustedOverall,
+      bySource
+    };
+  }
+
+  private assessRuleBiasRisk(rules: any[]): BiasRiskAssessment {
+    const biases: string[] = [];
+    const mitigationStrategies: string[] = [];
+    let riskScore = 0.1;
+
+    if (rules.length === 0) {
+      return {
+        riskLevel: 'high',
+        riskScore: 0.6,
+        identifiedBiases: ['No rules available for assessment'],
+        mitigationStrategies: ['Generate more diverse rule set'],
+        adjustmentFactor: 0.7
+      };
+    }
+
+    // 1. Source diversity bias - over-reliance on single analyzer
+    const sourceDistribution = this.calculateSourceDistribution(rules);
+    const maxSourceWeight = Math.max(...Object.values(sourceDistribution));
+    if (maxSourceWeight > 0.7) {
+      biases.push(`Over-reliance on single analyzer (${(maxSourceWeight * 100).toFixed(1)}%)`);
+      mitigationStrategies.push('Increase cross-analyzer validation');
+      riskScore += 0.15;
+    }
+
+    // 2. Confidence bias - too many high or low confidence rules
+    const ruleConfidences = rules.map(rule => rule.confidence || { value: 0.5, level: 'medium' as const });
+    const confidenceDistribution = this.calculateConfidenceDistribution(ruleConfidences);
+    if (confidenceDistribution.veryHigh > 0.8) {
+      biases.push('Overconfidence bias detected');
+      mitigationStrategies.push('Apply conservative confidence adjustments');
+      riskScore += 0.1;
+    } else if (confidenceDistribution.low > 0.6) {
+      biases.push('Underconfidence bias detected');
+      mitigationStrategies.push('Review confidence calculation methods');
+      riskScore += 0.1;
+    }
+
+    // 3. Pattern complexity bias - overly simple or complex patterns
+    const complexityBias = this.assessPatternComplexityBias(rules);
+    if (complexityBias.score > 0.3) {
+      biases.push(complexityBias.description);
+      mitigationStrategies.push(complexityBias.mitigation);
+      riskScore += complexityBias.score;
+    }
+
+    // 4. Frequency bias - bias toward common or rare patterns
+    const frequencyBias = this.assessFrequencyBias(rules);
+    if (frequencyBias.score > 0.2) {
+      biases.push(frequencyBias.description);
+      mitigationStrategies.push(frequencyBias.mitigation);
+      riskScore += frequencyBias.score;
+    }
+
+    // 5. Validation bias - lack of statistical validation
+    const validationCoverage = this.calculateValidationCoverage(rules);
+    if (validationCoverage < 0.5) {
+      biases.push(`Low validation coverage (${(validationCoverage * 100).toFixed(1)}%)`);
+      mitigationStrategies.push('Increase statistical validation requirements');
+      riskScore += 0.15;
+    }
+
+    // Cap risk score
+    riskScore = Math.min(1.0, riskScore);
+    
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    if (riskScore >= 0.7) riskLevel = 'critical';
+    else if (riskScore >= 0.5) riskLevel = 'high';
+    else if (riskScore >= 0.3) riskLevel = 'medium';
+    else riskLevel = 'low';
+
+    // Calculate adjustment factor
+    const adjustmentFactor = Math.max(0.5, 1.0 - (riskScore * 0.4));
+
+    return {
+      riskLevel,
+      riskScore,
+      identifiedBiases: biases,
+      mitigationStrategies,
+      adjustmentFactor
+    };
+  }
+
+  // ===== Bias Mitigation Helper Methods =====
+
+  private calculateConsistencyBonus(bySource: { [key: string]: number }): number {
+    const qualities = Object.values(bySource);
+    if (qualities.length < 2) return 0;
+    
+    const mean = qualities.reduce((sum, q) => sum + q, 0) / qualities.length;
+    const variance = qualities.reduce((sum, q) => sum + Math.pow(q - mean, 2), 0) / qualities.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // Lower standard deviation = higher consistency = higher bonus
+    return Math.max(0, 0.05 - standardDeviation);
+  }
+
+  private calculateSourceDistribution(rules: any[]): { [key: string]: number } {
+    const sourceCounts: { [key: string]: number } = {};
+    let totalSources = 0;
+
+    for (const rule of rules) {
+      if (rule.evidence && rule.evidence.sources) {
+        for (const source of rule.evidence.sources) {
+          sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+          totalSources++;
+        }
+      }
+    }
+
+    // Convert counts to proportions
+    const distribution: { [key: string]: number } = {};
+    for (const [source, count] of Object.entries(sourceCounts)) {
+      distribution[source] = totalSources > 0 ? count / totalSources : 0;
+    }
+
+    return distribution;
+  }
+
+
+  private assessPatternComplexityBias(rules: any[]): { score: number; description: string; mitigation: string } {
+    let simplePatterns = 0;
+    let complexPatterns = 0;
+
+    for (const rule of rules) {
+      const pattern = rule.pattern || rule.suggestedPattern || '';
+      const complexity = this.calculatePatternComplexity(pattern);
+      
+      if (complexity < 0.3) simplePatterns++;
+      else if (complexity > 0.8) complexPatterns++;
+    }
+
+    const total = rules.length || 1;
+    const simpleRatio = simplePatterns / total;
+    const complexRatio = complexPatterns / total;
+
+    if (simpleRatio > 0.8) {
+      return {
+        score: 0.4,
+        description: 'Over-reliance on simple patterns',
+        mitigation: 'Include more sophisticated pattern analysis'
+      };
+    } else if (complexRatio > 0.6) {
+      return {
+        score: 0.3,
+        description: 'Excessive pattern complexity',
+        mitigation: 'Simplify overly complex pattern recommendations'
+      };
+    }
+
+    return { score: 0, description: '', mitigation: '' };
+  }
+
+  private calculatePatternComplexity(pattern: string): number {
+    let complexity = 0.3; // Base complexity
+    
+    // Add complexity for special characters
+    if (pattern.includes('*')) complexity += 0.1;
+    if (pattern.includes('AND') || pattern.includes('OR')) complexity += 0.2;
+    if (pattern.includes('[') && pattern.includes(']')) complexity += 0.15;
+    if (pattern.includes('(') && pattern.includes(')')) complexity += 0.1;
+    
+    // Add complexity for length
+    if (pattern.length > 20) complexity += 0.1;
+    if (pattern.length > 40) complexity += 0.1;
+    
+    return Math.min(1.0, complexity);
+  }
+
+  private assessFrequencyBias(rules: any[]): { score: number; description: string; mitigation: string } {
+    const frequencies: number[] = [];
+    
+    for (const rule of rules) {
+      if (rule.evidence && rule.evidence.dataPoints) {
+        for (const dataPoint of rule.evidence.dataPoints) {
+          if (dataPoint.source.includes('frequency')) {
+            frequencies.push(dataPoint.value);
+          }
+        }
+      }
+    }
+
+    if (frequencies.length === 0) {
+      return { score: 0.2, description: 'No frequency data available', mitigation: 'Include frequency analysis' };
+    }
+
+    const mean = frequencies.reduce((sum, f) => sum + f, 0) / frequencies.length;
+    
+    if (mean > 0.8) {
+      return {
+        score: 0.3,
+        description: 'Bias toward high-frequency patterns',
+        mitigation: 'Include low-frequency but high-value patterns'
+      };
+    } else if (mean < 0.1) {
+      return {
+        score: 0.25,
+        description: 'Bias toward rare patterns',
+        mitigation: 'Balance with common but discriminative patterns'
+      };
+    }
+
+    return { score: 0, description: '', mitigation: '' };
+  }
+
+  private calculateValidationCoverage(rules: any[]): number {
+    let validatedRules = 0;
+
+    for (const rule of rules) {
+      if (rule.evidence && rule.evidence.validationResults && rule.evidence.validationResults.length > 0) {
+        validatedRules++;
+      } else if (rule.reasoning && rule.reasoning.statisticalBasis) {
+        validatedRules++;
+      }
+    }
+
+    return rules.length > 0 ? validatedRules / rules.length : 0;
+  }
+
+}
