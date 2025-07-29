@@ -2,6 +2,7 @@ import { AnalysisResult } from '../../types/analyzer-interface.js';
 import { BiasSpecificData } from '../../types/bias-analysis-types-v2.js';
 import { formatSubtitle } from '../utils/formatting.js';
 
+
 export function formatForHuman(
   bias: AnalysisResult<BiasSpecificData> | undefined
 ): string {
@@ -84,17 +85,70 @@ export function formatForHuman(
       lines.push('');
     }
     
-    // Platform Specificity Scores (top 5)
-    if (biasData.platformSpecificityScores && biasData.platformSpecificityScores.size > 0) {
-      lines.push('Platform Specificity Scores (Top 5):');
-      const sorted = Array.from(biasData.platformSpecificityScores.entries())
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5);
+    // Platform Affinity Scores - Split into CMS and Non-CMS sections
+    if (biasData.headerCorrelations && biasData.headerCorrelations.size > 0) {
+      const allHeaders = Array.from(biasData.headerCorrelations.entries())
+        .sort(([,a], [,b]) => (b.platformSpecificity.score) - (a.platformSpecificity.score));
       
-      sorted.forEach(([header, score]) => {
-        lines.push(`  - ${header}: ${(score * 100).toFixed(1)}%`);
+      // Separate CMS-specific headers (>90% affinity with known CMS) from others
+      const cmsSpecificHeaders = allHeaders.filter(([_header, correlation]) => {
+        const score = correlation.platformSpecificity.score;
+        const topCMS = correlation.platformSpecificity.discriminativeDetails?.topCMS;
+        
+        return score > 0.9 && topCMS;
       });
-      lines.push('');
+      
+      const otherPlatformHeaders = allHeaders.filter(([_header, correlation]) => {
+        const score = correlation.platformSpecificity.score;
+        const topCMS = correlation.platformSpecificity.discriminativeDetails?.topCMS;
+        
+        return !(score > 0.9 && topCMS);
+      }).slice(0, 5); // Top 5 other headers
+      
+      // CMS-Specific Headers
+      if (cmsSpecificHeaders.length > 0) {
+        lines.push('CMS-Specific Headers (>90% Platform Affinity):');
+        lines.push('  (Headers strongly correlated with specific CMS platforms)');
+        cmsSpecificHeaders.forEach(([header, correlation]) => {
+          const score = correlation.platformSpecificity.score;
+          const details = correlation.platformSpecificity.discriminativeDetails;
+          const topCMS = details?.topCMS || 'Unknown';
+          
+          // Get CMS-specific metrics
+          const cmsMetrics = correlation.perCMSMetrics.get(topCMS);
+          const coverage = cmsMetrics ? (cmsMetrics.frequency * 100).toFixed(1) : 'N/A';
+          const exclusivity = details ? (details.topCMSProbability * 100).toFixed(1) : 'N/A';
+          const sites = correlation.overallMetrics.occurrences;
+          
+          lines.push(`  - ${header}: ${topCMS} (Affinity: ${(score * 100).toFixed(1)}%, Coverage: ${coverage}%, Exclusivity: ${exclusivity}%, Sites: ${sites})`);
+        });
+        lines.push('');
+      }
+      
+      // Other Platform-Specific Headers
+      if (otherPlatformHeaders.length > 0) {
+        lines.push('Other Platform-Specific Headers (Top 5):');
+        lines.push('  (Headers tied to CDN, infrastructure, security, or other platforms)');
+        otherPlatformHeaders.forEach(([header, correlation]) => {
+          const score = correlation.platformSpecificity.score;
+          const sites = correlation.overallMetrics.occurrences;
+          
+          // Determine top platform
+          let topPlatform = 'Mixed';
+          let topPercentage = 0;
+          if (correlation.conditionalProbabilities.cmsGivenHeader.size > 0) {
+            const sortedPlatforms = Array.from(correlation.conditionalProbabilities.cmsGivenHeader.entries())
+              .sort(([, a], [, b]) => b.probability - a.probability);
+            if (sortedPlatforms.length > 0) {
+              topPlatform = sortedPlatforms[0][0];
+              topPercentage = sortedPlatforms[0][1].probability * 100;
+            }
+          }
+          
+          lines.push(`  - ${header}: ${(score * 100).toFixed(1)}% affinity, ${sites} sites, Top: ${topPlatform} (${topPercentage.toFixed(1)}%)`);
+        });
+        lines.push('');
+      }
     }
   }
   
@@ -153,13 +207,17 @@ export function formatForCSV(bias: AnalysisResult<BiasSpecificData> | undefined)
     }
     
     // Platform Specificity Scores (top 10 for CSV)
-    if (biasData.platformSpecificityScores && biasData.platformSpecificityScores.size > 0) {
-      const sorted = Array.from(biasData.platformSpecificityScores.entries())
-        .sort(([,a], [,b]) => b - a)
+    if (biasData.headerCorrelations && biasData.headerCorrelations.size > 0) {
+      const sorted = Array.from(biasData.headerCorrelations.entries())
+        .sort(([,a], [,b]) => (b.platformSpecificity.score) - (a.platformSpecificity.score))
         .slice(0, 10);
       
-      sorted.forEach(([header, score]) => {
-        rows.push(`${header} Specificity,${(score * 100).toFixed(1)}%,Platform Specificity`);
+      sorted.forEach(([header, correlation]) => {
+        const score = correlation.platformSpecificity.score;
+        const topPlatform = correlation.platformSpecificity.discriminativeDetails?.topCMS;
+        
+        const platformDisplay = topPlatform || 'N/A';
+        rows.push(`${header} Specificity,${(score * 100).toFixed(1)}%,Platform Specificity (${platformDisplay})`);
       });
     }
   }
@@ -249,21 +307,114 @@ export function formatForMarkdown(bias: AnalysisResult<BiasSpecificData> | undef
       });
     }
     
-    // Platform Specificity Scores
-    if (biasData.platformSpecificityScores && biasData.platformSpecificityScores.size > 0) {
-      lines.push('### Platform Specificity Scores');
-      lines.push('');
-      lines.push('| Rank | Header | Specificity Score |');
-      lines.push('|------|--------|-------------------|');
+    // Platform Specificity Scores - Split into CMS and Non-CMS tables
+    if (biasData.headerCorrelations && biasData.headerCorrelations.size > 0) {
+      const allHeaders = Array.from(biasData.headerCorrelations.entries())
+        .sort(([,a], [,b]) => (b.platformSpecificity.score) - (a.platformSpecificity.score));
       
-      const sorted = Array.from(biasData.platformSpecificityScores.entries())
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 10);
-      
-      sorted.forEach(([header, score], index) => {
-        lines.push(`| ${index + 1} | \`${header}\` | ${(score * 100).toFixed(1)}% |`);
+      // Separate CMS-specific headers (>90% specificity with known CMS) from others
+      const cmsSpecificHeaders = allHeaders.filter(([_header, correlation]) => {
+        const score = correlation.platformSpecificity.score;
+        const topCMS = correlation.platformSpecificity.discriminativeDetails?.topCMS;
+        
+        return score > 0.9 && topCMS;
       });
-      lines.push('');
+      
+      const otherPlatformHeaders = allHeaders.filter(([_header, correlation]) => {
+        const score = correlation.platformSpecificity.score;
+        const topCMS = correlation.platformSpecificity.discriminativeDetails?.topCMS;
+        
+        return !(score > 0.9 && topCMS);
+      }).slice(0, 10); // Limit other headers to top 10
+      
+      // CMS-Specific Headers Table
+      if (cmsSpecificHeaders.length > 0) {
+        lines.push('### CMS-Specific Headers (>90% Platform Affinity)');
+        lines.push('');
+        lines.push('*Headers that are strongly correlated with specific CMS platforms and likely indicate dataset bias toward those platforms.*');
+        lines.push('');
+        lines.push('| Rank | Header | CMS | Affinity | Coverage | Exclusivity | Sites | P-value |');
+        lines.push('|------|--------|-----|----------|----------|-------------|-------|---------|');
+        
+        cmsSpecificHeaders.forEach(([header, correlation], index) => {
+          const score = correlation.platformSpecificity.score;
+          const details = correlation.platformSpecificity.discriminativeDetails;
+          const topCMS = details?.topCMS || 'Unknown';
+          
+          // Get CMS-specific metrics
+          const cmsMetrics = correlation.perCMSMetrics.get(topCMS);
+          const coverage = cmsMetrics ? (cmsMetrics.frequency * 100).toFixed(1) : 'N/A';
+          const exclusivity = details ? (details.topCMSProbability * 100).toFixed(1) : 'N/A';
+          const sites = correlation.overallMetrics.occurrences;
+          const pValue = cmsMetrics?.isStatisticallySignificant ? '<0.05' : '>0.05';
+          
+          lines.push(`| ${index + 1} | \`${header}\` | ${topCMS} | ${(score * 100).toFixed(1)}% | ${coverage}% | ${exclusivity}% | ${sites} | ${pValue} |`);
+        });
+        lines.push('');
+        lines.push('**Legend:**');
+        lines.push('- **Coverage**: % of CMS sites that have this header');
+        lines.push('- **Exclusivity**: % of sites with this header that use this CMS');
+        lines.push('- **Sites**: Total number of sites with this header');
+        lines.push('- **P-value**: Statistical significance of the correlation');
+        lines.push('');
+      }
+      
+      // Other Platform-Specific Headers Table
+      if (otherPlatformHeaders.length > 0) {
+        lines.push('### Other Platform-Specific Headers');
+        lines.push('');
+        lines.push('*Headers tied to CDN, infrastructure, security, or other non-CMS platforms.*');
+        lines.push('');
+        lines.push('| Rank | Header | Affinity | Sites | Top Platform | Top % | Why Not CMS |');
+        lines.push('|------|--------|----------|-------|--------------|-------|-------------|');
+        
+        otherPlatformHeaders.forEach(([header, correlation], index) => {
+          const score = correlation.platformSpecificity.score;
+          const sites = correlation.overallMetrics.occurrences;
+          
+          // Determine top platform from conditional probabilities
+          let topPlatform = 'Mixed';
+          let topPercentage = 0;
+          let whyNotCMS = 'Low coverage';
+          
+          if (correlation.conditionalProbabilities.cmsGivenHeader.size > 0) {
+            // Find the top platform (including non-CMS)
+            const sortedPlatforms = Array.from(correlation.conditionalProbabilities.cmsGivenHeader.entries())
+              .sort(([, a], [, b]) => b.probability - a.probability);
+            
+            if (sortedPlatforms.length > 0) {
+              topPlatform = sortedPlatforms[0][0];
+              topPercentage = sortedPlatforms[0][1].probability * 100;
+              
+              // Determine why it's not CMS-specific
+              if (topPlatform === 'Unknown' || topPlatform === 'undefined') {
+                whyNotCMS = 'No CMS detected';
+              } else if (['CDN', 'Enterprise'].includes(topPlatform)) {
+                whyNotCMS = 'Infrastructure';
+              } else if (topPercentage < 40) {
+                whyNotCMS = 'Low concentration';
+              } else if (sites < 30) {
+                whyNotCMS = 'Small sample';
+              } else {
+                // Check coverage on the top CMS
+                const cmsMetrics = correlation.perCMSMetrics.get(topPlatform);
+                if (cmsMetrics && cmsMetrics.frequency < 0.1) {
+                  whyNotCMS = 'Low CMS coverage';
+                }
+              }
+            }
+          }
+          
+          lines.push(`| ${index + 1} | \`${header}\` | ${(score * 100).toFixed(1)}% | ${sites} | ${topPlatform} | ${topPercentage.toFixed(1)}% | ${whyNotCMS} |`);
+        });
+        lines.push('');
+        lines.push('**Legend:**');
+        lines.push('- **Sites**: Total number of sites with this header');
+        lines.push('- **Top Platform**: Most common platform/CMS for sites with this header');
+        lines.push('- **Top %**: Percentage of sites with this header that have the top platform');
+        lines.push('- **Why Not CMS**: Reason this header isn\'t in the CMS-specific table');
+        lines.push('');
+      }
     }
   }
   

@@ -6,6 +6,9 @@ import * as filteringSection from '../sections/filtering-section.js';
 import * as headersSection from '../sections/headers-section.js';
 import * as metaSection from '../sections/meta-tags-section.js';
 import * as scriptsSection from '../sections/scripts-section.js';
+import * as semanticSection from '../sections/semantic-section.js';
+import * as patternDiscoverySection from '../sections/pattern-discovery-section.js';
+import * as technologiesSection from '../sections/technologies-section.js';
 import * as biasSection from '../sections/bias-section.js';
 
 export function formatMarkdown(
@@ -50,7 +53,31 @@ export function formatMarkdown(
     }
   }
   
-  // 6. Bias section (if enabled)
+  // 6. Semantic section
+  if (result.semantic) {
+    const semanticContent = semanticSection.formatForMarkdown(result.semantic, options.maxItemsPerSection);
+    if (semanticContent) {
+      sections.push(semanticContent);
+    }
+  }
+  
+  // 7. Pattern discovery section
+  if (result.discovery) {
+    const discoveryContent = patternDiscoverySection.formatForMarkdown(result.discovery, options.maxItemsPerSection);
+    if (discoveryContent) {
+      sections.push(discoveryContent);
+    }
+  }
+  
+  // 8. Technologies section
+  if (result.technologies) {
+    const techContent = technologiesSection.formatForMarkdown(result.technologies, options.maxItemsPerSection);
+    if (techContent) {
+      sections.push(techContent);
+    }
+  }
+  
+  // 9. Bias section (if enabled)
   if (options.includeRecommendations && result.correlations) {
     const biasContent = biasSection.formatForMarkdown(result.correlations);
     if (biasContent) {

@@ -5,6 +5,9 @@ import * as filteringSection from '../sections/filtering-section.js';
 import * as headersSection from '../sections/headers-section.js';
 import * as metaSection from '../sections/meta-tags-section.js';
 import * as scriptsSection from '../sections/scripts-section.js';
+import * as semanticSection from '../sections/semantic-section.js';
+import * as patternDiscoverySection from '../sections/pattern-discovery-section.js';
+import * as technologiesSection from '../sections/technologies-section.js';
 import * as biasSection from '../sections/bias-section.js';
 
 export function formatHuman(
@@ -67,14 +70,44 @@ export function formatHuman(
     });
   }
   
-  // 6. Bias analysis (if available and enabled)
+  // 6. Semantic analysis (if available)
+  const semanticContent = semanticSection.formatForHuman(result.semantic, options.maxItemsPerSection);
+  if (semanticContent) {
+    sections.push({
+      title: 'Semantic Analysis',
+      content: semanticContent,
+      priority: 6
+    });
+  }
+  
+  // 7. Pattern discovery analysis (if available)
+  const patternDiscoveryContent = patternDiscoverySection.formatForHuman(result.discovery, options.maxItemsPerSection);
+  if (patternDiscoveryContent) {
+    sections.push({
+      title: 'Pattern Discovery',
+      content: patternDiscoveryContent,
+      priority: 7
+    });
+  }
+  
+  // 8. Technologies analysis (if available)
+  const technologiesContent = technologiesSection.formatForHuman(result.technologies, options.maxItemsPerSection);
+  if (technologiesContent) {
+    sections.push({
+      title: 'Technologies',
+      content: technologiesContent,
+      priority: 8
+    });
+  }
+  
+  // 9. Bias analysis (if available and enabled)
   if (options.includeRecommendations) {
     const biasContent = biasSection.formatForHuman(result.correlations);
     if (biasContent) {
       sections.push({
         title: 'Bias Analysis',
         content: biasContent,
-        priority: 6
+        priority: 9
       });
     }
   }

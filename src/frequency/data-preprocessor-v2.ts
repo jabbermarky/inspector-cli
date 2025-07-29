@@ -26,6 +26,10 @@ export interface HeaderClassification {
 }
 // Types for the analysis data we need
 interface CMSAnalysisData {
+  // Direct headers field (current structure)
+  httpHeaders?: Record<string, string | string[]>;
+  
+  // Nested structure (legacy/alternative)
   pageData?: {
     httpInfo?: {
       headers?: Record<string, string | string[]>;
@@ -502,8 +506,8 @@ export class DataPreprocessor {
       const technologies = new Set<string>();
 
       // Process headers - Handle both mainpage and robots.txt headers
-      // Mainpage headers
-      const httpHeaders = (data as any).httpHeaders || data.pageData?.httpInfo?.headers;
+      // Mainpage headers - Check both possible locations (direct httpHeaders or nested in pageData)
+      const httpHeaders = data.httpHeaders || data.pageData?.httpInfo?.headers;
       if (httpHeaders) {
         for (const [name, value] of Object.entries(httpHeaders)) {
           const normalizedName = name.toLowerCase();

@@ -6,6 +6,9 @@ import * as filteringSection from '../sections/filtering-section.js';
 import * as headersSection from '../sections/headers-section.js';
 import * as metaSection from '../sections/meta-tags-section.js';
 import * as scriptsSection from '../sections/scripts-section.js';
+import * as semanticSection from '../sections/semantic-section.js';
+import * as patternDiscoverySection from '../sections/pattern-discovery-section.js';
+import * as technologiesSection from '../sections/technologies-section.js';
 import * as biasSection from '../sections/bias-section.js';
 
 export function formatCSV(
@@ -60,7 +63,37 @@ export function formatCSV(
     }
   }
   
-  // 6. Bias section (if enabled)
+  // 6. Semantic section
+  if (result.semantic) {
+    const semanticRows = semanticSection.formatForCSV(result.semantic);
+    if (semanticRows.length > 0) {
+      sections.push('# Semantic Analysis');
+      sections.push(...semanticRows);
+      sections.push(''); // Empty line separator
+    }
+  }
+  
+  // 7. Pattern discovery section
+  if (result.discovery) {
+    const discoveryRows = patternDiscoverySection.formatForCSV(result.discovery);
+    if (discoveryRows.length > 0) {
+      sections.push('# Pattern Discovery');
+      sections.push(...discoveryRows);
+      sections.push(''); // Empty line separator
+    }
+  }
+  
+  // 8. Technologies section
+  if (result.technologies) {
+    const techRows = technologiesSection.formatForCSV(result.technologies);
+    if (techRows.length > 0) {
+      sections.push('# Technologies');
+      sections.push(...techRows);
+      sections.push(''); // Empty line separator
+    }
+  }
+  
+  // 9. Bias section (if enabled)
   if (options.includeRecommendations && result.correlations) {
     const biasRows = biasSection.formatForCSV(result.correlations);
     if (biasRows.length > 0) {
