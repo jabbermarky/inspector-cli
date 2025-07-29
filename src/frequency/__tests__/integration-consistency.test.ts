@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FrequencyAggregator } from '../frequency-aggregator.js';
-import { DataPreprocessor } from '../data-preprocessor.js';
+import { FrequencyAggregator } from '../frequency-aggregator-v2.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
 import type { PreprocessedData } from '../types/analyzer-interface.js';
-import type { FrequencyOptions } from '../types.js';
+import type { FrequencyOptions } from '../types-v1.js';
 
 // Mock the DataPreprocessor to provide controlled test data
 vi.mock('../data-preprocessor.js');

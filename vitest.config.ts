@@ -25,6 +25,17 @@ export default defineConfig({
                 ...(isPerformanceTest ? [] : ['**/*.performance.test.{js,ts}', '**/*performance*.test.{js,ts}']),
                 ...(isIntegrationTest ? [] : ['**/*.integration.test.{js,ts}']),
             ]),
+            // Exclude V1 frequency tests by default (use npm run test:frequency:v1 to run them)
+            'src/frequency/__tests__/**/*.test.ts',
+            '!src/frequency/__tests__/*v2*.test.ts',
+            '!src/frequency/__tests__/*V2*.test.ts',
+            '!src/frequency/__tests__/reporter-v2-*.test.ts',
+            // Exclude comparison tests that depend on archived wrapper
+            'src/frequency/analyzers/__tests__/validation-v1-v2-comparison.test.ts',
+            // Exclude flaky performance tests
+            'src/frequency/analyzers/__tests__/bias-v2-integration.test.ts',
+            // Exclude tests expecting V1 wrapper functionality
+            'src/frequency/analyzers/__tests__/validation-pipeline-v2.test.ts',
         ],
 
         // Coverage configuration

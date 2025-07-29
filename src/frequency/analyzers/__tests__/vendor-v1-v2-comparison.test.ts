@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VendorAnalyzerV2 } from '../vendor-analyzer-v2.js';
-import { findVendorByHeader, analyzeVendorPresence, inferTechnologyStack } from '../../vendor-patterns.js';
+import { findVendorByHeader, analyzeVendorPresence, inferTechnologyStack } from '../../vendor-patterns-v1.js';
 import type { PreprocessedData, AnalysisOptions } from '../../types/analyzer-interface.js';
 
 // Mock logger

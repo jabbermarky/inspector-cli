@@ -5,10 +5,10 @@
 
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { RecommendationsCoordinator } from '../analyzers/recommendations-coordinator.js';
-import { FrequencyAggregator } from '../frequency-aggregator.js';
-import { DataPreprocessor } from '../data-preprocessor.js';
+import { FrequencyAggregator } from '../frequency-aggregator-v2.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
 import type { AggregatedResults, FrequencyOptions } from '../types/analyzer-interface.js';
-import type { DetectionDataPoint } from '../types.js';
+import type { DetectionDataPoint } from '../types-v1.js';
 
 // Mock only external dependencies, use real business logic
 vi.mock('../../logger.js', () => ({

@@ -6,8 +6,8 @@
 
 import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { analyzeFrequencyV2 } from '../analyzer-v2.js';
-import { DataPreprocessor } from '../data-preprocessor.js';
-import type { FrequencyOptions, FrequencyResult } from '../types.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
+import type { FrequencyOptions, FrequencyResult } from '../types-v1.js';
 
 // Mock logger to reduce test noise
 vi.mock('../../utils/logger.js', () => ({

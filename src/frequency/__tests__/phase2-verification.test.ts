@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeDatasetBias } from '../bias-detector.js';
-import { generateRecommendations } from '../recommender.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+import { analyzeDatasetBias } from '../bias-detector-v1.js';
+import { generateRecommendations } from '../recommender-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 
 describe('Phase 2 Verification: Correlation Fix Complete', () => {
   it('should correctly handle the original set-cookie scenario from frequency report', async () => {

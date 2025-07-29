@@ -4,7 +4,7 @@ import {
   batchAnalyzeHeaders, 
   generateSemanticInsights,
   type HeaderPrimaryCategory 
-} from '../semantic-analyzer.js';
+} from '../semantic-analyzer-v1.js';
 
 describe('Semantic Analyzer', () => {
   describe('Header Semantic Analysis', () => {

@@ -3,8 +3,8 @@ import {
   analyzeCMSCorrelatedScripts,
   type CMSCorrelatedPattern,
   type CMSDetectionRecommendations
-} from '../cms-enhanced-script-analyzer.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+} from '../cms-enhanced-script-analyzer-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 import { setupCommandTests } from '@test-utils';
 
 // Mock logger

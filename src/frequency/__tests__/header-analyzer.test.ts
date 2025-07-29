@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { analyzeHeaders } from '../header-analyzer.js';
+import { analyzeHeaders } from '../header-analyzer-v1.js';
 import { DetectionDataPoint } from '../../utils/cms/analysis/types.js';
 import { setupCommandTests } from '@test-utils';
 

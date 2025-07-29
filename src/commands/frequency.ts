@@ -117,7 +117,7 @@ program
             // If no output file specified, print to console manually
             if (!frequencyOptions.outputFile) {
                 const { formatOutputV2: formatOutput } = await import(
-                    '../frequency/reporter-v2.js'
+                    '../frequency/simple-reporter-v2.js'
                 );
                 await formatOutput(result, frequencyOptions);
                 logger.info('Frequency analysis completed successfully');

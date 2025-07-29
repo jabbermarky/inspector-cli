@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DataPreprocessor } from '../data-preprocessor.js';
-import { isEnterpriseInfrastructureHeader } from '../bias-detector.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
+import { isEnterpriseInfrastructureHeader } from '../bias-detector-v1.js';
 import { GENERIC_HTTP_HEADERS } from '../../learn/filtering.js';
 
 describe('Cross-System Header Classification Consistency', () => {

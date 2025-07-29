@@ -15,7 +15,7 @@ import {
   SanityValidationStage,
   SignificanceValidationStage,
   RecommendationValidationStage
-} from '../validation-stages.js';
+} from '../validation-stages-v2.js';
 import type { PreprocessedData, AnalysisOptions } from '../../types/analyzer-interface.js';
 
 // Mock logger

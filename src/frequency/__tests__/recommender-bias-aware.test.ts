@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { generateRecommendations, type RecommendationInput } from '../recommender.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
-import type { HeaderPattern } from '../header-analyzer.js';
-import type { DatasetBiasAnalysis, HeaderCMSCorrelation, CMSDistribution } from '../bias-detector.js';
+import { generateRecommendations, type RecommendationInput } from '../recommender-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
+import type { HeaderPattern } from '../header-analyzer-v1.js';
+import type { DatasetBiasAnalysis, HeaderCMSCorrelation, CMSDistribution } from '../bias-detector-v1.js';
 import { setupCommandTests } from '@test-utils';
 import { WEB_TECH_SURVEY_DATA, REALISTIC_FREQUENCY_PATTERNS } from './fixtures/ground-truth.js';
 

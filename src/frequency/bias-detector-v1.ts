@@ -598,7 +598,7 @@ function assessRecommendationConfidence(
 /**
  * Calculate website category based on headers and detection results
  */
-function calculateWebsiteCategoryV1(
+export function calculateWebsiteCategoryV1(
     headers: Record<string, string> | undefined,
     detectionResults: any[] | undefined
 ): 'cms' | 'enterprise' | 'cdn' | 'unknown' {

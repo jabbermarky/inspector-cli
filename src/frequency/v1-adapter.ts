@@ -24,7 +24,8 @@ export async function convertV2ToV1Format(
 ): Promise<FrequencyResult> {
     // Convert header patterns to legacy format
     const headerPatterns: any = {};
-    for (const [name, pattern] of aggregatedResults.headers.patterns) {
+    if (aggregatedResults.headers?.patterns) {
+        for (const [name, pattern] of aggregatedResults.headers.patterns) {
         // Use new value frequency data from analyzer metadata
         const valueFrequencies = pattern.metadata?.valueFrequencies;
         let valuesArray: any[] = [];
@@ -102,11 +103,13 @@ export async function convertV2ToV1Format(
                 robots: 0.0,
             },
         };
+        }
     }
 
     // Convert meta tag patterns to legacy format
     const metaPatterns: any = {};
-    for (const [name, pattern] of aggregatedResults.metaTags.patterns) {
+    if (aggregatedResults.metaTags?.patterns) {
+        for (const [name, pattern] of aggregatedResults.metaTags.patterns) {
         // Use new value frequency data from analyzer metadata
         const valueFrequencies = pattern.metadata?.valueFrequencies;
         let valuesArray: any[] = [];
@@ -183,6 +186,7 @@ export async function convertV2ToV1Format(
             totalSites: aggregatedResults.metaTags.totalSites,
             values: valuesArray,
         };
+        }
     }
 
     // Convert script patterns to legacy format

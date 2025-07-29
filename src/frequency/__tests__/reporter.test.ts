@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { formatOutput } from '../reporter.js';
+import { formatOutput } from '../reporter-v1.js';
 import { writeFile } from 'fs/promises';
 import type { 
   FrequencyResult, 
@@ -10,7 +10,7 @@ import type {
   SemanticInsights,
   VendorStats,
   TechnologyStack
-} from '../types.js';
+} from '../types-v1.js';
 import { setupCommandTests } from '@test-utils';
 
 // Mock dependencies

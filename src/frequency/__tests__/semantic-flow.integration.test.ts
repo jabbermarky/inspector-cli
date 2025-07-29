@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { analyzeHeaders } from '../header-analyzer.js';
-import { batchAnalyzeHeaders, generateSemanticInsights } from '../semantic-analyzer.js';
+import { analyzeHeaders } from '../header-analyzer-v1.js';
+import { batchAnalyzeHeaders, generateSemanticInsights } from '../semantic-analyzer-v1.js';
 import { analyzeVendorPresence, inferTechnologyStack } from '../vendor-patterns.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 import { setupCommandTests } from '@test-utils';
 
 // Only mock logger - keep all semantic analysis logic real

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { analyzeFrequency } from '../analyzer.js';
-import type { DetectionDataPoint } from '../types.js';
+import { analyzeFrequency } from '../analyzer-v1.js';
+import type { DetectionDataPoint } from '../types-v1.js';
 
 // Mock the modules to avoid file system dependencies in tests
 vi.mock('../collector.js');

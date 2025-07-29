@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { collectData } from '../collector.js';
+import { collectData } from '../collector-v1.js';
 import { DataStorage } from '../../utils/cms/analysis/storage.js';
 import { AnalysisReporter } from '../../utils/cms/analysis/reports.js';
 import { setupCommandTests } from '@test-utils';

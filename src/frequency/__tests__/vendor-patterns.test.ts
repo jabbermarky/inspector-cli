@@ -5,7 +5,7 @@ import {
   getVendorsByCategory,
   analyzeVendorPresence,
   inferTechnologyStack
-} from '../vendor-patterns.js';
+} from '../vendor-patterns-v1.js';
 
 describe('Vendor Patterns', () => {
   describe('Vendor Database', () => {

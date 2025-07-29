@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SanityValidationStage } from '../validation-stages.js';
+import { SanityValidationStage } from '../validation-stages-v2.js';
 import type { 
   PreprocessedData, 
   AnalysisOptions, 

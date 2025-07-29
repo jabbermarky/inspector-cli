@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ValidationPipelineV2Native } from '../validation-pipeline-v2-native.js';
-import { ValidationPipelineV2 } from '../validation-pipeline-v2.js';
+import { ValidationPipelineV2 } from '../validation-pipeline-v2-native.js';
 import type { PreprocessedData, AnalysisOptions } from '../../types/analyzer-interface.js';
 
 describe('V1 vs V2 Validation Comparison', () => {

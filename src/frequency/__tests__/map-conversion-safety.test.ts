@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DataPreprocessor } from '../data-preprocessor.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
 import type { SiteData } from '../types/analyzer-interface.js';
 
 describe('Map Conversion Safety', () => {

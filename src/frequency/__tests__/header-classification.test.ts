@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DataPreprocessor, type HeaderClassification } from '../data-preprocessor.js';
+import { DataPreprocessor, type HeaderClassification } from '../data-preprocessor-v2.js';
 
 describe('Header Classification System', () => {
   let preprocessor: DataPreprocessor;

@@ -4,10 +4,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { analyzeFrequencyV2 } from '../analyzer-v2.js';
-import { FrequencyAggregator } from '../frequency-aggregator.js';
-import { DataPreprocessor } from '../data-preprocessor.js';
+import { FrequencyAggregator } from '../frequency-aggregator-v2.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
 import { RecommendationsCoordinator } from '../analyzers/recommendations-coordinator.js';
-import { formatOutput } from '../reporter.js';
+import { formatOutput } from '../reporter-v1.js';
 import type { FrequencyOptions } from '../types-v1.js';
 
 // Mock the FrequencyAggregator
@@ -186,7 +186,6 @@ describe('AnalyzerV2', () => {
     });
   });
 
-  describe('Backward Compatibility', () => {
   describe('Error Handling', () => {
     it('should propagate aggregator errors', async () => {
       const error = new Error('Aggregator failed');

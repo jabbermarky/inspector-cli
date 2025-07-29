@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SanityChecker, runSanityChecks, validateCorrelation } from '../sanity-checks.js';
-import { StatisticalTester, testCorrelationSignificance, testMultipleCorrelations } from '../statistical-tests.js';
-import { AnalysisPipeline, runStandardPipeline, AnalysisStage } from '../analysis-pipeline.js';
-import type { HeaderCMSCorrelation, CMSDistribution, DatasetBiasAnalysis } from '../bias-detector.js';
-import type { DetectionDataPoint } from '../types.js';
+import { SanityChecker, runSanityChecks, validateCorrelation } from '../sanity-checks-v1.js';
+import { StatisticalTester, testCorrelationSignificance, testMultipleCorrelations } from '../statistical-tests-v1.js';
+import { AnalysisPipeline, runStandardPipeline, AnalysisStage } from '../analysis-pipeline-v1.js';
+import type { HeaderCMSCorrelation, CMSDistribution, DatasetBiasAnalysis } from '../bias-detector-v1.js';
+import type { DetectionDataPoint } from '../types-v1.js';
 
 // Mock logger to avoid actual logging during tests
 vi.mock('../../utils/logger.js', () => ({

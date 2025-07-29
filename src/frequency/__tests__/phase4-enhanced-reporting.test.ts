@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { formatOutput } from '../reporter.js';
-import { analyzeDatasetBias } from '../bias-detector.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults, FrequencyResult } from '../types.js';
+import { formatOutput } from '../reporter-v1.js';
+import { analyzeDatasetBias } from '../bias-detector-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults, FrequencyResult } from '../types-v1.js';
 
 describe('Phase 4: Enhanced Reporting', () => {
   it('should include calculation transparency in recommendations', async () => {

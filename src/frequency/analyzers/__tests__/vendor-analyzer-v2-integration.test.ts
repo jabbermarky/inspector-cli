@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VendorAnalyzerV2 } from '../vendor-analyzer-v2.js';
-import { FrequencyAggregator } from '../../frequency-aggregator.js';
+import { FrequencyAggregator } from '../../frequency-aggregator-v2.js';
 import { CooccurrenceAnalyzerV2 } from '../cooccurrence-analyzer-v2.js';
 import { SemanticAnalyzerV2 } from '../semantic-analyzer-v2.js';
 import type { PreprocessedData, AnalysisOptions } from '../../types/analyzer-interface.js';

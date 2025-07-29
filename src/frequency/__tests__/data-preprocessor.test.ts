@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { DataPreprocessor } from '../data-preprocessor.js';
+import { DataPreprocessor } from '../data-preprocessor-v2.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import type { PreprocessedData, SiteData } from '../types/analyzer-interface.js';

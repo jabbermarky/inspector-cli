@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { 
-  analyzeDatasetBias, 
-  isEnterpriseInfrastructureHeader, 
-  calculateWebsiteCategory,
-  type DatasetBiasAnalysis,
-  type CMSDistribution,
-  type HeaderCMSCorrelation
-} from '../bias-detector.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+import {
+    analyzeDatasetBiasV1 as analyzeDatasetBias,
+    calculateWebsiteCategoryV1 as calculateWebsiteCategory,
+//    type DatasetBiasAnalysis,
+//    type CMSDistribution,
+//    type HeaderCMSCorrelation,
+} from '../bias-detector-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 import { setupCommandTests } from '@test-utils';
 
 // Mock logger

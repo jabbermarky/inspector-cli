@@ -5,10 +5,8 @@
 
 import { createModuleLogger } from '../utils/logger.js';
 import { FrequencyAggregator } from './frequency-aggregator-v2.js';
-import { RecommendationsCoordinator } from './analyzers/recommendations-coordinator.js';
-import { convertV2ToV1Format, prepareSharedDataPoints } from './v1-adapter.js';
-import type { FrequencyOptions, FrequencyResult } from './types/frequency-types-v2.js';
-import type { DetectionDataPoint } from '../utils/cms/analysis/types.js';
+import type { FrequencyOptions } from './types/frequency-types-v2.js';
+import type { AggregatedResults } from './types/analyzer-interface.js';
 
 const logger = createModuleLogger('frequency-analyzer-v2');
 
@@ -16,7 +14,7 @@ const logger = createModuleLogger('frequency-analyzer-v2');
  * Main frequency analysis function using the new architecture
  * This replaces the old analyzeFrequency function
  */
-export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promise<FrequencyResult> {
+export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promise<AggregatedResults> {
     const startTime = performance.now();
 
     logger.info('Starting frequency analysis V2', { options });
@@ -28,48 +26,16 @@ export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promis
         // Run analysis with new architecture
         const aggregatedResults = await aggregator.analyze(options);
 
-        // Load data points once for both recommendation calls
-        let sharedDataPoints: DetectionDataPoint[] = [];
-        let biasAnalysis = null;
-
-        if (options.includeRecommendations !== false) {
-            sharedDataPoints = await prepareSharedDataPoints(options);
-        }
-        if (options.includeRecommendations !== false) {
-            try {
-                const coordinator = new RecommendationsCoordinator();
-
-                const result = await coordinator.generateRecommendations(
-                    aggregatedResults,
-                    sharedDataPoints,
-                    options
-                );
-                biasAnalysis = result.biasAnalysis;
-            } catch (error) {
-                logger.warn('Failed to generate recommendations', {
-                    error: (error as Error).message,
-                });
-            }
-        }
-        // Convert to legacy format for backward compatibility
-        const legacyResult = await convertV2ToV1Format(
-            aggregatedResults,
-            options,
-            biasAnalysis,
-            sharedDataPoints
-        );
-        //TODO: create formatOutputV2 for the V2 analyzer and remove this conversion
-
-        // Output results to file if specified (using V2 reporter)
+        // Output results to file if specified (using simple V2 reporter)
         if (options.outputFile) {
-            const { formatOutputV2: formatOutput } = await import('./reporter-v2.js');
-            await formatOutput(legacyResult, options);
+            const { formatOutputV2: formatOutput } = await import('./simple-reporter-v2.js');
+            await formatOutput(aggregatedResults, options);
         }
 
         const duration = performance.now() - startTime;
         logger.info(`Frequency analysis V2 completed in ${duration.toFixed(2)}ms`);
 
-        return legacyResult;
+        return aggregatedResults;
     } catch (error) {
         logger.error('Frequency analysis V2 failed', { error: (error as Error).message });
         throw error;

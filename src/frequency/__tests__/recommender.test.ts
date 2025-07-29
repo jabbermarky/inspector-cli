@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { generateRecommendations } from '../recommender.js';
+import { generateRecommendations } from '../recommender-v1.js';
 import { GENERIC_HTTP_HEADERS } from '../../learn/filtering.js';
 import { setupCommandTests } from '@test-utils';
 

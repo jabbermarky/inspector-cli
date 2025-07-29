@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeDatasetBias } from '../bias-detector.js';
-import { generateRecommendations } from '../recommender.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+import { analyzeDatasetBias } from '../bias-detector-v1.js';
+import { generateRecommendations } from '../recommender-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 
 describe('Correlation Fix: P(CMS|header) vs P(header|CMS)', () => {
   it('should NOT recommend set-cookie with only 5.4% Joomla correlation', async () => {

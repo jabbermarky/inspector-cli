@@ -6,8 +6,8 @@ import {
   type PatternEvolution,
   type SemanticAnomaly,
   type PatternDiscoveryAnalysis
-} from '../pattern-discovery.js';
-import type { DetectionDataPoint } from '../types.js';
+} from '../pattern-discovery-v1.js';
+import type { DetectionDataPoint } from '../types-v1.js';
 
 // Helper function to create test data points
 function createTestDataPoint(

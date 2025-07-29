@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import type { FrequencyResult, FrequencyOptionsWithDefaults } from '../types.js';
+import type { FrequencyResult, FrequencyOptionsWithDefaults } from '../types-v1.js';
 
 describe('Phase 1.2: Data Consistency Audit', () => {
   let result: FrequencyResult;

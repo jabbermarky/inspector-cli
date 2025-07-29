@@ -1,0 +1,223 @@
+/**
+ * V2 Reporter Adapter
+ * Minimal conversion from AggregatedResults (native V2) to reporter-compatible format
+ * This is a lightweight adapter specifically for the reporter, not a full V1 conversion
+ */
+
+import type { AggregatedResults } from './types/analyzer-interface.js';
+
+export interface ReporterCompatibleResult {
+    summary: {
+        totalSitesAnalyzed: number;
+        totalPatternsFound: number;
+        analysisDate: string;
+        filteringStats?: {
+            sitesFilteredOut: number;
+            filterReasons: Record<string, number>;
+            sitesFiltered: number;
+            sitesBeforeFiltering: number;
+            sitesAfterFiltering: number;
+            reasonsForFiltering: Record<string, number>;
+        };
+    };
+    headers: Record<string, {
+        frequency: number;
+        occurrences: number;
+        totalSites: number;
+        values: Array<{
+            value: string;
+            frequency: number;
+            occurrences: number;
+            examples: string[];
+        }>;
+        pageDistribution?: {
+            mainpage: number;
+            robots: number;
+        };
+    }>;
+    metaTags: Record<string, {
+        frequency: number;
+        occurrences: number;
+        totalSites: number;
+        values: Array<{
+            value: string;
+            frequency: number;
+            occurrences: number;
+            examples: string[];
+        }>;
+    }>;
+    scripts: Record<string, {
+        frequency: number;
+        occurrences: number;
+        totalSites: number;
+        examples: string[];
+    }>;
+    biasAnalysis?: {
+        cmsDistribution: {
+            distributions: Map<string, { percentage: number; count: number }>;
+            totalSites: number;
+            concentrationScore: number;
+            dominantPlatforms: string[];
+        };
+        concentrationMetrics: {
+            herfindahlIndex: number;
+            overallBiasRisk: string;
+        };
+        headerCorrelations: Map<string, any>;
+        biasWarnings: string[];
+    };
+    recommendations?: any;
+    filteringReport?: {
+        sitesFilteredOut: number;
+        filterReasons: Record<string, number>;
+        sitesFiltered: number;
+        sitesBeforeFiltering: number;
+        sitesAfterFiltering: number;
+        reasonsForFiltering: Record<string, number>;
+    };
+    metadata?: {
+        totalSites: number;
+        validSites: number;
+        filteredSites: number;
+        analysisDate: string;
+        options: any;
+        temporalRange?: any;
+    };
+}
+
+/**
+ * Convert AggregatedResults to reporter-compatible format
+ */
+export function convertForReporter(result: AggregatedResults): ReporterCompatibleResult {
+    // Convert header patterns to legacy format
+    const headerPatterns: Record<string, any> = {};
+    if (result.headers?.patterns) {
+        for (const [name, pattern] of result.headers.patterns) {
+            // Use value frequency data from pattern metadata
+            const valueFrequencies = pattern.metadata?.valueFrequencies;
+            let valuesArray: any[] = [];
+
+            if (valueFrequencies && valueFrequencies.size > 0) {
+                const valueEntries = Array.from(valueFrequencies as Map<string, number>);
+                const allValues = valueEntries
+                    .map(([value, siteCount]) => ({
+                        value,
+                        frequency: siteCount / (result.headers?.totalSites || 1),
+                        occurrences: siteCount,
+                        examples: [`${name}: ${value}`],
+                    }))
+                    .sort((a, b) => b.occurrences - a.occurrences);
+
+                valuesArray = allValues.slice(0, 5);
+            }
+
+            // If no values, create default entry
+            if (valuesArray.length === 0) {
+                valuesArray.push({
+                    value: '<no-value>',
+                    frequency: pattern.frequency,
+                    occurrences: pattern.siteCount,
+                    examples: Array.from(pattern.examples || []).slice(0, 3) as string[],
+                });
+            }
+
+            headerPatterns[name] = {
+                frequency: pattern.frequency,
+                occurrences: pattern.siteCount,
+                totalSites: result.headers?.totalSites || 0,
+                values: valuesArray,
+                pageDistribution: pattern.metadata?.pageDistribution || {
+                    mainpage: 1.0,
+                    robots: 0.0,
+                },
+            };
+        }
+    }
+
+    // Convert meta tag patterns to legacy format
+    const metaPatterns: Record<string, any> = {};
+    if (result.metaTags?.patterns) {
+        for (const [name, pattern] of result.metaTags.patterns) {
+            const valueFrequencies = pattern.metadata?.valueFrequencies;
+            let valuesArray: any[] = [];
+
+            if (valueFrequencies && valueFrequencies.size > 0) {
+                const valueEntries = Array.from(valueFrequencies as Map<string, number>);
+                const allValues = valueEntries
+                    .map(([value, siteCount]) => ({
+                        value,
+                        frequency: siteCount / (result.metaTags?.totalSites || 1),
+                        occurrences: siteCount,
+                        examples: [`${name}="${value}"`],
+                    }))
+                    .sort((a, b) => b.occurrences - a.occurrences);
+
+                valuesArray = allValues.slice(0, 5);
+            }
+
+            if (valuesArray.length === 0) {
+                valuesArray.push({
+                    value: '<no-value>',
+                    frequency: pattern.frequency,
+                    occurrences: pattern.siteCount,
+                    examples: Array.from(pattern.examples || []).slice(0, 3) as string[],
+                });
+            }
+
+            metaPatterns[name] = {
+                frequency: pattern.frequency,
+                occurrences: pattern.siteCount,
+                totalSites: result.metaTags?.totalSites || 0,
+                values: valuesArray,
+            };
+        }
+    }
+
+    // Convert script patterns to legacy format
+    const scriptPatterns: Record<string, any> = {};
+    if (result.scripts?.patterns) {
+        for (const [name, pattern] of result.scripts.patterns) {
+            scriptPatterns[name] = {
+                frequency: pattern.frequency,
+                occurrences: pattern.siteCount,
+                totalSites: result.scripts?.totalSites || 0,
+                examples: Array.from(pattern.examples || []).slice(0, 5) as string[],
+            };
+        }
+    }
+
+    return {
+        summary: {
+            totalSitesAnalyzed: result.summary?.totalSitesAnalyzed || 0,
+            totalPatternsFound: result.summary?.totalPatternsFound || 0,
+            analysisDate: new Date().toISOString(),
+            filteringStats: result.summary?.filteringStats ? {
+                sitesFilteredOut: result.summary.filteringStats.sitesFilteredOut || 0,
+                filterReasons: result.summary.filteringStats.filterReasons || {},
+                sitesFiltered: result.summary.filteringStats.sitesFilteredOut || 0,
+                sitesBeforeFiltering: (result.summary.totalSitesAnalyzed || 0) + (result.summary.filteringStats.sitesFilteredOut || 0),
+                sitesAfterFiltering: result.summary.totalSitesAnalyzed || 0,
+                reasonsForFiltering: result.summary.filteringStats.filterReasons || {},
+            } : undefined,
+        },
+        headers: headerPatterns,
+        metaTags: metaPatterns,
+        scripts: scriptPatterns,
+        biasAnalysis: undefined, // TODO: Implement proper bias analysis conversion from V2 to reporter format
+        filteringReport: {
+            sitesFilteredOut: result.summary?.filteringStats?.sitesFilteredOut || 0,
+            filterReasons: result.summary?.filteringStats?.filterReasons || {},
+            sitesFiltered: result.summary?.filteringStats?.sitesFilteredOut || 0,
+            sitesBeforeFiltering: (result.summary?.totalSitesAnalyzed || 0) + (result.summary?.filteringStats?.sitesFilteredOut || 0),
+            sitesAfterFiltering: result.summary?.totalSitesAnalyzed || 0,
+            reasonsForFiltering: result.summary?.filteringStats?.filterReasons || {},
+        },
+        metadata: {
+            totalSites: result.summary?.totalSitesAnalyzed || 0,
+            validSites: result.summary?.totalSitesAnalyzed || 0,
+            filteredSites: 0,
+            analysisDate: new Date().toISOString(),
+            options: {},
+        },
+    };
+}

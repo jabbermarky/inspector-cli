@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { FrequencyAggregator } from '../frequency-aggregator.js';
+import { FrequencyAggregator } from '../frequency-aggregator-v2.js';
 import type { 
   PreprocessedData, 
   SiteData, 

@@ -12,7 +12,7 @@ import {
   type FisherResult,
   type BinomialResult,
   type PowerAnalysisResult
-} from '../statistical-utils.js';
+} from '../statistical-utils-v2.js';
 
 describe('StatisticalUtils', () => {
   describe('ChiSquare Tests', () => {

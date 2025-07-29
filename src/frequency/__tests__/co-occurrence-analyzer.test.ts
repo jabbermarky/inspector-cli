@@ -6,8 +6,8 @@ import {
   type HeaderCooccurrence,
   type TechnologyStackSignature,
   type PlatformHeaderCombination
-} from '../co-occurrence-analyzer.js';
-import type { DetectionDataPoint } from '../types.js';
+} from '../co-occurrence-analyzer-v1.js';
+import type { DetectionDataPoint } from '../types-v1.js';
 
 // Helper function to create test data points
 function createTestDataPoint(

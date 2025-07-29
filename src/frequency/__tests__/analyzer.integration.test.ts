@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { analyzeFrequency } from '../analyzer.js';
-import type { FrequencyOptionsWithDefaults, DetectionDataPoint } from '../types.js';
+import { analyzeFrequency } from '../analyzer-v1.js';
+import type { FrequencyOptionsWithDefaults, DetectionDataPoint } from '../types-v1.js';
 import { setupCommandTests } from '@test-utils';
 
 // Only mock external dependencies - keep all business logic real

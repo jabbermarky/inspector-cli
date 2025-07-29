@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeDatasetBias } from '../bias-detector.js';
-import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types.js';
+import { analyzeDatasetBias } from '../bias-detector-v1.js';
+import type { DetectionDataPoint, FrequencyOptionsWithDefaults } from '../types-v1.js';
 
 describe('Diagnostic: Set-Cookie Correlation Issue', () => {
   it('should calculate correct correlation for set-cookie example', async () => {
