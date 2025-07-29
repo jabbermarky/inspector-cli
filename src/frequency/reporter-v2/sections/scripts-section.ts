@@ -4,6 +4,37 @@ import { formatFrequency, formatSiteCount, formatSubtitle, truncateString } from
 import { getTopValues } from '../utils/value-utils.js';
 import { hasValidPatterns, getPatternCount, isMap } from '../utils/safe-map-utils.js';
 
+/**
+ * Format script value for markdown table cells
+ * Handles pipe characters and line breaks to prevent table breakage
+ */
+function formatScriptValueForMarkdown(value: string): string {
+  if (!value) return '';
+  
+  // Escape pipe characters that would break markdown tables
+  let safeValue = value.replace(/\|/g, '\\|');
+  
+  // Handle line breaks: replace with HTML breaks using backtick interruption
+  // Pattern: `code`<br/>`more code`
+  safeValue = safeValue.replace(/\n/g, '`<br/>`');
+  
+  // Detect if this looks like HTML or has HTML tags
+  const hasHtmlTags = /<[^>]+>/.test(value);
+  
+  // Detect if this looks like JavaScript (has common JS patterns)
+  const hasJavaScript = /(\bfunction\b|\bvar\b|\blet\b|\bconst\b|\bif\b|\bfor\b|\breturn\b|=>|\{|\})/.test(value);
+  
+  // For table cells, use inline code with language hints
+  if (hasHtmlTags) {
+    return `\`${safeValue}\` (HTML)`;
+  } else if (hasJavaScript) {
+    return `\`${safeValue}\` (JS)`;
+  } else {
+    // For simple values or URLs, use single backticks
+    return `\`${safeValue}\``;
+  }
+}
+
 export function formatForHuman(
   scripts: AnalysisResult<ScriptSpecificData> | null | undefined,
   maxItems: number = 15
@@ -99,6 +130,7 @@ export function formatForMarkdown(
   lines.push('|------|---------|-----------|-------|-------------|------------|');
   
   const topScripts = getTopPatterns(scripts!.patterns, maxItems);
+  const codeExamples: Array<{rank: number, pattern: string, value: string}> = [];
   
   topScripts.forEach(([name, pattern], index) => {
     const frequency = formatFrequency(pattern.frequency);
@@ -106,11 +138,44 @@ export function formatForMarkdown(
     const occurrences = getTotalOccurrences(pattern);
     const topValue = truncateString(getTopValue(pattern), 60);
     
-    // Wrap script content in code blocks to prevent HTML/JS from breaking markdown
-    const safeTopValue = topValue ? `\`${topValue}\`` : '';
+    // For table: use inline code with language hints to avoid breaking table format
+    const safeTopValue = topValue ? formatScriptValueForMarkdown(topValue) : '';
     
     lines.push(`| ${index + 1} | ${name} | ${frequency} | ${sites} | ${occurrences} | ${safeTopValue} |`);
+    
+    // Collect examples for detailed code blocks section
+    if (topValue && topValue !== 'N/A') {
+      codeExamples.push({rank: index + 1, pattern: name, value: topValue});
+    }
   });
+  
+  // Add detailed code examples section with single backtick formatting
+  if (codeExamples.length > 0) {
+    lines.push('');
+    lines.push('### Script Code Examples');
+    lines.push('');
+    
+    codeExamples.forEach(({rank, pattern, value}) => {
+      lines.push(`#### ${rank}. ${pattern}`);
+      lines.push('');
+      
+      // Use single backticks with line break handling for consistency
+      const safeValue = value.replace(/\|/g, '\\|').replace(/\n/g, '`<br/>`');
+      
+      // Detect language and add language hint
+      const hasHtmlTags = /<[^>]+>/.test(value);
+      const hasJavaScript = /(\bfunction\b|\bvar\b|\blet\b|\bconst\b|\bif\b|\bfor\b|\breturn\b|=>|\{|\})/.test(value);
+      
+      if (hasHtmlTags) {
+        lines.push(`\`${safeValue}\` (HTML)`);
+      } else if (hasJavaScript) {
+        lines.push(`\`${safeValue}\` (JavaScript)`);
+      } else {
+        lines.push(`\`${safeValue}\``);
+      }
+      lines.push('');
+    });
+  }
   
   // Add script analysis summary if available
   if (scripts!.analyzerSpecific) {

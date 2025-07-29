@@ -5,6 +5,7 @@
 
 import { createModuleLogger } from '../utils/logger.js';
 import { FrequencyAggregator } from './frequency-aggregator-v2.js';
+import { ProgressIndicator } from '../utils/progress-indicator.js';
 import type { FrequencyOptions } from './types/frequency-types-v2.js';
 import type { AggregatedResults } from './types/analyzer-interface.js';
 
@@ -19,12 +20,23 @@ export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promis
 
     logger.info('Starting frequency analysis V2', { options });
 
+    // Create progress indicator (only shows if stdout is TTY)
+    const progress = new ProgressIndicator({
+        total: 10, // Data loading + 8 analysis phases + summary
+        label: 'Frequency Analysis',
+        showPercentage: true,
+        showETA: true,
+    });
+
     try {
         // Create aggregator
         const aggregator = new FrequencyAggregator(options.dataDir);
 
-        // Run analysis with new architecture
-        const aggregatedResults = await aggregator.analyze(options);
+        // Run analysis with new architecture and progress tracking
+        const aggregatedResults = await aggregator.analyze(options, progress);
+
+        // Complete progress
+        progress.complete();
 
         // Output results to file if specified (using simple V2 reporter)
         if (options.outputFile) {
@@ -37,6 +49,8 @@ export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promis
 
         return aggregatedResults;
     } catch (error) {
+        // Clear progress on error
+        progress.clear();
         logger.error('Frequency analysis V2 failed', { error: (error as Error).message });
         throw error;
     }

@@ -23,6 +23,7 @@ import { PatternDiscoveryV2 } from './analyzers/pattern-discovery-v2.js';
 import { TechnologyAnalyzerV2 } from './analyzers/technology-analyzer-v2.js';
 import { BiasAnalyzerV2 } from './analyzers/bias-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
+import type { ProgressIndicator } from '../utils/progress-indicator.js';
 import type { FrequencyOptions } from './types/frequency-types-v2.js';
 
 const logger = createModuleLogger('frequency-aggregator');
@@ -51,7 +52,7 @@ export class FrequencyAggregator {
     /**
      * Run frequency analysis with all analyzers
      */
-    async analyze(options: FrequencyOptions): Promise<AggregatedResults> {
+    async analyze(options: FrequencyOptions, progress?: ProgressIndicator): Promise<AggregatedResults> {
         logger.info('Starting aggregated frequency analysis', {
             analyzers: Array.from(this.analyzers.keys()),
             minOccurrences: options.minOccurrences,
@@ -68,6 +69,7 @@ export class FrequencyAggregator {
         };
 
         // Load and preprocess data once
+        progress?.update(); // Step 1: Data loading
         const preprocessedData = await this.preprocessor.load({
             dateRange: options.dateRange
                 ? {
@@ -96,12 +98,15 @@ export class FrequencyAggregator {
 
         // Phase 1: Run basic pattern analyzers
         logger.info('Running basic pattern analyzers');
+        progress?.update(); // Step 2: Headers
         const headerResult = await this.analyzers
             .get('headers')!
             .analyze(preprocessedData, analysisOptions);
+        progress?.update(); // Step 3: Meta tags
         const metaResult = await this.analyzers
             .get('metaTags')!
             .analyze(preprocessedData, analysisOptions);
+        progress?.update(); // Step 4: Scripts
         const scriptResult = await this.analyzers
             .get('scripts')!
             .analyze(preprocessedData, analysisOptions);
@@ -114,6 +119,7 @@ export class FrequencyAggregator {
 
         // Phase 2: Run validation pipeline on basic results
         logger.info('Running validation pipeline');
+        progress?.update(); // Step 5: Validation
         const validationResult = await this.analyzers
             .get('validation')!
             .analyze(preprocessedData, analysisOptions);
@@ -150,6 +156,7 @@ export class FrequencyAggregator {
 
         // Phase 4: Run vendor analysis on validated data
         logger.info('Running vendor analysis on validated data');
+        progress?.update(); // Step 6: Vendor analysis
         const vendorResult = await this.analyzers
             .get('vendor')!
             .analyze(validatedData, analysisOptions);
@@ -172,6 +179,7 @@ export class FrequencyAggregator {
             logger.info('Injected vendor data into semantic analyzer');
         }
 
+        progress?.update(); // Step 7: Semantic analysis
         const semanticResult = await semanticAnalyzer.analyze(validatedData, analysisOptions);
 
         // Phase 5: Run pattern discovery analysis with vendor data injection
@@ -184,6 +192,7 @@ export class FrequencyAggregator {
             logger.info('Injected vendor data into pattern discovery analyzer');
         }
 
+        progress?.update(); // Step 8: Pattern discovery
         const discoveryResult = await discoveryAnalyzer.analyze(validatedData, analysisOptions);
 
         logger.info('Pattern discovery completed', {
@@ -202,6 +211,7 @@ export class FrequencyAggregator {
             logger.info('Injected vendor data into co-occurrence analyzer');
         }
 
+        progress?.update(); // Step 9: Co-occurrence analysis
         const cooccurrenceResult = await cooccurrenceAnalyzer.analyze(
             validatedData,
             analysisOptions
@@ -209,6 +219,7 @@ export class FrequencyAggregator {
 
         // Phase 7: Run technology analysis on all collected data
         logger.info('Running comprehensive technology analysis');
+        progress?.update(); // Step 10: Technology analysis (combined with bias for simplicity)
         const technologyResult = await this.analyzers
             .get('technologies')!
             .analyze(preprocessedData, analysisOptions);
@@ -233,6 +244,7 @@ export class FrequencyAggregator {
             logger.info('Injected pattern discovery data into bias analyzer');
         }
 
+        // Note: Bias analysis progress is included in Step 10 since they're lightweight
         const biasResult = await biasAnalyzer.analyze(validatedData, analysisOptions);
 
         logger.info('Bias analysis completed', {
