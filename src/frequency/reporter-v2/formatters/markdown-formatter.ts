@@ -13,6 +13,7 @@ import * as cooccurrenceSection from '../sections/cooccurrence-section.js';
 // Removed technologiesSection - redundant with script/vendor analyzers
 import * as biasSection from '../sections/bias-section.js';
 import * as technologyCategorizationSection from '../sections/technology-categorization-section.js';
+import * as platformDiscriminationSection from '../sections/platform-discrimination-section.js';
 
 export function formatMarkdown(
   result: AggregatedResults,
@@ -31,6 +32,14 @@ export function formatMarkdown(
   const filteringContent = filteringSection.formatForMarkdown(filteringStats);
   if (filteringContent) {
     sections.push(filteringContent);
+  }
+  
+  // 2.5. Platform discrimination section (Phase 4-5)
+  if (options.focusPlatformDiscrimination && result.summary?.platformDiscrimination?.enabled) {
+    const platformDiscriminationContent = platformDiscriminationSection.generatePlatformDiscriminationSection(result, options);
+    if (platformDiscriminationContent.markdown) {
+      sections.push(platformDiscriminationContent.markdown);
+    }
   }
   
   // 3. Headers section

@@ -158,6 +158,9 @@ node dist/index.js frequency --output markdown --output-file frequency.md
 # Include filter recommendations
 node dist/index.js frequency --include-recommendations
 
+# Platform discrimination analysis (Phase 4-5 enhancement)
+node dist/index.js frequency --focus-platform-discrimination --min-sites 10
+
 # Temporal filtering options
 node dist/index.js frequency --last-days 0                    # Today only
 node dist/index.js frequency --last-days 1                    # Yesterday and today

@@ -17,6 +17,37 @@ export interface FrequencyAnalyzer<T> {
   getName(): string;
 }
 
+// Phase 6: Progressive analyzer interface with context
+export interface ProgressiveFrequencyAnalyzer<T> {
+  /**
+   * Analyze with progressive context from previous analyzers
+   */
+  analyzeWithContext(context: AnalysisContext): Promise<AnalysisResult<T>>;
+  
+  /**
+   * Get analyzer name for logging/debugging
+   */
+  getName(): string;
+  
+  /**
+   * Check if analyzer supports progressive context
+   */
+  supportsProgressiveContext(): boolean;
+}
+
+// Phase 6: Unified analyzer interface supporting both legacy and progressive modes
+export interface HybridFrequencyAnalyzer<T> extends FrequencyAnalyzer<T> {
+  /**
+   * Analyze with progressive context from previous analyzers (optional)
+   */
+  analyzeWithContext?(context: AnalysisContext): Promise<AnalysisResult<T>>;
+  
+  /**
+   * Check if analyzer supports progressive context
+   */
+  supportsProgressiveContext?(): boolean;
+}
+
 export interface PreprocessedData {
   sites: Map<string, SiteData>;
   totalSites: number;
@@ -65,6 +96,31 @@ export interface AnalysisOptions {
   maxExamples?: number;
   semanticFiltering?: boolean;
   focusPlatformDiscrimination?: boolean; // Enable platform discrimination analysis and filtering
+}
+
+// Phase 6: Progressive Analysis Context
+export interface AnalysisContext {
+  // Core data
+  preprocessedData: PreprocessedData;
+  options: AnalysisOptions;
+  
+  // Progressive results accumulation - each analyzer gets results from all previous analyzers
+  previousResults: {
+    headers?: AnalysisResult<HeaderSpecificData>;
+    metaTags?: AnalysisResult<MetaSpecificData>;
+    scripts?: AnalysisResult<ScriptSpecificData>;
+    validation?: AnalysisResult<ValidationSpecificData>;
+    semantic?: AnalysisResult<SemanticSpecificData>;
+    vendor?: AnalysisResult<VendorSpecificData>;
+    discovery?: AnalysisResult<PatternDiscoverySpecificData>;
+    cooccurrence?: AnalysisResult<CooccurrenceSpecificData>;
+    correlations?: AnalysisResult<BiasSpecificData>;
+  };
+  
+  // Pipeline metadata
+  pipelineStage: number;
+  totalStages: number;
+  stageTimings: Map<string, number>;
 }
 
 export interface AnalysisResult<T> {
@@ -124,6 +180,8 @@ export interface AggregatedResults {
   // Removed technologies - redundant with script/vendor analyzers
   correlations: AnalysisResult<BiasSpecificData>;
   summary: FrequencySummary;
+  platformSignatures?: PlatformSignature[]; // Phase 5: Cross-dimensional platform signatures
+  crossDimensionalAnalysis?: any; // Phase 5: Full cross-dimensional analysis result
 }
 
 // Analyzer-specific data types
@@ -320,4 +378,47 @@ export interface PatternSummary {
   pattern: string;
   siteCount: number;
   frequency: number;
+}
+
+// Phase 5: Cross-dimensional platform signature types
+export interface PlatformSignature {
+  platform: string;
+  confidence: number;
+  evidence: PlatformEvidence;
+  conflicts: PlatformConflict[];
+  crossDimensionalScore: number; // Combined score from all dimensions
+  detectionMethod: 'single' | 'multi-dimensional' | 'correlative';
+}
+
+export interface PlatformEvidence {
+  headers: EvidencePattern[];
+  metaTags: EvidencePattern[];
+  scripts: EvidencePattern[];
+  totalPatterns: number;
+  strongEvidence: number; // Count of high-confidence patterns (> 0.8)
+  weakEvidence: number; // Count of moderate-confidence patterns (0.3-0.8)
+}
+
+export interface EvidencePattern {
+  pattern: string;
+  discriminativeScore: number;
+  frequency: number;
+  specificity: number; // How specific to this platform
+  dimension: 'header' | 'meta' | 'script';
+}
+
+export interface PlatformConflict {
+  conflictingPlatform: string;
+  conflictType: 'mutual_exclusion' | 'low_probability' | 'version_mismatch';
+  conflictingPatterns: string[];
+  severity: 'high' | 'medium' | 'low';
+}
+
+export interface CrossDimensionalCorrelation {
+  platform: string;
+  headerSupport: number; // 0-1: Evidence strength from headers
+  metaSupport: number; // 0-1: Evidence strength from meta tags  
+  scriptSupport: number; // 0-1: Evidence strength from scripts
+  correlationStrength: number; // 0-1: How well dimensions agree
+  dimensionAgreement: boolean; // True if all dimensions point to same platform
 }

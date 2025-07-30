@@ -25,6 +25,7 @@ program
     .option('--skip-statistical-tests', 'Skip statistical significance tests (faster)')
     .option('--validation-stop-on-error', 'Stop validation pipeline on first error')
     .option('--validation-debug', 'Enable detailed validation debug output')
+    .option('--focus-platform-discrimination', 'Enable platform discrimination analysis and filtering')
     .action(async options => {
         try {
             logger.info('Starting frequency analysis command', { options });
@@ -97,6 +98,8 @@ program
                 skipStatisticalTests: Boolean(options.skipStatisticalTests),
                 validationStopOnError: Boolean(options.validationStopOnError),
                 validationDebugMode: Boolean(options.validationDebug),
+                // Phase 4: Platform discrimination
+                focusPlatformDiscrimination: Boolean(options.focusPlatformDiscrimination),
             };
 
             // Validate options

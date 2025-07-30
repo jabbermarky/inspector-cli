@@ -81,3 +81,4 @@ export * as metaSection from './sections/meta-tags-section.js';
 export * as scriptsSection from './sections/scripts-section.js';
 export * as biasSection from './sections/bias-section.js';
 export * as technologyCategorizationSection from './sections/technology-categorization-section.js';
+export * as platformDiscriminationSection from './sections/platform-discrimination-section.js';

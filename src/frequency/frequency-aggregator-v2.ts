@@ -5,12 +5,15 @@
 
 import type {
     FrequencyAnalyzer,
+    HybridFrequencyAnalyzer,
+    AnalysisContext,
     PreprocessedData,
     AnalysisOptions,
     AggregatedResults,
     FrequencySummary,
     PatternSummary,
     PlatformDiscriminationSummary,
+    PlatformSignature,
 } from './types/analyzer-interface.js';
 import { DataPreprocessor } from './data-preprocessor-v2.js';
 import { HeaderAnalyzerV2 } from './analyzers/header-analyzer-v2.js';
@@ -23,6 +26,7 @@ import { CooccurrenceAnalyzerV2 } from './analyzers/cooccurrence-analyzer-v2.js'
 import { PatternDiscoveryV2 } from './analyzers/pattern-discovery-v2.js';
 // Removed TechnologyAnalyzerV2 - redundant with script/vendor analyzers
 import { BiasAnalyzerV2 } from './analyzers/bias-analyzer-v2.js';
+import { PlatformSignatureAnalyzerV2, type PlatformSignatureSpecificData } from './analyzers/platform-signature-analyzer-v2.js';
 import { createModuleLogger } from '../utils/logger.js';
 import type { ProgressIndicator } from '../utils/progress-indicator.js';
 import type { FrequencyOptions } from './types/frequency-types-v2.js';
@@ -32,9 +36,11 @@ const logger = createModuleLogger('frequency-aggregator');
 export class FrequencyAggregator {
     private preprocessor: DataPreprocessor;
     private analyzers: Map<string, FrequencyAnalyzer<any>>;
+    private useProgressivePipeline: boolean = true; // Phase 6: Enable progressive pipeline by default
 
-    constructor(dataPath?: string) {
+    constructor(dataPath?: string, useProgressivePipeline: boolean = true) {
         this.preprocessor = new DataPreprocessor(dataPath);
+        this.useProgressivePipeline = useProgressivePipeline;
 
         // Initialize analyzers in correct pipeline order
         this.analyzers = new Map();
@@ -48,13 +54,164 @@ export class FrequencyAggregator {
         this.analyzers.set('cooccurrence', new CooccurrenceAnalyzerV2()); // After vendor analysis
         // Removed TechnologyAnalyzer - redundant with script/vendor analyzers
         this.analyzers.set('bias', new BiasAnalyzerV2()); // After all other analyzers for cross-analyzer bias analysis
+        this.analyzers.set('platformSignatures', new PlatformSignatureAnalyzerV2()); // Phase 5: Cross-dimensional platform signatures
     }
 
     /**
      * Run frequency analysis with all analyzers
      */
     async analyze(options: FrequencyOptions, progress?: ProgressIndicator): Promise<AggregatedResults> {
-        logger.info('Starting aggregated frequency analysis', {
+        if (this.useProgressivePipeline) {
+            return this.analyzeWithProgressivePipeline(options, progress);
+        } else {
+            return this.analyzeWithLegacyPipeline(options, progress);
+        }
+    }
+
+    /**
+     * Phase 6: Progressive analysis pipeline with clean data flow
+     */
+    private async analyzeWithProgressivePipeline(options: FrequencyOptions, progress?: ProgressIndicator): Promise<AggregatedResults> {
+        logger.info('Starting progressive frequency analysis pipeline', {
+            analyzers: Array.from(this.analyzers.keys()),
+            minOccurrences: options.minOccurrences,
+        });
+
+        const startTime = Date.now();
+
+        // Convert FrequencyOptions to internal format
+        const analysisOptions: AnalysisOptions = {
+            minOccurrences: options.minOccurrences || 10,
+            includeExamples: true,
+            maxExamples: 5,
+            semanticFiltering: true,
+            focusPlatformDiscrimination: options.focusPlatformDiscrimination || false,
+        };
+
+        // Load and preprocess data once
+        progress?.updateStep('Loading data');
+        const preprocessedData = await this.preprocessor.load({
+            dateRange: options.dateRange
+                ? {
+                      start: options.dateRange.start
+                          ? new Date(options.dateRange.start)
+                          : undefined,
+                      end: options.dateRange.end ? new Date(options.dateRange.end) : undefined,
+                  }
+                : undefined,
+            forceReload: false,
+        });
+
+        logger.info(`Progressive pipeline analyzing ${preprocessedData.totalSites} unique sites`);
+
+        // Initialize progressive context
+        const context: AnalysisContext = {
+            preprocessedData,
+            options: analysisOptions,
+            previousResults: {},
+            pipelineStage: 0,
+            totalStages: this.analyzers.size,
+            stageTimings: new Map()
+        };
+
+        // Progressive pipeline execution
+        const analyzerStages = [
+            { key: 'headers', name: 'Analyzing headers', analyzer: this.analyzers.get('headers')! },
+            { key: 'metaTags', name: 'Analyzing meta tags', analyzer: this.analyzers.get('metaTags')! },
+            { key: 'scripts', name: 'Analyzing scripts', analyzer: this.analyzers.get('scripts')! },
+            { key: 'validation', name: 'Running validation', analyzer: this.analyzers.get('validation')! },
+            { key: 'semantic', name: 'Semantic analysis', analyzer: this.analyzers.get('semantic')! },
+            { key: 'vendor', name: 'Analyzing vendors', analyzer: this.analyzers.get('vendor')! },
+            { key: 'discovery', name: 'Pattern discovery', analyzer: this.analyzers.get('discovery')! },
+            { key: 'cooccurrence', name: 'Co-occurrence analysis', analyzer: this.analyzers.get('cooccurrence')! },
+            { key: 'bias', name: 'Bias analysis', analyzer: this.analyzers.get('bias')! },
+        ];
+
+        const results: any = {};
+
+        for (const stage of analyzerStages) {
+            const stageStart = Date.now();
+            progress?.updateStep(stage.name);
+            context.pipelineStage++;
+
+            logger.info(`Progressive stage ${context.pipelineStage}/${context.totalStages}: ${stage.name}`);
+
+            // Check if analyzer supports progressive context
+            const hybridAnalyzer = stage.analyzer as HybridFrequencyAnalyzer<any>;
+            let result;
+
+            if (hybridAnalyzer.supportsProgressiveContext?.() && hybridAnalyzer.analyzeWithContext) {
+                // Use progressive context
+                result = await hybridAnalyzer.analyzeWithContext(context);
+            } else {
+                // Fall back to legacy method
+                result = await stage.analyzer.analyze(preprocessedData, analysisOptions);
+            }
+
+            results[stage.key] = result;
+            context.previousResults[stage.key as keyof typeof context.previousResults] = result;
+
+            const stageDuration = Date.now() - stageStart;
+            context.stageTimings.set(stage.key, stageDuration);
+
+            logger.info(`Progressive stage completed: ${stage.name}`, {
+                patterns: result.patterns.size,
+                duration: stageDuration
+            });
+        }
+
+        // Add platform signatures if enabled
+        if (options.focusPlatformDiscrimination) {
+            progress?.updateStep('Platform signatures');
+            context.pipelineStage++;
+
+            const platformAnalyzer = this.analyzers.get('platformSignatures')! as HybridFrequencyAnalyzer<any>;
+            if (platformAnalyzer.supportsProgressiveContext?.() && platformAnalyzer.analyzeWithContext) {
+                results.platformSignatures = await platformAnalyzer.analyzeWithContext(context);
+            }
+        }
+
+        // Create summary
+        const summary = this.createSummary(
+            preprocessedData,
+            results.headers,
+            results.metaTags,
+            results.scripts,
+            options.focusPlatformDiscrimination
+        );
+
+        const duration = Date.now() - startTime;
+        logger.info(`Progressive pipeline completed in ${duration}ms`, {
+            stageTimings: Object.fromEntries(context.stageTimings)
+        });
+
+        const aggregatedResults: AggregatedResults = {
+            headers: results.headers,
+            metaTags: results.metaTags,
+            scripts: results.scripts,
+            validation: results.validation,
+            semantic: results.semantic,
+            vendor: results.vendor,
+            discovery: results.discovery,
+            cooccurrence: results.cooccurrence,
+            correlations: results.bias,
+            summary,
+        };
+
+        // Add platform signatures if available
+        if (results.platformSignatures?.analyzerSpecific) {
+            aggregatedResults.platformSignatures = Array.from(results.platformSignatures.analyzerSpecific.signatures.values());
+            aggregatedResults.crossDimensionalAnalysis = results.platformSignatures;
+        }
+
+        return aggregatedResults;
+    }
+
+    /**
+     * Legacy analysis pipeline with injection pattern (Phase 3-5 implementation)
+     */
+    private async analyzeWithLegacyPipeline(options: FrequencyOptions, progress?: ProgressIndicator): Promise<AggregatedResults> {
+        logger.info('Starting legacy aggregated frequency analysis', {
             analyzers: Array.from(this.analyzers.keys()),
             minOccurrences: options.minOccurrences,
         });
@@ -249,6 +406,40 @@ export class FrequencyAggregator {
             overallBiasRisk: biasResult.analyzerSpecific?.concentrationMetrics?.overallBiasRisk || 'unknown',
         });
 
+        // Phase 5: Run cross-dimensional platform signature analysis (Phase 5)
+        let platformSignatureResult: any = null;
+        if (options.focusPlatformDiscrimination) {
+            logger.info('Running cross-dimensional platform signature analysis');
+            progress?.updateStep('Platform signatures'); // Step 11: Platform signatures
+            
+            // Create aggregated results for platform signature analyzer
+            const aggregatedResults = {
+                headers: headerResult,
+                metaTags: metaResult,
+                scripts: scriptResult,
+                validation: validationResult,
+                semantic: semanticResult,
+                vendor: vendorResult,
+                discovery: discoveryResult,
+                cooccurrence: cooccurrenceResult,
+                correlations: biasResult,
+                summary: {} as any // Will be created later
+            };
+
+            // Use dependency injection for legacy platform signature analyzer
+            const platformAnalyzer = this.analyzers.get('platformSignatures')! as any;
+            if (platformAnalyzer.setAggregatedResults) {
+                platformAnalyzer.setAggregatedResults(aggregatedResults);
+            }
+            platformSignatureResult = await platformAnalyzer.analyze(validatedData, analysisOptions);
+
+            logger.info('Platform signature analysis completed', {
+                signaturesGenerated: platformSignatureResult.analyzerSpecific?.signatures?.size || 0,
+                totalPlatformsDetected: platformSignatureResult.analyzerSpecific?.crossDimensionalMetrics?.totalPlatformsDetected || 0,
+                multiDimensionalDetections: platformSignatureResult.analyzerSpecific?.crossDimensionalMetrics?.multiDimensionalDetections || 0,
+            });
+        }
+
         logger.info('All analyzers completed', {
             headerPatterns: headerResult.patterns.size,
             metaPatterns: metaResult.patterns.size,
@@ -273,7 +464,7 @@ export class FrequencyAggregator {
         const duration = Date.now() - startTime;
         logger.info(`Aggregated analysis completed in ${duration}ms`);
 
-        return {
+        const aggregatedResults: AggregatedResults = {
             headers: headerResult,
             metaTags: metaResult,
             scripts: scriptResult,
@@ -286,6 +477,14 @@ export class FrequencyAggregator {
             correlations: biasResult,
             summary,
         };
+
+        // Add Phase 5: Cross-dimensional platform signatures if available
+        if (platformSignatureResult && platformSignatureResult.analyzerSpecific) {
+            aggregatedResults.platformSignatures = Array.from(platformSignatureResult.analyzerSpecific.signatures.values());
+            aggregatedResults.crossDimensionalAnalysis = platformSignatureResult;
+        }
+
+        return aggregatedResults;
     }
 
     /**
@@ -403,16 +602,38 @@ export class FrequencyAggregator {
             ? (infrastructureNoise.length / totalPatternsAnalyzed) * 100
             : 0;
 
-        // Get top discriminatory patterns
-        const topDiscriminatoryPatterns = discriminatoryPatterns
-            .sort((a, b) => b.platformDiscrimination.discriminativeScore - a.platformDiscrimination.discriminativeScore)
-            .slice(0, 10)
-            .map(pattern => ({
-                pattern: pattern.pattern,
-                discriminativeScore: pattern.platformDiscrimination.discriminativeScore,
-                targetPlatform: pattern.platformDiscrimination.discriminationMetrics.targetPlatform,
-                frequency: pattern.frequency
-            }));
+        // Get top discriminatory patterns - preserve the full key with dimension prefix
+        const sortedPatterns = Array.from(allPatterns.entries())
+            .filter(([key, pattern]) => pattern.platformDiscrimination.discriminativeScore > 0.1) // Lower threshold from 0.3 to 0.1
+            .sort(([,a], [,b]) => b.platformDiscrimination.discriminativeScore - a.platformDiscrimination.discriminativeScore);
+
+        const topDiscriminatoryPatterns = sortedPatterns
+            .slice(0, 25) // Show top 25 instead of just 10
+            .map(([fullKey, pattern]) => {
+                // Determine dimension and clean pattern name
+                let dimension = 'Unknown';
+                let cleanPattern = fullKey;
+                
+                if (fullKey.startsWith('header:')) {
+                    dimension = 'Header';
+                    cleanPattern = fullKey.replace('header:', '');
+                } else if (fullKey.startsWith('meta:')) {
+                    dimension = 'Meta';
+                    cleanPattern = fullKey.replace('meta:', '');
+                } else if (fullKey.startsWith('script:')) {
+                    dimension = 'Script';
+                    cleanPattern = fullKey.replace('script:', '');
+                }
+                
+                return {
+                    pattern: cleanPattern, // Clean pattern without prefix
+                    fullPattern: fullKey, // Keep full key for debugging
+                    dimension: dimension, // Explicit dimension
+                    discriminativeScore: pattern.platformDiscrimination.discriminativeScore,
+                    targetPlatform: pattern.platformDiscrimination.discriminationMetrics.targetPlatform,
+                    frequency: pattern.frequency
+                };
+            });
 
         // Calculate platform specificity distribution
         const platformSpecificityDistribution = new Map<string, number>();
@@ -484,6 +705,6 @@ export class FrequencyAggregator {
 }
 
 // Factory function for backward compatibility
-export function createFrequencyAggregator(dataPath?: string): FrequencyAggregator {
-    return new FrequencyAggregator(dataPath);
+export function createFrequencyAggregator(dataPath?: string, useProgressivePipeline?: boolean): FrequencyAggregator {
+    return new FrequencyAggregator(dataPath, useProgressivePipeline);
 }
