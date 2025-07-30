@@ -306,15 +306,9 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
 
             // Collect headers with their values
             // Trust the data preprocessor - all headers here have already been filtered
-            // Only skip if explicitly marked as 'generic' (non-discriminatory)
+            // Use validation pipeline data when available instead of category filtering
             for (const [headerName, values] of siteData.headers) {
                 const lowerHeader = headerName.toLowerCase();
-                
-                // Use preprocessor's header classification - skip only 'generic' headers
-                const headerCategory = data.metadata.semantic?.headerCategories?.get(lowerHeader);
-                if (headerCategory === 'generic') {
-                    continue; // Skip non-discriminatory headers already classified by preprocessor
-                }
 
                 if (!headerMap.has(lowerHeader)) {
                     headerMap.set(lowerHeader, new Set());
@@ -420,29 +414,52 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
         );
         regexPatterns.forEach(pattern => patterns.set(`regex:${pattern.pattern}`, pattern));
 
-        // Filter and score patterns with validation awareness
+        // Filter and score patterns with validation pipeline data prioritization
         const minFrequency = data.totalSites >= 100 ? 0.05 : 0.1;
         const minOccurrences = options.minOccurrences;
+        const hasValidationData = !!data.metadata.validation?.validatedHeaders;
 
         const filteredPatterns = new Map<string, DiscoveredPattern>();
         for (const [key, pattern] of patterns) {
             const meetsThreshold =
                 pattern.frequency >= minFrequency && pattern.siteCount >= minOccurrences;
-            const isValidatedPattern =
+            
+            // When validation pipeline data is available, prioritize validated patterns
+            const isValidatedPattern = hasValidationData && 
                 pattern.validationConfidence && pattern.validationConfidence > 0.7;
+            
+            // When validation data is available, be more lenient with validated patterns
+            const validationLenientThreshold = hasValidationData && isValidatedPattern &&
+                pattern.frequency >= (minFrequency * 0.5) && pattern.siteCount >= Math.max(1, minOccurrences * 0.5);
 
-            if (meetsThreshold || isValidatedPattern) {
+            if (meetsThreshold || isValidatedPattern || validationLenientThreshold) {
                 filteredPatterns.set(key, pattern);
             }
         }
 
-        // Sort by validation-aware score
+        // Sort by validation pipeline data priority, then by standard metrics
         return new Map(
             [...filteredPatterns.entries()]
                 .sort(([, a], [, b]) => {
-                    const scoreA = a.frequency * a.confidence * (a.validationConfidence || 1);
-                    const scoreB = b.frequency * b.confidence * (b.validationConfidence || 1);
-                    return scoreB - scoreA;
+                    // When validation data is available, strongly prioritize validated patterns
+                    if (hasValidationData) {
+                        const aIsValidated = !!(a.validationConfidence && a.validationConfidence > 0.7);
+                        const bIsValidated = !!(b.validationConfidence && b.validationConfidence > 0.7);
+                        
+                        if (aIsValidated !== bIsValidated) {
+                            return bIsValidated ? 1 : -1; // Validated patterns first
+                        }
+                        
+                        // Both validated or both not validated - use validation-boosted score
+                        const scoreA = a.frequency * a.confidence * (a.validationConfidence || 1);
+                        const scoreB = b.frequency * b.confidence * (b.validationConfidence || 1);
+                        return scoreB - scoreA;
+                    } else {
+                        // No validation data - use standard scoring
+                        const scoreA = a.frequency * a.confidence;
+                        const scoreB = b.frequency * b.confidence;
+                        return scoreB - scoreA;
+                    }
                 })
                 .slice(0, 100) // Top 100 patterns
         );
