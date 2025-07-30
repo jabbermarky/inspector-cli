@@ -23,6 +23,11 @@ export interface HeaderClassification {
   discriminativeScore: number; // 0-1 scale
   filterRecommendation: FilterRecommendation;
   platformName?: string; // If header contains platform name
+  // Phase 3: Platform discrimination enhancements
+  targetPlatforms?: string[]; // Platforms this header is specifically associated with
+  conflictingPlatforms?: string[]; // Platforms this header conflicts with (mutually exclusive)
+  platformSpecificity?: number; // 0-1: How specific this header is to its target platforms
+  crossPlatformConflict?: boolean; // True if this header creates cross-platform conflicts
 }
 // Types for the analysis data we need
 interface CMSAnalysisData {
@@ -174,6 +179,113 @@ export class DataPreprocessor {
       'x-amz-cf-id', 'x-amz-cf-pop', 'x-amz-request-id',
       'cf-ray', 'cf-cache-status', 'cf-request-id',
       'x-azure-ref', 'x-ms-request-id', 'x-ms-routing-request-id'
+    ]),
+
+    // Phase 3: Platform-specific header patterns with discrimination metadata
+    platformSpecificHeaders: new Map([
+      // WordPress-specific patterns
+      ['x-pingback', {
+        targetPlatforms: ['WordPress'],
+        conflictingPlatforms: ['Shopify', 'Drupal', 'Joomla'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: true
+      }],
+      ['x-wp-total', {
+        targetPlatforms: ['WordPress'],
+        conflictingPlatforms: ['Shopify', 'Drupal', 'Joomla'],
+        platformSpecificity: 0.98,
+        crossPlatformConflict: true
+      }],
+      ['x-wp-totalpages', {
+        targetPlatforms: ['WordPress'],
+        conflictingPlatforms: ['Shopify', 'Drupal', 'Joomla'],
+        platformSpecificity: 0.98,
+        crossPlatformConflict: true
+      }],
+      ['x-wp-nonce', {
+        targetPlatforms: ['WordPress'],
+        conflictingPlatforms: ['Shopify', 'Drupal', 'Joomla'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: true
+      }],
+
+      // Shopify-specific patterns
+      ['x-shopify-shop-id', {
+        targetPlatforms: ['Shopify'],
+        conflictingPlatforms: ['WordPress', 'Drupal', 'Magento', 'WooCommerce'],
+        platformSpecificity: 0.99,
+        crossPlatformConflict: true
+      }],
+      ['x-shopify-stage', {
+        targetPlatforms: ['Shopify'],
+        conflictingPlatforms: ['WordPress', 'Drupal', 'Magento'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: true
+      }],
+      ['x-shopify-request-id', {
+        targetPlatforms: ['Shopify'],
+        conflictingPlatforms: ['WordPress', 'Drupal', 'Magento'],
+        platformSpecificity: 0.90,
+        crossPlatformConflict: true
+      }],
+      ['shopify-checkout-api-token', {
+        targetPlatforms: ['Shopify'],
+        conflictingPlatforms: ['WordPress', 'Drupal', 'Magento', 'WooCommerce'],
+        platformSpecificity: 0.99,
+        crossPlatformConflict: true
+      }],
+
+      // Drupal-specific patterns
+      ['x-drupal-cache', {
+        targetPlatforms: ['Drupal'],
+        conflictingPlatforms: ['WordPress', 'Shopify', 'Joomla'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: true
+      }],
+      ['x-generator', {
+        targetPlatforms: ['Drupal', 'Joomla', 'WordPress'],
+        conflictingPlatforms: [],
+        platformSpecificity: 0.60, // Lower because it's used by multiple CMS
+        crossPlatformConflict: false
+      }],
+
+      // Magento-specific patterns
+      ['x-magento-tags', {
+        targetPlatforms: ['Magento'],
+        conflictingPlatforms: ['Shopify', 'WooCommerce', 'WordPress'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: true
+      }],
+
+      // Next.js/Vercel patterns
+      ['x-vercel-cache', {
+        targetPlatforms: ['Vercel', 'Next.js'],
+        conflictingPlatforms: ['Netlify', 'AWS'],
+        platformSpecificity: 0.90,
+        crossPlatformConflict: false // Infrastructure, not CMS conflict
+      }],
+
+      // Netlify patterns
+      ['x-nf-request-id', {
+        targetPlatforms: ['Netlify'],
+        conflictingPlatforms: ['Vercel', 'AWS'],
+        platformSpecificity: 0.95,
+        crossPlatformConflict: false // Infrastructure, not CMS conflict
+      }],
+
+      // Mixed patterns (can appear on multiple platforms but with different usage)
+      ['x-frame-options', {
+        targetPlatforms: [], // Security header, not platform-specific
+        conflictingPlatforms: [],
+        platformSpecificity: 0.10,
+        crossPlatformConflict: false
+      }],
+      ['x-content-type-options', {
+        targetPlatforms: [], // Security header, not platform-specific
+        conflictingPlatforms: [],
+        platformSpecificity: 0.10,
+        crossPlatformConflict: false
+      }]
     ])
   };
 
@@ -183,7 +295,7 @@ export class DataPreprocessor {
 
   /**
    * Classify a header according to the 4-group classification system
-   * Phase 3: Single source of truth for all header classification decisions
+   * Phase 3: Enhanced with platform discrimination metrics and cross-platform conflict detection
    */
   classifyHeader(headerName: string): HeaderClassification {
     const normalizedName = headerName.toLowerCase();
@@ -195,12 +307,33 @@ export class DataPreprocessor {
 
     let classification: HeaderClassification;
 
+    // Phase 3: Check for platform-specific headers first (highest priority)
+    const platformSpecific = DataPreprocessor.HEADER_DEFINITIONS.platformSpecificHeaders.get(normalizedName);
+    if (platformSpecific) {
+      classification = {
+        category: 'platform',
+        vendor: platformSpecific.targetPlatforms[0], // Primary platform
+        platformName: platformSpecific.targetPlatforms[0],
+        discriminativeScore: platformSpecific.platformSpecificity,
+        filterRecommendation: 'never-filter',
+        // Phase 3: Platform discrimination metadata
+        targetPlatforms: platformSpecific.targetPlatforms,
+        conflictingPlatforms: platformSpecific.conflictingPlatforms,
+        platformSpecificity: platformSpecific.platformSpecificity,
+        crossPlatformConflict: platformSpecific.crossPlatformConflict
+      };
+    }
     // Group 1: Standard headers that are NEVER discriminatory
-    if (DataPreprocessor.HEADER_DEFINITIONS.neverDiscriminatory.has(normalizedName)) {
+    else if (DataPreprocessor.HEADER_DEFINITIONS.neverDiscriminatory.has(normalizedName)) {
       classification = {
         category: 'generic',
         discriminativeScore: 0,
-        filterRecommendation: 'always-filter'
+        filterRecommendation: 'always-filter',
+        // Phase 3: No platform association for generic headers
+        targetPlatforms: [],
+        conflictingPlatforms: [],
+        platformSpecificity: 0,
+        crossPlatformConflict: false
       };
     }
     // Group 2: Standard headers with potentially discriminatory values
@@ -208,7 +341,12 @@ export class DataPreprocessor {
       classification = {
         category: 'cms-indicative',
         discriminativeScore: 0.6, // Moderate score, depends on values
-        filterRecommendation: 'context-dependent'
+        filterRecommendation: 'context-dependent',
+        // Phase 3: Value-based headers can be associated with multiple platforms
+        targetPlatforms: [], // Determined by values, not header name
+        conflictingPlatforms: [],
+        platformSpecificity: 0.6,
+        crossPlatformConflict: false
       };
     }
     // Group 3: Non-standard headers with potentially discriminatory values (check before platform patterns)
@@ -216,10 +354,15 @@ export class DataPreprocessor {
       classification = {
         category: 'infrastructure',
         discriminativeScore: 0.3, // Lower score, usually not CMS-specific
-        filterRecommendation: 'context-dependent'
+        filterRecommendation: 'context-dependent',
+        // Phase 3: Infrastructure headers are typically not platform-specific
+        targetPlatforms: [],
+        conflictingPlatforms: [],
+        platformSpecificity: 0.3,
+        crossPlatformConflict: false
       };
     }
-    // Group 4: Headers with platform/CMS names in the header name itself
+    // Group 4: Headers with platform/CMS names in the header name itself (fallback pattern matching)
     else {
       const platformMatch = this.findPlatformInHeaderName(normalizedName);
       if (platformMatch) {
@@ -228,7 +371,12 @@ export class DataPreprocessor {
           vendor: platformMatch.platform,
           platformName: platformMatch.platform,
           discriminativeScore: 0.8, // High score for name-based discrimination
-          filterRecommendation: 'never-filter'
+          filterRecommendation: 'never-filter',
+          // Phase 3: Inferred platform association from pattern matching
+          targetPlatforms: [platformMatch.platform],
+          conflictingPlatforms: this.inferConflictingPlatforms(platformMatch.platform),
+          platformSpecificity: 0.8,
+          crossPlatformConflict: true // Pattern-based headers likely create conflicts
         };
       }
       // Unknown/custom headers
@@ -236,7 +384,12 @@ export class DataPreprocessor {
         classification = {
           category: 'custom',
           discriminativeScore: 0.5, // Medium score, needs analysis
-          filterRecommendation: 'context-dependent'
+          filterRecommendation: 'context-dependent',
+          // Phase 3: Unknown headers - no platform association
+          targetPlatforms: [],
+          conflictingPlatforms: [],
+          platformSpecificity: 0.5,
+          crossPlatformConflict: false
         };
       }
     }
@@ -244,6 +397,153 @@ export class DataPreprocessor {
     // Cache the result
     this.headerClassificationCache.set(normalizedName, classification);
     return classification;
+  }
+
+  /**
+   * Phase 3: Infer conflicting platforms based on platform type
+   */
+  private inferConflictingPlatforms(platform: string): string[] {
+    const platformConflicts: Record<string, string[]> = {
+      // CMS platforms are mutually exclusive
+      'WordPress': ['Shopify', 'Drupal', 'Joomla', 'Magento'],
+      'Shopify': ['WordPress', 'Drupal', 'Joomla', 'Magento', 'WooCommerce'],
+      'Drupal': ['WordPress', 'Shopify', 'Joomla', 'Magento'],
+      'Joomla': ['WordPress', 'Shopify', 'Drupal', 'Magento'],
+      'Magento': ['WordPress', 'Shopify', 'Drupal', 'WooCommerce'],
+      'WooCommerce': ['Shopify', 'Magento'], // Can coexist with WordPress
+      
+      // E-commerce platforms
+      'BigCommerce': ['Shopify', 'Magento', 'WooCommerce'],
+      'PrestaShop': ['Shopify', 'Magento', 'WooCommerce'],
+      'OpenCart': ['Shopify', 'Magento', 'WooCommerce'],
+      
+      // Website builders
+      'Wix': ['WordPress', 'Shopify', 'Squarespace', 'Weebly'],
+      'Squarespace': ['WordPress', 'Shopify', 'Wix', 'Weebly'],
+      'Weebly': ['WordPress', 'Shopify', 'Wix', 'Squarespace'],
+      
+      // Infrastructure platforms (less conflicting)
+      'Vercel': ['Netlify'], // Can coexist with most CMS
+      'Netlify': ['Vercel'], // Can coexist with most CMS
+      'AWS': [], // Can coexist with any CMS
+      'Cloudflare': [], // Can coexist with any CMS
+      
+      // Frameworks (can coexist with CMS)
+      'Next.js': [],
+      'Nuxt.js': [],
+      'Gatsby': []
+    };
+
+    return platformConflicts[platform] || [];
+  }
+
+  /**
+   * Phase 3: Detect cross-platform conflicts in a site's headers
+   * This method analyzes headers from a single site to identify platform conflicts
+   */
+  detectCrossPlatformConflicts(headers: Map<string, Set<string>>): {
+    hasConflicts: boolean;
+    conflictingSets: Array<{
+      platform1: string;
+      platform2: string;
+      headers1: string[];
+      headers2: string[];
+      conflictSeverity: 'low' | 'medium' | 'high';
+    }>;
+    dominantPlatform?: string;
+    conflictScore: number; // 0-1, higher = more conflicts
+  } {
+    const platformHeaders = new Map<string, string[]>();
+    const conflictingSets: Array<{
+      platform1: string;
+      platform2: string;
+      headers1: string[];
+      headers2: string[];
+      conflictSeverity: 'low' | 'medium' | 'high';
+    }> = [];
+
+    // Group headers by their target platforms
+    for (const headerName of headers.keys()) {
+      const classification = this.classifyHeader(headerName);
+      if (classification.targetPlatforms && classification.targetPlatforms.length > 0) {
+        for (const platform of classification.targetPlatforms) {
+          if (!platformHeaders.has(platform)) {
+            platformHeaders.set(platform, []);
+          }
+          platformHeaders.get(platform)!.push(headerName);
+        }
+      }
+    }
+
+    // Detect conflicts between platforms
+    const platforms = Array.from(platformHeaders.keys());
+    for (let i = 0; i < platforms.length; i++) {
+      for (let j = i + 1; j < platforms.length; j++) {
+        const platform1 = platforms[i];
+        const platform2 = platforms[j];
+        const headers1 = platformHeaders.get(platform1)!;
+        const headers2 = platformHeaders.get(platform2)!;
+
+        // Check if these platforms conflict (both directions)
+        const classification1 = this.classifyHeader(headers1[0]);
+        const classification2 = this.classifyHeader(headers2[0]);
+        const isConflicting = (
+          (classification1.conflictingPlatforms?.includes(platform2)) ||
+          (classification2.conflictingPlatforms?.includes(platform1))
+        ) || false;
+
+        if (isConflicting) {
+          // Determine conflict severity based on header types and specificity
+          let maxSpecificity = 0;
+          for (const header of [...headers1, ...headers2]) {
+            const headerClassification = this.classifyHeader(header);
+            maxSpecificity = Math.max(maxSpecificity, headerClassification.platformSpecificity || 0);
+          }
+
+          const conflictSeverity: 'low' | 'medium' | 'high' = 
+            maxSpecificity > 0.9 ? 'high' :
+            maxSpecificity > 0.7 ? 'medium' : 'low';
+
+          conflictingSets.push({
+            platform1,
+            platform2,
+            headers1,
+            headers2,
+            conflictSeverity
+          });
+        }
+      }
+    }
+
+    // Calculate conflict score and determine dominant platform
+    let conflictScore = 0;
+    let dominantPlatform: string | undefined;
+    let maxHeaderCount = 0;
+
+    for (const [platform, headers] of platformHeaders) {
+      if (headers.length > maxHeaderCount) {
+        maxHeaderCount = headers.length;
+        dominantPlatform = platform;
+      }
+    }
+
+    if (conflictingSets.length > 0) {
+      // Higher conflict score for more severe conflicts
+      const totalSeverityScore = conflictingSets.reduce((sum, conflict) => {
+        const severityWeight = conflict.conflictSeverity === 'high' ? 1 : 
+                              conflict.conflictSeverity === 'medium' ? 0.6 : 0.3;
+        return sum + severityWeight;
+      }, 0);
+      
+      conflictScore = Math.min(totalSeverityScore / Math.max(platforms.length, 1), 1);
+    }
+
+    return {
+      hasConflicts: conflictingSets.length > 0,
+      conflictingSets,
+      dominantPlatform,
+      conflictScore
+    };
   }
 
   /**

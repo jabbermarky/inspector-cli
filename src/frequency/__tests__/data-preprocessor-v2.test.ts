@@ -1624,4 +1624,293 @@ describe('DataPreprocessor Core Functionality', () => {
       });
     });
   });
+
+  describe('Phase 3 - Platform Discrimination Tests', () => {
+    beforeEach(() => {
+      preprocessor = new DataPreprocessor('./test-data/cms-analysis');
+      mockReadFile = vi.mocked(readFile);
+      mockReadFile.mockClear();
+    });
+
+    describe('Header Classification with Platform Discrimination', () => {
+      it('should classify platform-specific headers with discrimination metadata', () => {
+        // Test WordPress-specific headers
+        const wpHeader = preprocessor.classifyHeader('x-wp-total');
+        expect(wpHeader.category).toBe('platform');
+        expect(wpHeader.vendor).toBe('WordPress');
+        expect(wpHeader.targetPlatforms).toEqual(['WordPress']);
+        expect(wpHeader.conflictingPlatforms).toContain('Shopify');
+        expect(wpHeader.conflictingPlatforms).toContain('Drupal');
+        expect(wpHeader.platformSpecificity).toBe(0.98);
+        expect(wpHeader.crossPlatformConflict).toBe(true);
+
+        // Test Shopify-specific headers
+        const shopifyHeader = preprocessor.classifyHeader('x-shopify-shop-id');
+        expect(shopifyHeader.category).toBe('platform');
+        expect(shopifyHeader.vendor).toBe('Shopify');
+        expect(shopifyHeader.targetPlatforms).toEqual(['Shopify']);
+        expect(shopifyHeader.conflictingPlatforms).toContain('WordPress');
+        expect(shopifyHeader.conflictingPlatforms).toContain('Drupal');
+        expect(shopifyHeader.platformSpecificity).toBe(0.99);
+        expect(shopifyHeader.crossPlatformConflict).toBe(true);
+
+        // Test Drupal-specific headers
+        const drupalHeader = preprocessor.classifyHeader('x-drupal-cache');
+        expect(drupalHeader.category).toBe('platform');
+        expect(drupalHeader.vendor).toBe('Drupal');
+        expect(drupalHeader.targetPlatforms).toEqual(['Drupal']);
+        expect(drupalHeader.conflictingPlatforms).toContain('WordPress');
+        expect(drupalHeader.conflictingPlatforms).toContain('Shopify');
+        expect(drupalHeader.platformSpecificity).toBe(0.95);
+        expect(drupalHeader.crossPlatformConflict).toBe(true);
+      });
+
+      it('should classify generic headers without platform discrimination', () => {
+        // Test generic HTTP headers
+        const genericHeader = preprocessor.classifyHeader('content-type');
+        expect(genericHeader.category).toBe('generic');
+        expect(genericHeader.discriminativeScore).toBe(0);
+        expect(genericHeader.targetPlatforms).toEqual([]);
+        expect(genericHeader.conflictingPlatforms).toEqual([]);
+        expect(genericHeader.platformSpecificity).toBe(0);
+        expect(genericHeader.crossPlatformConflict).toBe(false);
+
+        // Test security headers
+        const securityHeader = preprocessor.classifyHeader('x-frame-options');
+        expect(securityHeader.category).toBe('platform'); // Found in platformSpecificHeaders
+        expect(securityHeader.targetPlatforms).toEqual([]);
+        expect(securityHeader.conflictingPlatforms).toEqual([]);
+        expect(securityHeader.platformSpecificity).toBe(0.10);
+        expect(securityHeader.crossPlatformConflict).toBe(false);
+      });
+
+      it('should classify infrastructure headers with low platform specificity', () => {
+        const cdnHeader = preprocessor.classifyHeader('cf-ray');
+        expect(cdnHeader.category).toBe('infrastructure');
+        expect(cdnHeader.discriminativeScore).toBe(0.3);
+        expect(cdnHeader.targetPlatforms).toEqual([]);
+        expect(cdnHeader.conflictingPlatforms).toEqual([]);
+        expect(cdnHeader.platformSpecificity).toBe(0.3);
+        expect(cdnHeader.crossPlatformConflict).toBe(false);
+      });
+
+      it('should handle pattern-based platform detection with inferred conflicts', () => {
+        // Test a header with wordpress in the name (pattern matching)
+        const patternHeader = preprocessor.classifyHeader('x-wordpress-custom');
+        expect(patternHeader.category).toBe('platform');
+        expect(patternHeader.vendor).toBe('WordPress');
+        expect(patternHeader.targetPlatforms).toEqual(['WordPress']);
+        expect(patternHeader.conflictingPlatforms).toContain('Shopify');
+        expect(patternHeader.conflictingPlatforms).toContain('Drupal');
+        expect(patternHeader.platformSpecificity).toBe(0.8);
+        expect(patternHeader.crossPlatformConflict).toBe(true);
+      });
+
+      it('should cache classification results for performance', () => {
+        const header1 = preprocessor.classifyHeader('x-wp-total');
+        const header2 = preprocessor.classifyHeader('x-wp-total');
+        
+        // Should return the same object reference (cached)
+        expect(header1).toBe(header2);
+        expect(header1.platformSpecificity).toBe(0.98);
+        expect(header1.targetPlatforms).toEqual(['WordPress']);
+      });
+    });
+
+    describe('Cross-Platform Conflict Detection', () => {
+      it('should detect conflicts between WordPress and Shopify headers', () => {
+        const headers = new Map([
+          ['x-wp-total', new Set(['150'])],
+          ['x-shopify-shop-id', new Set(['12345'])],
+          ['content-type', new Set(['text/html'])]
+        ]);
+
+        const conflicts = preprocessor.detectCrossPlatformConflicts(headers);
+        
+        expect(conflicts.hasConflicts).toBe(true);
+        expect(conflicts.conflictingSets).toHaveLength(1);
+        expect(conflicts.conflictingSets[0].platform1).toBe('WordPress');
+        expect(conflicts.conflictingSets[0].platform2).toBe('Shopify');
+        expect(conflicts.conflictingSets[0].conflictSeverity).toBe('high'); // Both have high specificity
+        expect(conflicts.conflictScore).toBeGreaterThan(0);
+      });
+
+      it('should detect conflicts between WordPress and Drupal headers', () => {
+        const headers = new Map([
+          ['x-pingback', new Set(['https://example.com/xmlrpc.php'])],
+          ['x-drupal-cache', new Set(['HIT'])],
+          ['x-generator', new Set(['Drupal 9'])],
+          ['server', new Set(['Apache'])]
+        ]);
+
+        const conflicts = preprocessor.detectCrossPlatformConflicts(headers);
+        
+        expect(conflicts.hasConflicts).toBe(true);
+        expect(conflicts.conflictingSets).toHaveLength(1);
+        
+        const conflict = conflicts.conflictingSets[0];
+        expect([conflict.platform1, conflict.platform2]).toContain('WordPress');
+        expect([conflict.platform1, conflict.platform2]).toContain('Drupal');
+        expect(conflict.conflictSeverity).toBe('high');
+      });
+
+      it('should not detect conflicts for compatible platforms', () => {
+        const headers = new Map([
+          ['x-wp-total', new Set(['150'])],
+          ['cf-ray', new Set(['abc123'])], // Infrastructure, no conflict
+          ['x-frame-options', new Set(['DENY'])] // Security, no conflict
+        ]);
+
+        const conflicts = preprocessor.detectCrossPlatformConflicts(headers);
+        
+        expect(conflicts.hasConflicts).toBe(false);
+        expect(conflicts.conflictingSets).toHaveLength(0);
+        expect(conflicts.dominantPlatform).toBe('WordPress');
+        expect(conflicts.conflictScore).toBe(0);
+      });
+
+      it('should determine dominant platform based on header count', () => {
+        const headers = new Map([
+          ['x-wp-total', new Set(['150'])],
+          ['x-wp-totalpages', new Set(['10'])],
+          ['x-pingback', new Set(['https://example.com/xmlrpc.php'])],
+          ['x-shopify-shop-id', new Set(['12345'])] // Only one Shopify header
+        ]);
+
+        const conflicts = preprocessor.detectCrossPlatformConflicts(headers);
+        
+        expect(conflicts.dominantPlatform).toBe('WordPress'); // 3 WordPress headers vs 1 Shopify
+        expect(conflicts.hasConflicts).toBe(true);
+      });
+
+      it('should calculate appropriate conflict severity levels', () => {
+        // High severity: highly specific conflicting headers
+        const highSeverityHeaders = new Map([
+          ['x-shopify-shop-id', new Set(['12345'])], // 0.99 specificity
+          ['x-wp-total', new Set(['150'])] // 0.98 specificity
+        ]);
+        
+        const highConflicts = preprocessor.detectCrossPlatformConflicts(highSeverityHeaders);
+        expect(highConflicts.conflictingSets[0].conflictSeverity).toBe('high');
+
+        // Medium severity: moderately specific headers
+        const mediumSeverityHeaders = new Map([
+          ['x-generator', new Set(['Drupal 9'])], // 0.60 specificity (multi-platform)
+          ['x-wp-nonce', new Set(['abc123'])] // 0.95 specificity
+        ]);
+        
+        const mediumConflicts = preprocessor.detectCrossPlatformConflicts(mediumSeverityHeaders);
+        expect(mediumConflicts.conflictingSets[0].conflictSeverity).toBe('medium');
+      });
+
+      it('should handle empty headers gracefully', () => {
+        const emptyHeaders = new Map<string, Set<string>>();
+        const conflicts = preprocessor.detectCrossPlatformConflicts(emptyHeaders);
+        
+        expect(conflicts.hasConflicts).toBe(false);
+        expect(conflicts.conflictingSets).toHaveLength(0);
+        expect(conflicts.dominantPlatform).toBeUndefined();
+        expect(conflicts.conflictScore).toBe(0);
+      });
+
+      it('should handle headers with no platform associations', () => {
+        const nonPlatformHeaders = new Map([
+          ['content-type', new Set(['text/html'])],
+          ['server', new Set(['nginx'])],
+          ['x-custom-header', new Set(['value'])]
+        ]);
+
+        const conflicts = preprocessor.detectCrossPlatformConflicts(nonPlatformHeaders);
+        
+        expect(conflicts.hasConflicts).toBe(false);
+        expect(conflicts.conflictingSets).toHaveLength(0);
+        expect(conflicts.dominantPlatform).toBeUndefined();
+        expect(conflicts.conflictScore).toBe(0);
+      });
+    });
+
+    describe('Platform Conflict Inference', () => {
+      it('should infer correct conflicts for CMS platforms', () => {
+        // Test private method through classification
+        const wpHeader = preprocessor.classifyHeader('x-wordpress-test');
+        expect(wpHeader.conflictingPlatforms).toContain('Shopify');
+        expect(wpHeader.conflictingPlatforms).toContain('Drupal');
+        expect(wpHeader.conflictingPlatforms).toContain('Joomla');
+        expect(wpHeader.conflictingPlatforms).toContain('Magento');
+
+        const shopifyHeader = preprocessor.classifyHeader('x-shopify-test');
+        expect(shopifyHeader.conflictingPlatforms).toContain('WordPress');
+        expect(shopifyHeader.conflictingPlatforms).toContain('Drupal');
+        expect(shopifyHeader.conflictingPlatforms).toContain('Magento');
+        expect(shopifyHeader.conflictingPlatforms).toContain('WooCommerce');
+      });
+
+      it('should handle infrastructure platforms with minimal conflicts', () => {
+        const vercelHeader = preprocessor.classifyHeader('x-vercel-test');
+        expect(vercelHeader.conflictingPlatforms).toEqual(['Netlify']);
+
+        const netlifyHeader = preprocessor.classifyHeader('x-netlify-test');
+        expect(netlifyHeader.conflictingPlatforms).toEqual(['Vercel']);
+
+        const awsHeader = preprocessor.classifyHeader('x-amz-test');
+        expect(awsHeader.conflictingPlatforms).toEqual([]);
+      });
+
+      it('should handle frameworks with no conflicts', () => {
+        const nextjsHeader = preprocessor.classifyHeader('x-nextjs-test');
+        expect(nextjsHeader.conflictingPlatforms).toEqual([]);
+
+        const gatsbyHeader = preprocessor.classifyHeader('x-gatsby-test');
+        expect(gatsbyHeader.conflictingPlatforms).toEqual([]);
+      });
+    });
+
+    describe('Integration with Existing Analyzers', () => {
+      it('should provide enhanced classification data to HeaderAnalyzerV2', async () => {
+        // Test that the enhanced HeaderClassification is available to analyzers
+        const classification = preprocessor.classifyHeader('x-wp-total');
+        
+        // Verify all Phase 3 enhancements are present
+        expect(classification).toHaveProperty('targetPlatforms');
+        expect(classification).toHaveProperty('conflictingPlatforms');
+        expect(classification).toHaveProperty('platformSpecificity');
+        expect(classification).toHaveProperty('crossPlatformConflict');
+        
+        // Verify backward compatibility - existing properties still work
+        expect(classification).toHaveProperty('category');
+        expect(classification).toHaveProperty('discriminativeScore');
+        expect(classification).toHaveProperty('filterRecommendation');
+        expect(classification).toHaveProperty('vendor');
+        expect(classification).toHaveProperty('platformName');
+      });
+
+      it('should maintain backward compatibility with existing code', () => {
+        // Test that old code still works with new classification data
+        const oldStyleUsage = preprocessor.classifyHeader('server');
+        expect(oldStyleUsage.category).toBe('cms-indicative');
+        expect(oldStyleUsage.discriminativeScore).toBe(0.6);
+        expect(oldStyleUsage.filterRecommendation).toBe('context-dependent');
+        
+        // New properties should have sensible defaults
+        expect(oldStyleUsage.targetPlatforms).toEqual([]);
+        expect(oldStyleUsage.conflictingPlatforms).toEqual([]);
+        expect(oldStyleUsage.platformSpecificity).toBe(0.6);
+        expect(oldStyleUsage.crossPlatformConflict).toBe(false);
+      });
+
+      it('should clear cache correctly', () => {
+        // Test classification
+        const before = preprocessor.classifyHeader('x-wp-total');
+        expect(before.targetPlatforms).toEqual(['WordPress']);
+        
+        // Clear cache
+        preprocessor.clearHeaderClassificationCache();
+        
+        // Test that classification still works (recreated from cache)
+        const after = preprocessor.classifyHeader('x-wp-total');
+        expect(after.targetPlatforms).toEqual(['WordPress']);
+        expect(after).not.toBe(before); // Different object reference
+      });
+    });
+  });
 });
