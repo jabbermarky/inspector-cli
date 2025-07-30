@@ -64,6 +64,7 @@ export interface AnalysisOptions {
   includeExamples: boolean;
   maxExamples?: number;
   semanticFiltering?: boolean;
+  focusPlatformDiscrimination?: boolean; // Enable platform discrimination analysis and filtering
 }
 
 export interface AnalysisResult<T> {
@@ -81,6 +82,19 @@ export interface PatternData {
   examples?: Set<string>;         // Example values (e.g., header values)
   occurrenceCount?: number;       // Optional: total times seen across all sites
   metadata?: Record<string, any>; // Optional: pattern-specific metadata
+  platformDiscrimination?: PlatformDiscriminationData; // Platform discrimination metadata
+}
+
+export interface PlatformDiscriminationData {
+  discriminativeScore: number;    // 0-1: How well this pattern discriminates between platforms
+  platformSpecificity: Map<string, number>; // platform -> specificity score (0-1)
+  crossPlatformFrequency: Map<string, number>; // platform -> frequency within that platform
+  discriminationMetrics: {
+    entropy: number;              // Information-theoretic measure of discrimination
+    maxSpecificity: number;       // Highest platform specificity score
+    targetPlatform: string | null; // Platform with highest specificity
+    isInfrastructureNoise: boolean; // True if pattern appears equally across all platforms
+  };
 }
 
 export interface AnalysisMetadata {

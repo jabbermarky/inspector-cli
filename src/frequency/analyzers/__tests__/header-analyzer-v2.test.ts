@@ -1558,6 +1558,308 @@ describe('HeaderAnalyzerV2 - Complete Algorithmic Testing', () => {
     });
   });
 
+  describe('Platform Discrimination Analysis', () => {
+    it('should calculate discriminative scores for platform-specific headers', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wordpress1.com', cms: 'WordPress', headers: new Map([
+          ['x-pingback', new Set(['https://wordpress1.com/xmlrpc.php'])],
+          ['server', new Set(['nginx'])]
+        ])},
+        { url: 'https://wordpress2.com', cms: 'WordPress', headers: new Map([
+          ['x-pingback', new Set(['https://wordpress2.com/xmlrpc.php'])],
+          ['server', new Set(['apache'])]
+        ])},
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([
+          ['x-shopify-shop-id', new Set(['12345'])],
+          ['server', new Set(['cloudflare'])]
+        ])},
+        { url: 'https://shopify2.com', cms: 'Shopify', headers: new Map([
+          ['x-shopify-shop-id', new Set(['67890'])],
+          ['server', new Set(['nginx'])]
+        ])}
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      // Platform-specific headers should have high discriminative scores
+      const pingbackPattern = result.patterns.get('x-pingback');
+      expect(pingbackPattern).toBeDefined();
+      expect(pingbackPattern!.platformDiscrimination).toBeDefined();
+      expect(pingbackPattern!.platformDiscrimination!.discriminativeScore).toBeGreaterThan(0.5);
+      expect(pingbackPattern!.platformDiscrimination!.discriminationMetrics.targetPlatform).toBe('WordPress');
+      expect(pingbackPattern!.platformDiscrimination!.discriminationMetrics.isInfrastructureNoise).toBe(false);
+
+      const shopifyPattern = result.patterns.get('x-shopify-shop-id');
+      expect(shopifyPattern!.platformDiscrimination!.discriminativeScore).toBeGreaterThan(0.5);
+      expect(shopifyPattern!.platformDiscrimination!.discriminationMetrics.targetPlatform).toBe('Shopify');
+
+      // Server header appears across platforms - should have lower discriminative score
+      const serverPattern = result.patterns.get('server');
+      expect(serverPattern).toBeDefined();
+      expect(serverPattern!.platformDiscrimination).toBeDefined();
+      expect(serverPattern!.platformDiscrimination!.discriminativeScore).toBeLessThan(0.5);
+      expect(serverPattern!.platformDiscrimination!.discriminationMetrics.isInfrastructureNoise).toBe(true);
+    });
+
+    it('should calculate platform frequency distributions correctly', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['x-powered-by', new Set(['PHP/8.0'])]]) },
+        { url: 'https://wp2.com', cms: 'WordPress', headers: new Map([['x-powered-by', new Set(['PHP/8.1'])]]) },
+        { url: 'https://wp3.com', cms: 'WordPress', headers: new Map([['server', new Set(['nginx'])]]) }, // No x-powered-by
+        { url: 'https://drupal1.com', cms: 'Drupal', headers: new Map([['x-powered-by', new Set(['PHP/8.2'])]]) },
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([['server', new Set(['cloudflare'])]]) } // No x-powered-by
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      const poweredByPattern = result.patterns.get('x-powered-by');
+      expect(poweredByPattern!.platformDiscrimination).toBeDefined();
+      
+      const crossPlatformFreq = poweredByPattern!.platformDiscrimination!.crossPlatformFrequency;
+      expect(crossPlatformFreq.get('WordPress')).toBeCloseTo(2/3, 6); // 2 out of 3 WordPress sites
+      expect(crossPlatformFreq.get('Drupal')).toBe(1); // 1 out of 1 Drupal site
+      expect(crossPlatformFreq.get('Shopify')).toBe(0); // 0 out of 1 Shopify site
+
+      const platformSpecificity = poweredByPattern!.platformDiscrimination!.platformSpecificity;
+      expect(platformSpecificity.get('WordPress')).toBeGreaterThan(1); // More common in WordPress
+      expect(platformSpecificity.get('Drupal')).toBeGreaterThan(1); // More common in Drupal
+      expect(platformSpecificity.get('Shopify')).toBe(0); // Not present in Shopify
+    });
+
+    it('should identify infrastructure noise correctly', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['cf-ray', new Set(['abc123'])]]) },
+        { url: 'https://wp2.com', cms: 'WordPress', headers: new Map([['cf-ray', new Set(['def456'])]]) },
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([['cf-ray', new Set(['ghi789'])]]) },
+        { url: 'https://shopify2.com', cms: 'Shopify', headers: new Map([['cf-ray', new Set(['jkl012'])]]) },
+        { url: 'https://drupal1.com', cms: 'Drupal', headers: new Map([['cf-ray', new Set(['mno345'])]]) },
+        { url: 'https://drupal2.com', cms: 'Drupal', headers: new Map([['cf-ray', new Set(['pqr678'])]]) }
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      // Cloudflare Ray ID should be identified as infrastructure noise
+      const cfRayPattern = result.patterns.get('cf-ray');
+      expect(cfRayPattern).toBeDefined();
+      expect(cfRayPattern!.platformDiscrimination).toBeDefined();
+      expect(cfRayPattern!.platformDiscrimination!.discriminationMetrics.isInfrastructureNoise).toBe(true);
+      expect(cfRayPattern!.platformDiscrimination!.discriminativeScore).toBeLessThan(0.2);
+    });
+
+    it('should identify infrastructure noise when focusPlatformDiscrimination is enabled', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([
+          ['x-pingback', new Set(['https://wp1.com/xmlrpc.php'])], // Discriminative
+          ['cf-ray', new Set(['abc123'])] // Infrastructure noise
+        ])},
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([
+          ['x-shopify-shop-id', new Set(['12345'])], // Discriminative
+          ['cf-ray', new Set(['def456'])] // Infrastructure noise
+        ])}
+      ]);
+
+      const optionsWithFiltering: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const resultWithFiltering = await analyzer.analyze(testData, optionsWithFiltering);
+
+      // Infrastructure noise should be kept but marked as such for analysis
+      expect(resultWithFiltering.patterns.has('cf-ray')).toBe(true);
+      const cfRayFiltered = resultWithFiltering.patterns.get('cf-ray');
+      expect(cfRayFiltered!.platformDiscrimination!.discriminationMetrics.isInfrastructureNoise).toBe(true);
+      expect(cfRayFiltered!.platformDiscrimination!.discriminativeScore).toBe(0);
+      
+      // Discriminative patterns should remain
+      expect(resultWithFiltering.patterns.has('x-pingback')).toBe(true);
+      expect(resultWithFiltering.patterns.has('x-shopify-shop-id')).toBe(true);
+
+      // Compare with disabled filtering
+      const optionsWithoutFiltering: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: false
+      };
+
+      const resultWithoutFiltering = await analyzer.analyze(testData, optionsWithoutFiltering);
+      
+      // All patterns should be present when filtering is disabled
+      expect(resultWithoutFiltering.patterns.has('cf-ray')).toBe(true);
+      expect(resultWithoutFiltering.patterns.has('x-pingback')).toBe(true);
+      expect(resultWithoutFiltering.patterns.has('x-shopify-shop-id')).toBe(true);
+    });
+
+    it('should sort patterns by discriminative score when focusPlatformDiscrimination is enabled', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([
+          ['x-pingback', new Set(['https://wp1.com/xmlrpc.php'])], // High discriminative
+          ['server', new Set(['nginx'])] // Low discriminative (appears everywhere)
+        ])},
+        { url: 'https://wp2.com', cms: 'WordPress', headers: new Map([
+          ['x-pingback', new Set(['https://wp2.com/xmlrpc.php'])],
+          ['server', new Set(['apache'])]
+        ])},
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([
+          ['x-shopify-shop-id', new Set(['12345'])], // High discriminative
+          ['server', new Set(['cloudflare'])]
+        ])}
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      const sortedPatterns = Array.from(result.patterns.entries());
+      
+      // High discriminative patterns should come first
+      const firstPattern = sortedPatterns[0][1];
+      const lastPattern = sortedPatterns[sortedPatterns.length - 1][1];
+      
+      if (firstPattern.platformDiscrimination && lastPattern.platformDiscrimination) {
+        expect(firstPattern.platformDiscrimination.discriminativeScore)
+          .toBeGreaterThanOrEqual(lastPattern.platformDiscrimination.discriminativeScore);
+      }
+    });
+
+    it('should calculate entropy correctly for platform discrimination', async () => {
+      const testData = createTestDataWithCMS([
+        // Perfect discrimination: header appears on only one platform
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url1'])]]) },
+        { url: 'https://wp2.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url2'])]]) },
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([['server', new Set(['cloudflare'])]]) },
+        { url: 'https://shopify2.com', cms: 'Shopify', headers: new Map([['server', new Set(['nginx'])]]) }
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      const pingbackPattern = result.patterns.get('x-pingback');
+      expect(pingbackPattern!.platformDiscrimination).toBeDefined();
+      
+      // Perfect discrimination should have low entropy (concentrated in one platform)
+      const entropy = pingbackPattern!.platformDiscrimination!.discriminationMetrics.entropy;
+      expect(entropy).toBeLessThan(0.5); // Low entropy = high concentration = good discrimination
+      
+      // Max specificity should be high for platform-specific headers
+      const maxSpecificity = pingbackPattern!.platformDiscrimination!.discriminationMetrics.maxSpecificity;
+      expect(maxSpecificity).toBeGreaterThan(1);
+    });
+
+    it('should handle unknown CMS platforms gracefully', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url'])]]) },
+        { url: 'https://unknown1.com', cms: null, headers: new Map([['server', new Set(['nginx'])]]) },
+        { url: 'https://unknown2.com', cms: 'unknown', headers: new Map([['server', new Set(['apache'])]]) }
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      // Should handle unknown platforms without errors
+      expect(result.patterns.size).toBeGreaterThan(0);
+      
+      const pingbackPattern = result.patterns.get('x-pingback');
+      expect(pingbackPattern!.platformDiscrimination).toBeDefined();
+      expect(pingbackPattern!.platformDiscrimination!.discriminationMetrics.targetPlatform).toBe('WordPress');
+
+      const serverPattern = result.patterns.get('server');
+      expect(serverPattern!.platformDiscrimination).toBeDefined();
+      // Server appears across different platforms (including unknown)
+      expect(serverPattern!.platformDiscrimination!.crossPlatformFrequency.has('WordPress')).toBe(true);
+      expect(serverPattern!.platformDiscrimination!.crossPlatformFrequency.has('unknown')).toBe(true);
+    });
+
+    it('should not calculate platform discrimination when focusPlatformDiscrimination is disabled', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url'])]]) },
+        { url: 'https://shopify1.com', cms: 'Shopify', headers: new Map([['x-shopify-shop-id', new Set(['123'])]]) }
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: false // Disabled
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      // Platform discrimination data should not be calculated
+      for (const [_, pattern] of result.patterns) {
+        expect(pattern.platformDiscrimination).toBeUndefined();
+      }
+    });
+
+    it('should handle edge case with single platform dataset', async () => {
+      const testData = createTestDataWithCMS([
+        { url: 'https://wp1.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url1'])]]) },
+        { url: 'https://wp2.com', cms: 'WordPress', headers: new Map([['x-pingback', new Set(['url2'])]]) },
+        { url: 'https://wp3.com', cms: 'WordPress', headers: new Map([['server', new Set(['nginx'])]]) }
+      ]);
+
+      const options: AnalysisOptions = {
+        minOccurrences: 1,
+        includeExamples: false,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true
+      };
+
+      const result = await analyzer.analyze(testData, options);
+
+      // Should handle single platform without errors
+      expect(result.patterns.size).toBeGreaterThan(0);
+
+      const pingbackPattern = result.patterns.get('x-pingback');
+      expect(pingbackPattern!.platformDiscrimination).toBeDefined();
+      
+      // With only one platform, infrastructure noise detection should still work
+      expect(pingbackPattern!.platformDiscrimination!.discriminationMetrics.isInfrastructureNoise).toBe(false);
+      expect(pingbackPattern!.platformDiscrimination!.discriminationMetrics.targetPlatform).toBe('WordPress');
+    });
+  });
+
   describe('Edge Cases and Error Handling', () => {
     it('should handle malformed site data gracefully', async () => {
       const malformedData: PreprocessedData = {
@@ -1726,6 +2028,81 @@ function createRealisticTestDataWithPageTypes(sites: Array<{
     }
     
     allHeaders.forEach(headerName => {
+      const lowerHeader = headerName.toLowerCase();
+      if (!headerClassifications.has(lowerHeader)) {
+        if (alwaysFilterHeaders.has(lowerHeader)) {
+          headerClassifications.set(lowerHeader, {
+            category: 'generic',
+            discriminativeScore: 0,
+            filterRecommendation: 'always-filter'
+          });
+          headerCategories.set(lowerHeader, 'generic');
+        } else {
+          // Default classification for non-filtered headers
+          headerClassifications.set(lowerHeader, {
+            category: 'custom',
+            discriminativeScore: 0.5,
+            filterRecommendation: 'never-filter'
+          });
+          headerCategories.set(lowerHeader, 'custom');
+        }
+      }
+    });
+  });
+
+  return {
+    sites: siteMap,
+    totalSites: sites.length,
+    metadata: {
+      version: '1.0.0',
+      preprocessedAt: new Date().toISOString(),
+      semantic: {
+        categoryCount: headerCategories.size,
+        headerCategories,
+        headerClassifications
+      }
+    }
+  };
+}
+
+/**
+ * Helper function to create test data with CMS information for platform discrimination testing
+ */
+function createTestDataWithCMS(sites: Array<{
+  url: string;
+  cms: string | null;
+  headers: Map<string, Set<string>>;
+}>): PreprocessedData {
+  const siteMap = new Map<string, SiteData>();
+  
+  // Headers that should be filtered according to DataPreprocessor
+  const alwaysFilterHeaders = new Set([
+    'date', 'content-length', 'connection', 'keep-alive',
+    'transfer-encoding', 'content-encoding', 'vary', 'accept-ranges',
+    'etag', 'last-modified', 'age', 'status', 'content-type',
+    'expires', 'pragma', 'via', 'upgrade', 'host', 'referer'
+  ]);
+  
+  // Build header classifications to simulate DataPreprocessor's semantic metadata
+  const headerClassifications = new Map<string, any>();
+  const headerCategories = new Map<string, string>();
+  
+  sites.forEach(site => {
+    const normalizedUrl = site.url.replace(/^https?:\/\//, '');
+    siteMap.set(normalizedUrl, {
+      url: site.url,
+      normalizedUrl,
+      cms: site.cms,
+      confidence: site.cms ? 0.9 : 0.0,
+      headers: site.headers,
+      metaTags: new Map(),
+      scripts: new Set(),
+      technologies: new Set(),
+      capturedAt: new Date().toISOString()
+    });
+    
+    // Build classifications for all headers seen
+    site.headers.forEach((values, headerName) => {
       const lowerHeader = headerName.toLowerCase();
       if (!headerClassifications.has(lowerHeader)) {
         if (alwaysFilterHeaders.has(lowerHeader)) {
