@@ -1690,6 +1690,18 @@ function createRealisticTestDataWithPageTypes(sites: Array<{
 }>): PreprocessedData {
   const siteMap = new Map<string, SiteData>();
   
+  // Headers that should be filtered according to DataPreprocessor
+  const alwaysFilterHeaders = new Set([
+    'date', 'content-length', 'connection', 'keep-alive',
+    'transfer-encoding', 'content-encoding', 'vary', 'accept-ranges',
+    'etag', 'last-modified', 'age', 'status', 'content-type',
+    'expires', 'pragma', 'via', 'upgrade', 'host', 'referer'
+  ]);
+  
+  // Build header classifications to simulate DataPreprocessor's semantic metadata
+  const headerClassifications = new Map<string, any>();
+  const headerCategories = new Map<string, string>();
+  
   sites.forEach(site => {
     const normalizedUrl = site.url.replace(/^https?:\/\//, '');
     siteMap.set(normalizedUrl, {
@@ -1704,6 +1716,36 @@ function createRealisticTestDataWithPageTypes(sites: Array<{
       technologies: new Set(),
       capturedAt: new Date().toISOString()
     });
+    
+    // Build classifications for all headers seen
+    const allHeaders = new Set<string>();
+    site.headers.forEach((values, headerName) => allHeaders.add(headerName));
+    if (site.headersByPageType) {
+      site.headersByPageType.mainpage?.forEach((values, headerName) => allHeaders.add(headerName));
+      site.headersByPageType.robots?.forEach((values, headerName) => allHeaders.add(headerName));
+    }
+    
+    allHeaders.forEach(headerName => {
+      const lowerHeader = headerName.toLowerCase();
+      if (!headerClassifications.has(lowerHeader)) {
+        if (alwaysFilterHeaders.has(lowerHeader)) {
+          headerClassifications.set(lowerHeader, {
+            category: 'generic',
+            discriminativeScore: 0,
+            filterRecommendation: 'always-filter'
+          });
+          headerCategories.set(lowerHeader, 'generic');
+        } else {
+          // Default classification for non-filtered headers
+          headerClassifications.set(lowerHeader, {
+            category: 'custom',
+            discriminativeScore: 0.5,
+            filterRecommendation: 'never-filter'
+          });
+          headerCategories.set(lowerHeader, 'custom');
+        }
+      }
+    });
   });
 
   return {
@@ -1711,7 +1753,12 @@ function createRealisticTestDataWithPageTypes(sites: Array<{
     totalSites: sites.length,
     metadata: {
       version: '1.0.0',
-      preprocessedAt: new Date().toISOString()
+      preprocessedAt: new Date().toISOString(),
+      semantic: {
+        categoryCount: headerCategories.size,
+        headerCategories,
+        headerClassifications
+      }
     }
   };
 }
@@ -1726,6 +1773,18 @@ function createRealisticTestData(sites: Array<{
 }>): PreprocessedData {
   const siteMap = new Map<string, SiteData>();
   
+  // Headers that should be filtered according to DataPreprocessor
+  const alwaysFilterHeaders = new Set([
+    'date', 'content-length', 'connection', 'keep-alive',
+    'transfer-encoding', 'content-encoding', 'vary', 'accept-ranges',
+    'etag', 'last-modified', 'age', 'status', 'content-type',
+    'expires', 'pragma', 'via', 'upgrade', 'host', 'referer'
+  ]);
+  
+  // Build header classifications to simulate DataPreprocessor's semantic metadata
+  const headerClassifications = new Map<string, any>();
+  const headerCategories = new Map<string, string>();
+  
   sites.forEach(site => {
     const normalizedUrl = site.url.replace(/^https?:\/\//, '');
     siteMap.set(normalizedUrl, {
@@ -1739,6 +1798,29 @@ function createRealisticTestData(sites: Array<{
       technologies: new Set(),
       capturedAt: new Date().toISOString()
     });
+    
+    // Build classifications for all headers seen
+    site.headers.forEach((values, headerName) => {
+      const lowerHeader = headerName.toLowerCase();
+      if (!headerClassifications.has(lowerHeader)) {
+        if (alwaysFilterHeaders.has(lowerHeader)) {
+          headerClassifications.set(lowerHeader, {
+            category: 'generic',
+            discriminativeScore: 0,
+            filterRecommendation: 'always-filter'
+          });
+          headerCategories.set(lowerHeader, 'generic');
+        } else {
+          // Default classification for non-filtered headers
+          headerClassifications.set(lowerHeader, {
+            category: 'custom',
+            discriminativeScore: 0.5,
+            filterRecommendation: 'never-filter'
+          });
+          headerCategories.set(lowerHeader, 'custom');
+        }
+      }
+    });
   });
 
   return {
@@ -1746,7 +1828,12 @@ function createRealisticTestData(sites: Array<{
     totalSites: sites.length,
     metadata: {
       version: '1.0.0',
-      preprocessedAt: new Date().toISOString()
+      preprocessedAt: new Date().toISOString(),
+      semantic: {
+        categoryCount: headerCategories.size,
+        headerCategories,
+        headerClassifications
+      }
     }
   };
 }

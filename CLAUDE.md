@@ -1,19 +1,26 @@
 # CLAUDE.md
 
-see @readme.md for inspector-cli overview and @package.json for available npm commands for this project.
-see @docs/test-troubleshooting-workflow.md for troubleshooting assistance.
-see @docs/CODE_QUALITY.md for code quality guidelines.
-
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 Inspector CLI is a command-line tool for analyzing websites and e-commerce integrations, specifically designed for inspecting PayPal integrations. The tool provides web scraping capabilities, screenshot generation, CMS & platform detection with batch processing, and AI-powered analysis of website content.
 
+## Personal Information
+
+- My name is Mark
+- Always use my name whenever responding to my requests
+
+## Review These Documents
+
+see @readme.md for inspector-cli overview and @package.json for available npm commands for this project.
+see @docs/test-troubleshooting-workflow.md for troubleshooting assistance.
+see @docs/CODE_QUALITY.md for code quality guidelines.
+
 ## Development Philosophy
 
-- **Don't make assumptions**: Clarify assumptions with questions before coding.
-- **Plan**: Plan before you code. Implementation plans must include a test plan with full algorithmic testing. When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions
+- **Don't make assumptions**: Clarify assumptions with questions before creating plans, writing code, and executing tests.
+- **Plan**: Plan before you code. Implementation plans must include a test plan with full algorithmic testing. When implementing multi-phase plans, always stop between phases to allow time for review, optional commits, and plan revisions.
 - **Ask**: If you don't understand completely, ask questions until you do.
 - **Be systematic**:.
 - **KISS**: - keep it simple stupid; in other words, don't over-engineer solutions to problems.
@@ -29,14 +36,15 @@ Inspector CLI is a command-line tool for analyzing websites and e-commerce integ
 
 ## Important Paths
 
-- /plans contains all planning documents
-- /docs contains all general documents
-- /reports contains the output of various tests and analyses (gitignored)
-- /tools contains custom utilities and tools made for various purposes (gitignored)
-- /scripts contains temporary debug and utility scripts (gitignored)
-- /data contains data files that we keep around
+- ./tmp contains temporary documents and output files
+- ./plans contains all planning documents
+- ./docs contains all general documents
+- ./reports contains the output of various tests and analyses (gitignored)
+- ./tools contains custom utilities and tools made for various purposes (gitignored)
+- ./scripts contains temporary debug and utility scripts (gitignored)
+- ./data contains data files that we keep around
 
-**Note:** The `/reports`, `/tools`, and `/scripts` directories are gitignored as they contain temporary files, debug scripts, and generated reports that should not be in version control.
+**Note:** The `./tmp`, `./reports`, `./tools`, and `./scripts` directories are gitignored as they contain temporary files, debug scripts, and generated reports that should not be in version control.
 
 ## Development Commands
 
@@ -187,8 +195,3 @@ node dist/index.js learn <url> --filter-level custom \
 ## Unit Testing Patterns (CRITICAL - Use Centralized test-utils)
 
 **IMPORTANT**: Always use the centralized test-utils system located in `src/test-utils/`. This eliminates duplicate mock code and ensures consistency across all tests.
-
-## Personal Information
-
-- My name is Mark
-- Always use my name whenever responding to my requests

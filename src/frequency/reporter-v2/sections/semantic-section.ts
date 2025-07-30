@@ -65,24 +65,7 @@ export function formatForHuman(
     });
   }
   
-  // Vendor detections
-  if (data.vendorDetections && isMap(data.vendorDetections) && data.vendorDetections.size > 0) {
-    lines.push('Vendor Detection Summary:');
-    const sortedVendors = Array.from(data.vendorDetections.entries())
-      .sort(([, a], [, b]) => b.confidence - a.confidence)
-      .slice(0, Math.min(maxItems, 10));
-    
-    sortedVendors.forEach(([vendor, vendorData]) => {
-      lines.push(`  ${vendor}:`);
-      lines.push(`    Headers: ${vendorData.headerCount}`);
-      lines.push(`    Confidence: ${formatRatio(vendorData.confidence)}`);
-      lines.push(`    Category: ${vendorData.category}`);
-      if (vendorData.headers.length > 0) {
-        lines.push(`    Key Headers: ${vendorData.headers.slice(0, 3).join(', ')}`);
-      }
-      lines.push('');
-    });
-  }
+  // Removed vendor detections - this should come from the dedicated vendor analyzer section
   
   // Security insights
   if (data.insights?.potentialSecurity && data.insights.potentialSecurity.length > 0) {
@@ -188,23 +171,7 @@ export function formatForMarkdown(
     lines.push('');
   }
   
-  // Vendor detections
-  if (data.vendorDetections && isMap(data.vendorDetections) && data.vendorDetections.size > 0) {
-    lines.push('### Vendor Detection Summary');
-    lines.push('');
-    lines.push('| Vendor | Headers | Confidence | Category | Key Headers |');
-    lines.push('|--------|---------|------------|----------|-------------|');
-    
-    const sortedVendors = Array.from(data.vendorDetections.entries())
-      .sort(([, a], [, b]) => b.confidence - a.confidence)
-      .slice(0, Math.min(maxItems, 10));
-    
-    sortedVendors.forEach(([vendor, vendorData]) => {
-      const keyHeaders = vendorData.headers.slice(0, 3).join(', ');
-      lines.push(`| ${vendor} | ${vendorData.headerCount} | ${formatRatio(vendorData.confidence)} | ${vendorData.category} | \`${keyHeaders}\` |`);
-    });
-    lines.push('');
-  }
+  // Removed vendor detections - this should come from the dedicated vendor analyzer section
   
   // Security insights
   if (data.insights?.potentialSecurity && data.insights.potentialSecurity.length > 0) {

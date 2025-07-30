@@ -107,7 +107,7 @@ export interface AggregatedResults {
   vendor: AnalysisResult<VendorSpecificData>;
   discovery: AnalysisResult<PatternDiscoverySpecificData>;
   cooccurrence: AnalysisResult<CooccurrenceSpecificData>;
-  technologies: AnalysisResult<TechSpecificData>;
+  // Removed technologies - redundant with script/vendor analyzers
   correlations: AnalysisResult<BiasSpecificData>;
   summary: FrequencySummary;
 }

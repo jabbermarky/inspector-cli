@@ -31,17 +31,13 @@ describe('V2 Reporter Integration', () => {
     expect(module.biasSection).toBeDefined();
   });
 
-  it('should handle the same function signature as simple-reporter-v2', async () => {
-    // Import both to compare signatures
+  it('should have proper function signature for formatOutputV2', async () => {
     const v2Reporter = await import('../index.js');
-    const simpleReporter = await import('../../simple-reporter-v2.js');
     
-    // Both should have formatOutputV2 function
+    // Should have formatOutputV2 function with expected parameter count
     expect(v2Reporter.formatOutputV2).toBeDefined();
-    expect(simpleReporter.formatOutputV2).toBeDefined();
-    
-    // Both should be functions with same parameter count
-    expect(v2Reporter.formatOutputV2.length).toBe(simpleReporter.formatOutputV2.length);
+    expect(typeof v2Reporter.formatOutputV2).toBe('function');
+    expect(v2Reporter.formatOutputV2.length).toBe(2); // result, options
   });
 
   it('should work with FrequencyOptions from frequency command', async () => {

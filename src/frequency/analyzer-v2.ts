@@ -38,9 +38,9 @@ export async function analyzeFrequencyV2(options: FrequencyOptions = {}): Promis
         // Complete progress
         progress.complete();
 
-        // Output results to file if specified (using simple V2 reporter)
+        // Output results to file if specified (using full V2 reporter)
         if (options.outputFile) {
-            const { formatOutputV2: formatOutput } = await import('./simple-reporter-v2.js');
+            const { formatOutput } = await import('./reporter-v2/index.js');
             await formatOutput(aggregatedResults, options);
         }
 

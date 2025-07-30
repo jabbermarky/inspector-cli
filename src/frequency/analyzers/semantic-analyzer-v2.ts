@@ -52,15 +52,14 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
             logger.warn('No semantic metadata available in preprocessed data');
         }
 
-        // Step 1: Analyze category distribution using preprocessed classifications
-        const categoryDistribution = this.analyzeCategoryDistribution(
-            headerCategories,
-            headerClassifications,
+        // Step 1: Create semantic patterns using preprocessed data (with filtering applied)
+        const headerPatterns = this.createSemanticPatterns(headerClassifications, data, options);
+
+        // Step 2: Analyze category distribution using FILTERED patterns only
+        const categoryDistribution = this.analyzeCategoryDistributionFromPatterns(
+            headerPatterns,
             data
         );
-
-        // Step 2: Create semantic patterns using preprocessed data
-        const headerPatterns = this.createSemanticPatterns(headerClassifications, data, options);
 
         // Step 3: Analyze vendor detections from preprocessed mappings
         const vendorDetections = this.analyzeVendorDetections(
@@ -69,18 +68,16 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
             data
         );
 
-        // Step 4: Generate V2-native insights
-        const insights = this.generateSemanticInsights(
-            headerCategories,
-            headerClassifications,
+        // Step 4: Generate V2-native insights using filtered patterns
+        const insights = this.generateSemanticInsightsFromPatterns(
+            headerPatterns,
             vendorMappings,
             data
         );
 
-        // Step 5: Calculate quality metrics
-        const qualityMetrics = this.calculateQualityMetrics(
-            headerCategories,
-            headerClassifications,
+        // Step 5: Calculate quality metrics using filtered patterns
+        const qualityMetrics = this.calculateQualityMetricsFromPatterns(
+            headerPatterns,
             data
         );
 
@@ -117,13 +114,93 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
     }
 
     /**
-     * Analyze category distribution from preprocessed classifications
+     * Analyze category distribution from FILTERED patterns only
+     * This fixes the bug where ALL headers were being counted instead of just filtered ones
+     */
+    private analyzeCategoryDistributionFromPatterns(
+        headerPatterns: Map<string, SemanticPattern>,
+        data: PreprocessedData
+    ): Map<string, CategoryDistribution> {
+        const distribution = new Map<string, CategoryDistribution>();
+        const categoryStats = new Map<
+            string,
+            {
+                headers: Set<string>;
+                sites: Set<string>;
+                confidences: number[];
+            }
+        >();
+
+        // Count ONLY filtered headers per category and collect statistics
+        for (const [header, pattern] of headerPatterns) {
+            const category = pattern.category;
+            
+            if (!categoryStats.has(category)) {
+                categoryStats.set(category, {
+                    headers: new Set(),
+                    sites: new Set(),
+                    confidences: [],
+                });
+            }
+
+            const stats = categoryStats.get(category)!;
+            stats.headers.add(header);
+            stats.confidences.push(pattern.confidence);
+
+            // Add sites from the pattern (already calculated)
+            for (const site of pattern.sites) {
+                stats.sites.add(site);
+            }
+        }
+
+        // Create distribution objects
+        for (const [category, stats] of categoryStats) {
+            const averageConfidence =
+                stats.confidences.length > 0
+                    ? stats.confidences.reduce((sum, conf) => sum + conf, 0) /
+                      stats.confidences.length
+                    : 0.5;
+
+            // Get top headers for this category (by site count from patterns)
+            const headerSiteCounts = Array.from(stats.headers).map(header => {
+                const pattern = headerPatterns.get(header);
+                return {
+                    header,
+                    siteCount: pattern ? pattern.siteCount : 0,
+                };
+            });
+
+            const topHeaders = headerSiteCounts
+                .sort((a, b) => b.siteCount - a.siteCount)
+                .slice(0, 5)
+                .map(item => item.header);
+
+            distribution.set(category, {
+                category,
+                headerCount: stats.headers.size,
+                siteCount: stats.sites.size,
+                frequency: stats.sites.size / data.totalSites,
+                averageConfidence,
+                topHeaders,
+            });
+        }
+
+        return distribution;
+    }
+    
+    /**
+     * Analyze category distribution from preprocessed classifications (DEPRECATED - causes filtering bug)
+     * Kept for reference but should not be used
      */
     private analyzeCategoryDistribution(
         headerCategories: Map<string, string>,
         headerClassifications: Map<string, HeaderClassification>,
         data: PreprocessedData
     ): Map<string, CategoryDistribution> {
+        // This method was causing the bug where ALL headers were being counted
+        // instead of just the filtered ones that meet frequency thresholds
+        logger.warn('Using deprecated analyzeCategoryDistribution - should use analyzeCategoryDistributionFromPatterns');
+        
         const distribution = new Map<string, CategoryDistribution>();
         const categoryStats = new Map<
             string,
@@ -298,7 +375,77 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
     }
 
     /**
-     * Generate V2-native semantic insights
+     * Generate V2-native semantic insights from FILTERED patterns only
+     * This fixes the bug where insights were generated from ALL headers instead of filtered ones
+     */
+    private generateSemanticInsightsFromPatterns(
+        headerPatterns: Map<string, SemanticPattern>,
+        vendorMappings: Map<string, string>,
+        _data: PreprocessedData
+    ): SemanticInsightsV2 {
+        const totalHeaders = headerPatterns.size;
+        const categorizedHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.category !== 'custom'
+        ).length;
+        const uncategorizedHeaders = totalHeaders - categorizedHeaders;
+
+        // Find most common category from filtered patterns
+        const categoryCounts = new Map<string, number>();
+        for (const pattern of headerPatterns.values()) {
+            categoryCounts.set(pattern.category, (categoryCounts.get(pattern.category) || 0) + 1);
+        }
+        const mostCommonCategory =
+            Array.from(categoryCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || 'custom';
+
+        // Count high confidence headers from filtered patterns
+        const highConfidenceHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.confidence > 0.8
+        ).length;
+
+        // Count vendor headers from filtered patterns
+        const vendorHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.vendor || pattern.platformName
+        ).length;
+        
+        const customHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.category === 'custom'
+        ).length;
+
+        // Identify potential security headers from filtered patterns
+        const potentialSecurity = Array.from(headerPatterns.entries())
+            .filter(
+                ([header, pattern]) =>
+                    pattern.category === 'security' ||
+                    header.toLowerCase().includes('security') ||
+                    header.toLowerCase().includes('csp') ||
+                    header.toLowerCase().includes('cors')
+            )
+            .map(([header]) => header);
+
+        // Generate recommendations focused on CMS/platform detection improvement
+        const recommendations = [
+            'Analyze platform-specific headers for improved CMS detection accuracy',
+            'Focus on headers with high discriminative scores for reliable technology identification',
+            'Investigate custom headers for emerging platform signatures and vendor patterns',
+            'Cross-reference vendor-specific headers with technology stack patterns for better inference',
+        ];
+
+        return {
+            totalHeaders,
+            categorizedHeaders,
+            uncategorizedHeaders,
+            mostCommonCategory,
+            highConfidenceHeaders,
+            vendorHeaders,
+            customHeaders,
+            potentialSecurity,
+            recommendations,
+        };
+    }
+
+    /**
+     * Generate V2-native semantic insights (DEPRECATED - causes filtering bug)
+     * Kept for reference but should not be used
      */
     private generateSemanticInsights(
         headerCategories: Map<string, string>,
@@ -306,6 +453,8 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
         vendorMappings: Map<string, string>,
         _data: PreprocessedData
     ): SemanticInsightsV2 {
+        // This method was causing the bug where ALL headers were being counted
+        logger.warn('Using deprecated generateSemanticInsights - should use generateSemanticInsightsFromPatterns');
         const totalHeaders = headerCategories.size;
         const categorizedHeaders = Array.from(headerCategories.values()).filter(
             cat => cat !== 'custom'
@@ -362,13 +511,71 @@ export class SemanticAnalyzerV2 implements FrequencyAnalyzer<SemanticSpecificDat
     }
 
     /**
-     * Calculate semantic quality metrics
+     * Calculate semantic quality metrics from FILTERED patterns only
+     * This fixes the bug where metrics were calculated on ALL headers instead of filtered ones
+     */
+    private calculateQualityMetricsFromPatterns(
+        headerPatterns: Map<string, SemanticPattern>,
+        _data: PreprocessedData
+    ): SemanticQualityMetrics {
+        const totalHeaders = headerPatterns.size;
+
+        if (totalHeaders === 0) {
+            return {
+                categorizationCoverage: 0,
+                averageConfidence: 0,
+                vendorDetectionRate: 0,
+                customHeaderRatio: 0,
+            };
+        }
+
+        // Categorization coverage (non-custom headers / total headers)
+        const categorizedHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.category !== 'custom'
+        ).length;
+        const categorizationCoverage = categorizedHeaders / totalHeaders;
+
+        // Average confidence from filtered patterns
+        const confidences = Array.from(headerPatterns.values()).map(
+            pattern => pattern.confidence
+        );
+        const averageConfidence =
+            confidences.length > 0
+                ? confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length
+                : 0;
+
+        // Vendor detection rate (patterns with vendors / total patterns)
+        const patternsWithVendors = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.vendor || pattern.platformName
+        ).length;
+        const vendorDetectionRate = patternsWithVendors / totalHeaders;
+
+        // Custom header ratio from filtered patterns
+        const customHeaders = Array.from(headerPatterns.values()).filter(
+            pattern => pattern.category === 'custom'
+        ).length;
+        const customHeaderRatio = customHeaders / totalHeaders;
+
+        return {
+            categorizationCoverage,
+            averageConfidence,
+            vendorDetectionRate,
+            customHeaderRatio,
+        };
+    }
+    
+    /**
+     * Calculate semantic quality metrics (DEPRECATED - causes filtering bug)
+     * Kept for reference but should not be used
      */
     private calculateQualityMetrics(
         headerCategories: Map<string, string>,
         headerClassifications: Map<string, HeaderClassification>,
         _data: PreprocessedData
     ): SemanticQualityMetrics {
+        // This method was causing the bug where ALL headers were being counted
+        logger.warn('Using deprecated calculateQualityMetrics - should use calculateQualityMetricsFromPatterns');
+        
         const totalHeaders = headerCategories.size;
 
         if (totalHeaders === 0) {

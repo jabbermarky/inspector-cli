@@ -199,31 +199,40 @@ export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpe
     private buildHeaderOccurrenceMatrix(data: PreprocessedData): Map<string, Set<string>> {
         const matrix = new Map<string, Set<string>>();
 
-        // Use validated headers if available (architectural integration with ValidationPipelineV2)
+        // CORRECT APPROACH: Use validated headers if available (already filtered)
         if (data.metadata.validation?.validatedHeaders) {
             logger.info('Using validated headers for co-occurrence analysis', {
                 validatedCount: data.metadata.validation.validatedHeaders.size,
                 qualityScore: data.metadata.validation.qualityScore,
             });
 
-            // Build matrix from validated headers
+            // Build matrix from validated headers (ALREADY FILTERED)
             for (const [headerName, patternData] of data.metadata.validation.validatedHeaders) {
                 matrix.set(headerName.toLowerCase(), new Set(patternData.sites));
             }
-        } else {
-            // Fallback to raw header extraction
-            logger.warn('No validated headers available, using raw header extraction');
+            
+            return matrix; // Return early - validated headers are already filtered
+        }
+        
+        // Fallback: No validation pipeline results available
+        logger.warn('No validated headers available - co-occurrence analysis may include non-discriminatory headers');
+        logger.warn('For best results, ensure validation pipeline runs before co-occurrence analysis');
 
-            for (const [siteUrl, siteData] of data.sites) {
-                for (const [headerName, _] of siteData.headers) {
-                    const lowerHeader = headerName.toLowerCase();
-                    if (!matrix.has(lowerHeader)) {
-                        matrix.set(lowerHeader, new Set());
-                    }
-                    matrix.get(lowerHeader)!.add(siteUrl);
+        // Build matrix from ALL headers (not ideal but preserves data flow)
+        for (const [siteUrl, siteData] of data.sites) {
+            for (const [headerName, _] of siteData.headers) {
+                const lowerHeader = headerName.toLowerCase();
+                if (!matrix.has(lowerHeader)) {
+                    matrix.set(lowerHeader, new Set());
                 }
+                matrix.get(lowerHeader)!.add(siteUrl);
             }
         }
+
+        logger.info('Built unfiltered header occurrence matrix', {
+            totalHeaders: matrix.size,
+            warning: 'Matrix includes generic headers - results may be less meaningful'
+        });
 
         return matrix;
     }
@@ -488,15 +497,47 @@ export class CooccurrenceAnalyzerV2 implements FrequencyAnalyzer<CooccurrenceSpe
     ): Map<string, Array<{ url: string; headers: Set<string> }>> {
         const cmsSites = new Map<string, Array<{ url: string; headers: Set<string> }>>();
 
-        for (const [siteUrl, siteData] of data.sites) {
-            const cms = siteData.cms || 'Unknown';
+        // If we have validated headers, use only those
+        if (data.metadata.validation?.validatedHeaders) {
+            // Build site groups from validated headers only
+            const validatedHeaderNames = new Set(
+                Array.from(data.metadata.validation.validatedHeaders.keys()).map(h => h.toLowerCase())
+            );
+            
+            for (const [siteUrl, siteData] of data.sites) {
+                const cms = siteData.cms || 'Unknown';
 
-            if (!cmsSites.has(cms)) {
-                cmsSites.set(cms, []);
+                if (!cmsSites.has(cms)) {
+                    cmsSites.set(cms, []);
+                }
+
+                // Only include headers that passed validation
+                const headers = new Set<string>();
+                for (const [headerName] of siteData.headers) {
+                    const lowerHeader = headerName.toLowerCase();
+                    if (validatedHeaderNames.has(lowerHeader)) {
+                        headers.add(lowerHeader);
+                    }
+                }
+
+                cmsSites.get(cms)!.push({ url: siteUrl, headers });
             }
+            
+            logger.info('Grouped sites by CMS using validated headers only');
+        } else {
+            // Fallback: use all headers (not ideal)
+            logger.warn('No validated headers for CMS grouping - using all headers');
+            
+            for (const [siteUrl, siteData] of data.sites) {
+                const cms = siteData.cms || 'Unknown';
 
-            const headers = new Set(Array.from(siteData.headers.keys()).map(h => h.toLowerCase()));
-            cmsSites.get(cms)!.push({ url: siteUrl, headers });
+                if (!cmsSites.has(cms)) {
+                    cmsSites.set(cms, []);
+                }
+
+                const headers = new Set(Array.from(siteData.headers.keys()).map(h => h.toLowerCase()));
+                cmsSites.get(cms)!.push({ url: siteUrl, headers });
+            }
         }
 
         return cmsSites;

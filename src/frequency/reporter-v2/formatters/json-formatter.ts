@@ -1,6 +1,7 @@
 import { AggregatedResults } from '../../types/analyzer-interface.js';
 import { ExtendedFrequencyOptions } from '../types.js';
 import { mapJsonReplacer } from '../../utils/map-converter.js';
+import * as technologyCategorizationSection from '../sections/technology-categorization-section.js';
 
 export function formatJSON(
   result: AggregatedResults,
@@ -57,7 +58,8 @@ export function formatJSON(
         totalSites: result.vendor.totalSites,
         metadata: result.vendor.metadata,
         patterns: result.vendor.patterns ? Object.fromEntries(result.vendor.patterns) : {},
-        analyzerSpecific: result.vendor.analyzerSpecific
+        analyzerSpecific: result.vendor.analyzerSpecific,
+        technologyCategorization: technologyCategorizationSection.formatForJSON(result.vendor)
       } : null,
       discovery: result.discovery ? {
         totalSites: result.discovery.totalSites,
@@ -71,12 +73,7 @@ export function formatJSON(
         patterns: result.cooccurrence.patterns ? Object.fromEntries(result.cooccurrence.patterns) : {},
         analyzerSpecific: result.cooccurrence.analyzerSpecific
       } : null,
-      technologies: result.technologies ? {
-        totalSites: result.technologies.totalSites,
-        metadata: result.technologies.metadata,
-        patterns: result.technologies.patterns ? Object.fromEntries(result.technologies.patterns) : {},
-        analyzerSpecific: result.technologies.analyzerSpecific
-      } : null,
+      // Removed technologies - redundant with script/vendor analyzers
       correlations: result.correlations ? {
         totalSites: result.correlations.totalSites,
         metadata: result.correlations.metadata,

@@ -424,7 +424,7 @@ export class DataPreprocessor {
     const headerClassifications = new Map<string, HeaderClassification>();
     const vendorMappings = new Map<string, string>();
     
-    for (const [siteUrl, siteData] of sites) {
+    for (const [_siteUrl, siteData] of sites) {
       for (const [headerName] of siteData.headers) {
         if (!headerCategories.has(headerName)) {
           try {

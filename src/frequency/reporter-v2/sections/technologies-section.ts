@@ -62,12 +62,13 @@ export function formatForHuman(
   if (enhancedData.stackAnalysis) {
     const stack = enhancedData.stackAnalysis;
     lines.push('Technology Stack Analysis:');
-    lines.push(`  Complexity: ${stack.complexity || 'unknown'}`);
-    lines.push(`  Overall Score: ${formatRatio(stack.overallScore || 0)}`);
-    lines.push(`  Architecture Pattern: ${stack.architecturePattern || 'unknown'}`);
+    lines.push(`  Complexity: ${stack.stackComplexity || 'unknown'}`);
+    lines.push(`  Modernity Score: ${formatRatio(stack.modernityScore || 0)}`);
+    lines.push(`  Compatibility Score: ${formatRatio(stack.compatibilityScore || 0)}`);
+    lines.push(`  Primary Stack: ${stack.primaryStack ? stack.primaryStack.slice(0, 3).join(', ') : 'unknown'}`);
     
-    if (stack.recommendations && stack.recommendations.length > 0) {
-      lines.push(`  Recommendations: ${stack.recommendations.slice(0, 2).join(', ')}`);
+    if (stack.stackRecommendations && stack.stackRecommendations.length > 0) {
+      lines.push(`  Recommendations: ${stack.stackRecommendations.slice(0, 2).join(', ')}`);
     }
     lines.push('');
   }
@@ -206,12 +207,13 @@ export function formatForMarkdown(
     lines.push('');
     lines.push('| Metric | Value |');
     lines.push('|--------|-------|');
-    lines.push(`| Complexity | ${stack.complexity || 'unknown'} |`);
-    lines.push(`| Overall Score | ${formatRatio(stack.overallScore || 0)} |`);
-    lines.push(`| Architecture Pattern | ${stack.architecturePattern || 'unknown'} |`);
+    lines.push(`| Complexity | ${stack.stackComplexity || 'unknown'} |`);
+    lines.push(`| Modernity Score | ${formatRatio(stack.modernityScore || 0)} |`);
+    lines.push(`| Compatibility Score | ${formatRatio(stack.compatibilityScore || 0)} |`);
+    lines.push(`| Primary Stack | ${stack.primaryStack ? stack.primaryStack.slice(0, 3).join(', ') : 'unknown'} |`);
     
-    if (stack.recommendations && stack.recommendations.length > 0) {
-      lines.push(`| Recommendations | ${stack.recommendations.slice(0, 2).join(', ')} |`);
+    if (stack.stackRecommendations && stack.stackRecommendations.length > 0) {
+      lines.push(`| Recommendations | ${stack.stackRecommendations.slice(0, 2).join(', ')} |`);
     }
     lines.push('');
   }

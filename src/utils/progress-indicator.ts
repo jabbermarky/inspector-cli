@@ -46,6 +46,17 @@ export class ProgressIndicator {
   }
 
   /**
+   * Update the step label and redraw
+   */
+  updateStep(stepName: string, increment: number = 1): void {
+    if (!this.isEnabled) return;
+
+    this.label = stepName;
+    this.current += increment;
+    this.draw();
+  }
+
+  /**
    * Set absolute progress value
    */
   set(value: number): void {

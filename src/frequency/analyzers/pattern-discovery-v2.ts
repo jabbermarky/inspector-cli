@@ -305,8 +305,16 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
             cmsMap.set(siteUrl, siteData.cms || 'Unknown');
 
             // Collect headers with their values
+            // Trust the data preprocessor - all headers here have already been filtered
+            // Only skip if explicitly marked as 'generic' (non-discriminatory)
             for (const [headerName, values] of siteData.headers) {
                 const lowerHeader = headerName.toLowerCase();
+                
+                // Use preprocessor's header classification - skip only 'generic' headers
+                const headerCategory = data.metadata.semantic?.headerCategories?.get(lowerHeader);
+                if (headerCategory === 'generic') {
+                    continue; // Skip non-discriminatory headers already classified by preprocessor
+                }
 
                 if (!headerMap.has(lowerHeader)) {
                     headerMap.set(lowerHeader, new Set());
@@ -536,14 +544,40 @@ export class PatternDiscoveryV2 implements FrequencyAnalyzer<PatternDiscoverySpe
         totalSites: number
     ): DiscoveredPattern[] {
         const suffixMap = new Map<string, string[]>();
-
+        
+        // First pass: collect all possible suffixes for each header
+        const headerSuffixes = new Map<string, string[]>();
         for (const header of headers) {
+            const suffixes: string[] = [];
             for (let len = 2; len <= Math.min(8, header.length - 1); len++) {
                 const suffix = header.substring(header.length - len);
-                if (!suffixMap.has(suffix)) {
-                    suffixMap.set(suffix, []);
+                suffixes.push(suffix);
+            }
+            headerSuffixes.set(header, suffixes);
+        }
+
+        // Second pass: use greedy approach - assign each header to its LONGEST meaningful suffix
+        for (const [header, suffixes] of headerSuffixes) {
+            // Sort suffixes by length (longest first) - greedy approach
+            const sortedSuffixes = suffixes.sort((a, b) => b.length - a.length);
+            
+            // Find the longest suffix that has at least 2 headers
+            let assignedSuffix: string | null = null;
+            for (const suffix of sortedSuffixes) {
+                // Count how many headers share this suffix
+                const matchingHeaders = headers.filter(h => h.endsWith(suffix));
+                if (matchingHeaders.length >= 2) {
+                    assignedSuffix = suffix;
+                    break; // Use the longest matching suffix (greedy)
                 }
-                suffixMap.get(suffix)!.push(header);
+            }
+            
+            // Only add to suffixMap if we found a meaningful suffix
+            if (assignedSuffix) {
+                if (!suffixMap.has(assignedSuffix)) {
+                    suffixMap.set(assignedSuffix, []);
+                }
+                suffixMap.get(assignedSuffix)!.push(header);
             }
         }
 

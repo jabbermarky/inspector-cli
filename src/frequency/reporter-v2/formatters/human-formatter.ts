@@ -6,9 +6,12 @@ import * as headersSection from '../sections/headers-section.js';
 import * as metaSection from '../sections/meta-tags-section.js';
 import * as scriptsSection from '../sections/scripts-section.js';
 import * as semanticSection from '../sections/semantic-section.js';
+import * as vendorSection from '../sections/vendor-section.js';
 import * as patternDiscoverySection from '../sections/pattern-discovery-section.js';
-import * as technologiesSection from '../sections/technologies-section.js';
+import * as cooccurrenceSection from '../sections/cooccurrence-section.js';
+// Removed technologiesSection - redundant with script/vendor analyzers
 import * as biasSection from '../sections/bias-section.js';
+import * as technologyCategorizationSection from '../sections/technology-categorization-section.js';
 
 export function formatHuman(
   result: AggregatedResults,
@@ -26,8 +29,10 @@ export function formatHuman(
     });
   }
   
-  // 2. Filtering stats (if available) - use a placeholder for now since interface doesn't match
-  const filteringContent = ''; // filteringSection.formatForHuman(result.summary?.filteringStats);
+  // 2. Filtering stats (if available)
+  // Check both possible locations for filtering stats
+  const filteringStats = result.summary?.filteringStats;
+  const filteringContent = filteringSection.formatForHuman(filteringStats);
   if (filteringContent) {
     sections.push({
       title: 'Filtering',
@@ -70,44 +75,66 @@ export function formatHuman(
     });
   }
   
-  // 6. Semantic analysis (if available)
+  // 6. Vendor analysis (if available)
+  const vendorContent = vendorSection.formatForHuman(result.vendor, options.maxItemsPerSection);
+  if (vendorContent) {
+    sections.push({
+      title: 'Vendor Analysis',
+      content: vendorContent,
+      priority: 6
+    });
+  }
+  
+  // 6.5. Technology Categorization (NEW ENHANCEMENT)
+  const technologyCategorizationContent = technologyCategorizationSection.formatForHuman(result.vendor, options.maxItemsPerSection);
+  if (technologyCategorizationContent) {
+    sections.push({
+      title: 'Technology Categorization',
+      content: technologyCategorizationContent,
+      priority: 6.5
+    });
+  }
+  
+  // 7. Semantic analysis (if available)
   const semanticContent = semanticSection.formatForHuman(result.semantic, options.maxItemsPerSection);
   if (semanticContent) {
     sections.push({
       title: 'Semantic Analysis',
       content: semanticContent,
-      priority: 6
+      priority: 7
     });
   }
   
-  // 7. Pattern discovery analysis (if available)
+  // 8. Pattern discovery analysis (if available)
   const patternDiscoveryContent = patternDiscoverySection.formatForHuman(result.discovery, options.maxItemsPerSection);
   if (patternDiscoveryContent) {
     sections.push({
       title: 'Pattern Discovery',
       content: patternDiscoveryContent,
-      priority: 7
-    });
-  }
-  
-  // 8. Technologies analysis (if available)
-  const technologiesContent = technologiesSection.formatForHuman(result.technologies, options.maxItemsPerSection);
-  if (technologiesContent) {
-    sections.push({
-      title: 'Technologies',
-      content: technologiesContent,
       priority: 8
     });
   }
   
-  // 9. Bias analysis (if available and enabled)
+  // 9. Co-occurrence analysis (if available)
+  const cooccurrenceContent = cooccurrenceSection.formatForHuman(result.cooccurrence, options.maxItemsPerSection);
+  if (cooccurrenceContent) {
+    sections.push({
+      title: 'Co-occurrence Analysis',
+      content: cooccurrenceContent,
+      priority: 9
+    });
+  }
+  
+  // Removed Technologies analysis - redundant with script/vendor analyzers
+  
+  // 10. Bias analysis (if available and enabled)
   if (options.includeRecommendations) {
     const biasContent = biasSection.formatForHuman(result.correlations);
     if (biasContent) {
       sections.push({
         title: 'Bias Analysis',
         content: biasContent,
-        priority: 9
+        priority: 10
       });
     }
   }

@@ -85,8 +85,10 @@ export function formatForHuman(
       lines.push('');
     }
     
-    // Platform Affinity Scores - Split into CMS and Non-CMS sections
+    // Platform Specificity Scores - Split into CMS and Non-CMS sections
     if (biasData.headerCorrelations && biasData.headerCorrelations.size > 0) {
+      lines.push('Platform Specificity Scores:');
+      lines.push('');
       const allHeaders = Array.from(biasData.headerCorrelations.entries())
         .sort(([,a], [,b]) => (b.platformSpecificity.score) - (a.platformSpecificity.score));
       

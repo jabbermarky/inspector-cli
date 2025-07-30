@@ -2,29 +2,50 @@ import { formatNumber, formatPercentage, formatSubtitle } from '../utils/formatt
 
 // Type for filtering stats from FrequencySummary (actual V2 data structure)
 interface FilteringStats {
-  sitesFilteredOut: number;
-  filterReasons: Record<string, number>;
+  sitesFilteredOut?: number;
+  filterReasons?: Record<string, number>;
+  // Additional fields from test expectations
+  sitesBeforeFiltering?: number;
+  sitesAfterFiltering?: number;
+  sitesFiltered?: number;
+  reasonsForFiltering?: Record<string, number>;
 }
 
 export function formatForHuman(stats: FilteringStats | undefined): string {
-  if (!stats || stats.sitesFilteredOut === 0) return '';
+  if (!stats) return '';
+  
+  // Check if any filtering occurred
+  const sitesFiltered = stats.sitesFiltered || stats.sitesFilteredOut || 0;
+  if (sitesFiltered === 0) return '';
   
   const lines: string[] = [];
   
-  lines.push(formatSubtitle('DATA QUALITY & FILTERING'));
+  lines.push('DATA QUALITY FILTERING:');
   lines.push('');
   
   // Overall stats
-  lines.push(`Sites filtered out: ${formatNumber(stats.sitesFilteredOut)}`);
+  lines.push(`Sites filtered out: ${formatNumber(sitesFiltered)}`);
+  
+  // Show before/after if available
+  if (stats.sitesBeforeFiltering && stats.sitesAfterFiltering) {
+    lines.push(`Sites before filtering: ${formatNumber(stats.sitesBeforeFiltering)}`);
+    lines.push(`Sites after filtering: ${formatNumber(stats.sitesAfterFiltering)}`);
+  }
+  
   lines.push('');
   
   // Filter reasons breakdown
-  if (stats.filterReasons && Object.keys(stats.filterReasons).length > 0) {
+  const reasons = stats.reasonsForFiltering || stats.filterReasons;
+  if (reasons && Object.keys(reasons).length > 0) {
     lines.push('Filter Reasons:');
-    Object.entries(stats.filterReasons).forEach(([reason, count]) => {
-      if (count > 0) {
-        lines.push(`  - ${reason}: ${formatNumber(count)} sites`);
-      }
+    
+    // Sort by count (highest first) and filter out zero counts
+    const sortedReasons = Object.entries(reasons)
+      .filter(([_, count]) => count > 0)
+      .sort(([_, a], [__, b]) => b - a);
+    
+    sortedReasons.forEach(([reason, count]) => {
+      lines.push(`  ${reason}: ${formatNumber(count)} sites`);
     });
   }
   
@@ -32,42 +53,70 @@ export function formatForHuman(stats: FilteringStats | undefined): string {
 }
 
 export function formatForCSV(stats: FilteringStats | undefined): string[] {
-  if (!stats || stats.sitesFilteredOut === 0) return [];
+  if (!stats) return [];
+  
+  const sitesFiltered = stats.sitesFiltered || stats.sitesFilteredOut || 0;
+  if (sitesFiltered === 0) return [];
   
   const rows: string[] = [];
-  rows.push('Filter Metric,Value');
-  rows.push(`Sites Filtered Out,${stats.sitesFilteredOut}`);
+  rows.push('FilteringStatistic,Value,TotalSites');
+  rows.push(`SitesFiltered,${sitesFiltered},TotalAfterFiltering`);
+  
+  // Add before/after if available
+  if (stats.sitesBeforeFiltering) {
+    rows.push(`SitesBeforeFiltering,${stats.sitesBeforeFiltering},TotalBeforeFiltering`);
+  }
+  if (stats.sitesAfterFiltering) {
+    rows.push(`SitesAfterFiltering,${stats.sitesAfterFiltering},TotalAfterFiltering`);
+  }
   
   // Add filter reasons
-  Object.entries(stats.filterReasons).forEach(([reason, count]) => {
-    if (count > 0) {
-      rows.push(`${reason},${count}`);
-    }
+  const reasons = stats.reasonsForFiltering || stats.filterReasons || {};
+  const sortedReasons = Object.entries(reasons)
+    .filter(([_, count]) => count > 0)
+    .sort(([_, a], [__, b]) => b - a);
+  
+  sortedReasons.forEach(([reason, count]) => {
+    // Escape quotes in reason if needed
+    const escapedReason = reason.includes('"') ? `"${reason.replace(/"/g, '""')}"` : reason;
+    rows.push(`${escapedReason},${count},FilterReason`);
   });
   
   return rows;
 }
 
 export function formatForMarkdown(stats: FilteringStats | undefined): string {
-  if (!stats || stats.sitesFilteredOut === 0) return '';
+  if (!stats) return '';
+  
+  const sitesFiltered = stats.sitesFiltered || stats.sitesFilteredOut || 0;
+  if (sitesFiltered === 0) return '';
   
   const lines: string[] = [];
   
-  lines.push('## Data Quality & Filtering');
+  lines.push('## Data Quality Filtering');
   lines.push('');
-  lines.push(`**Sites filtered out**: ${formatNumber(stats.sitesFilteredOut)}`);
+  lines.push(`**Sites filtered out**: ${formatNumber(sitesFiltered)}`);
+  
+  if (stats.sitesBeforeFiltering && stats.sitesAfterFiltering) {
+    lines.push(`**Sites before filtering**: ${formatNumber(stats.sitesBeforeFiltering)}`);
+    lines.push(`**Sites after filtering**: ${formatNumber(stats.sitesAfterFiltering)}`);
+  }
+  
   lines.push('');
   
-  if (stats.filterReasons && Object.keys(stats.filterReasons).length > 0) {
+  const reasons = stats.reasonsForFiltering || stats.filterReasons;
+  if (reasons && Object.keys(reasons).length > 0) {
     lines.push('### Filter Reasons');
     lines.push('');
     lines.push('| Reason | Sites Filtered |');
     lines.push('|--------|----------------|');
     
-    Object.entries(stats.filterReasons).forEach(([reason, count]) => {
-      if (count > 0) {
-        lines.push(`| ${reason} | ${formatNumber(count)} |`);
-      }
+    const sortedReasons = Object.entries(reasons)
+      .filter(([_, count]) => count > 0)
+      .sort(([_, a], [__, b]) => b - a);
+    
+    sortedReasons.forEach(([reason, count]) => {
+      lines.push(`| ${reason} | ${formatNumber(count)} |`);
     });
   }
   

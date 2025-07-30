@@ -113,7 +113,59 @@ describe('V2 Reporter Phase 3', () => {
           diversityRisk: 'low',
           overallBiasRisk: 'medium'
         },
-        headerCorrelations: new Map(),
+        headerCorrelations: new Map([
+          ['x-powered-by', {
+            headerName: 'x-powered-by',
+            overallMetrics: { frequency: 0.85, occurrences: 850, sampleSize: 1000 },
+            perCMSMetrics: new Map([
+              ['WordPress', { frequency: 0.9, occurrences: 360, isStatisticallySignificant: true }],
+              ['Unknown', { frequency: 0.6, occurrences: 180, isStatisticallySignificant: false }]
+            ]),
+            conditionalProbabilities: {
+              cmsGivenHeader: new Map([
+                ['WordPress', { probability: 0.45, confidence: 0.9 }],
+                ['Unknown', { probability: 0.35, confidence: 0.7 }]
+              ]),
+              headerGivenCms: new Map([
+                ['WordPress', { probability: 0.9, confidence: 0.9 }],
+                ['Unknown', { probability: 0.6, confidence: 0.7 }]
+              ])
+            },
+            platformSpecificity: {
+              score: 0.85,
+              method: 'discriminative',
+              discriminativeDetails: {
+                topCMS: 'WordPress',
+                topCMSProbability: 0.45,
+                concentrationScore: 0.7,
+                sampleSizeScore: 0.95,
+                backgroundContrast: 0.8
+              }
+            }
+          }],
+          ['server', {
+            headerName: 'server',
+            overallMetrics: { frequency: 0.60, occurrences: 600, sampleSize: 1000 },
+            perCMSMetrics: new Map([
+              ['WordPress', { frequency: 0.5, occurrences: 200, isStatisticallySignificant: false }],
+              ['Unknown', { frequency: 0.7, occurrences: 210, isStatisticallySignificant: true }]
+            ]),
+            conditionalProbabilities: {
+              cmsGivenHeader: new Map([
+                ['WordPress', { probability: 0.33, confidence: 0.6 }],
+                ['Unknown', { probability: 0.35, confidence: 0.7 }]
+              ]),
+              headerGivenCms: new Map([
+                ['WordPress', { probability: 0.5, confidence: 0.6 }],
+                ['Unknown', { probability: 0.7, confidence: 0.7 }]
+              ])
+            },
+            platformSpecificity: {
+              score: 0.65,
+              method: 'discriminative'
+            }
+          }]
+        ]),
         biasWarnings: [
           {
             type: 'platform_dominance',

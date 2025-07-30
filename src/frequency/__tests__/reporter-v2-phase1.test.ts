@@ -10,7 +10,7 @@ import type { FrequencyResult } from '../types/frequency-types-v2.js';
 
 // Import the functions we need to test
 // Note: These are internal functions, so we'll test them through the public API
-import { formatOutputV2 } from '../simple-reporter-v2.js';
+import { formatOutputV2 as formatOutput } from '../reporter-v2/index.js';
 
 /**
  * Create mock FrequencyResult with filtering data for testing
@@ -107,13 +107,13 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'human' });
+                await formatOutput(result, { output: 'human' });
                 
                 // Verify filtering section is present
                 expect(capturedOutput).toContain('DATA QUALITY FILTERING:');
                 expect(capturedOutput).toContain('Sites filtered out: 156');
-                expect(capturedOutput).toContain('Sites before filtering: 4569');
-                expect(capturedOutput).toContain('Sites after filtering: 4413');
+                expect(capturedOutput).toContain('Sites before filtering: 4,569');
+                expect(capturedOutput).toContain('Sites after filtering: 4,413');
                 expect(capturedOutput).toContain('Filter Reasons:');
                 
                 // Verify reasons are sorted by count (highest first)
@@ -140,7 +140,7 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'human' });
+                await formatOutput(result, { output: 'human' });
                 
                 // Verify filtering section is not present
                 expect(capturedOutput).not.toContain('DATA QUALITY FILTERING:');
@@ -163,13 +163,13 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'markdown' });
+                await formatOutput(result, { output: 'markdown' });
                 
                 // Verify markdown formatting
                 expect(capturedOutput).toContain('## Data Quality Filtering');
-                expect(capturedOutput).toContain('**Sites filtered out:** 156');
-                expect(capturedOutput).toContain('**Sites before filtering:** 4569');
-                expect(capturedOutput).toContain('**Sites after filtering:** 4413');
+                expect(capturedOutput).toContain('**Sites filtered out**: 156');
+                expect(capturedOutput).toContain('**Sites before filtering**: 4,569');
+                expect(capturedOutput).toContain('**Sites after filtering**: 4,413');
                 
                 // Verify markdown table structure
                 expect(capturedOutput).toContain('### Filter Reasons');
@@ -200,20 +200,19 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'csv' });
+                await formatOutput(result, { output: 'csv' });
                 
                 // Verify CSV structure
                 expect(capturedOutput).toContain('# Data Quality Filtering Statistics');
-                expect(capturedOutput).toContain('FilteringStatistic,Value,Description');
-                expect(capturedOutput).toContain('SitesFiltered,156,Total sites removed during filtering');
-                expect(capturedOutput).toContain('SitesBeforeFiltering,4569,Sites before any filtering applied');
-                expect(capturedOutput).toContain('SitesAfterFiltering,4413,Sites remaining after filtering');
+                expect(capturedOutput).toContain('FilteringStatistic,Value,TotalSites');
+                expect(capturedOutput).toContain('SitesFiltered,156,TotalAfterFiltering');
+                expect(capturedOutput).toContain('SitesBeforeFiltering,4569,TotalBeforeFiltering');
+                expect(capturedOutput).toContain('SitesAfterFiltering,4413,TotalAfterFiltering');
                 
                 // Verify filter reasons CSV section
-                expect(capturedOutput).toContain('FilterReason,SitesFiltered,Description');
-                expect(capturedOutput).toContain('"Empty responses",88,Sites filtered due to Empty responses');
-                expect(capturedOutput).toContain('"Network errors",45,Sites filtered due to Network errors');
-                expect(capturedOutput).toContain('"Invalid URLs",23,Sites filtered due to Invalid URLs');
+                expect(capturedOutput).toContain('Empty responses,88,FilterReason');
+                expect(capturedOutput).toContain('Network errors,45,FilterReason');
+                expect(capturedOutput).toContain('Invalid URLs,23,FilterReason');
                 
                 // Verify zero-count reasons are not shown
                 expect(capturedOutput).not.toContain('Parse failures');
@@ -242,11 +241,11 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'csv' });
+                await formatOutput(result, { output: 'csv' });
                 
                 // Verify proper CSV escaping of special characters
-                expect(capturedOutput).toContain('"SSL ""certificate"" errors",12');
-                expect(capturedOutput).toContain('"Timeout (>30s)",8');
+                expect(capturedOutput).toContain('"SSL ""certificate"" errors",12,FilterReason');
+                expect(capturedOutput).toContain('Timeout (>30s),8,FilterReason');
                 
             } finally {
                 console.log = originalConsoleLog;
@@ -264,13 +263,13 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'human' });
+                await formatOutput(result, { output: 'human' });
                 
                 // Should still show basic filtering stats but no reasons
                 expect(capturedOutput).toContain('DATA QUALITY FILTERING:');
                 expect(capturedOutput).toContain('Sites filtered out: 156');
-                expect(capturedOutput).toContain('Filter Reasons:');
-                // But no specific reasons should be listed
+                // Filter Reasons section should not appear when there are no reasons
+                expect(capturedOutput).not.toContain('Filter Reasons:');
                 
             } finally {
                 console.log = originalConsoleLog;
@@ -289,7 +288,7 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'human' });
+                await formatOutput(result, { output: 'human' });
                 
                 // Should not show filtering section when no sites were filtered
                 expect(capturedOutput).not.toContain('DATA QUALITY FILTERING:');
@@ -317,7 +316,7 @@ describe('Phase 1: Data Quality & Filtering Report', () => {
             };
 
             try {
-                await formatOutputV2(result, { output: 'human' });
+                await formatOutput(result, { output: 'human' });
                 
                 // Find positions of each reason in the output
                 const highPos = capturedOutput.indexOf('High count reason: 95');

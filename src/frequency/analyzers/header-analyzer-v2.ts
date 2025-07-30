@@ -1,6 +1,10 @@
 /**
  * HeaderAnalyzer V2 - Phase 3 implementation
  * Implements unique site counting to fix occurrence counting bug
+ * 
+ * Architecture: Uses DataPreprocessor's authoritative header classifications
+ * instead of duplicate filtering logic. Focuses on statistical analysis,
+ * frequency calculation, and pattern data structuring.
  */
 
 import type { 
@@ -15,22 +19,6 @@ import { createModuleLogger } from '../../utils/logger.js';
 
 const logger = createModuleLogger('header-analyzer-v2');
 
-// Headers to skip as they're not informative for CMS detection
-const SKIP_HEADERS = new Set([
-  'date',
-  'content-length',
-  'connection',
-  'keep-alive',
-  'transfer-encoding',
-  'content-encoding',
-  'vary',
-  'accept-ranges',
-  'etag',
-  'last-modified',
-  'age',
-  'status'
-]);
-
 export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
   getName(): string {
     return 'HeaderAnalyzerV2';
@@ -42,7 +30,9 @@ export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
   ): Promise<AnalysisResult<HeaderSpecificData>> {
     logger.info('Starting header analysis with unique site counting', {
       totalSites: data.totalSites,
-      minOccurrences: options.minOccurrences
+      minOccurrences: options.minOccurrences,
+      usingPreprocessorClassifications: !!data.metadata.semantic?.headerClassifications,
+      semanticFiltering: options.semanticFiltering
     });
 
     const patterns = new Map<string, PatternData>();
@@ -59,8 +49,12 @@ export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
 
       for (const [headerName, values] of siteData.headers) {
         // Skip non-informative headers if semantic filtering is enabled
-        if (options.semanticFiltering && this.shouldSkipHeader(headerName)) {
-          continue;
+        // Use DataPreprocessor's authoritative classification instead of duplicate filtering
+        if (options.semanticFiltering) {
+          const classification = data.metadata.semantic?.headerClassifications?.get(headerName.toLowerCase());
+          if (classification?.filterRecommendation === 'always-filter') {
+            continue;
+          }
         }
 
         // Create pattern key (just header name for headers)
@@ -73,6 +67,9 @@ export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
           // Get or create pattern data
           let pattern = patterns.get(patternKey);
           if (!pattern) {
+            // Get pre-computed classification from DataPreprocessor
+            const classification = data.metadata.semantic?.headerClassifications?.get(headerName.toLowerCase());
+            
             pattern = {
               pattern: patternKey,
               siteCount: 0,
@@ -82,7 +79,13 @@ export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
               metadata: {
                 isSecurityHeader: this.isSecurityHeader(headerName),
                 isCustomHeader: this.isCustomHeader(headerName),
-                valueFrequencies: new Map<string, number>() // Track per-value frequencies
+                valueFrequencies: new Map<string, number>(), // Track per-value frequencies
+                // Add classification data from preprocessor
+                category: classification?.category,
+                discriminativeScore: classification?.discriminativeScore,
+                vendor: classification?.vendor,
+                platformName: classification?.platformName,
+                filterRecommendation: classification?.filterRecommendation
               }
             };
             patterns.set(patternKey, pattern);
@@ -196,12 +199,6 @@ export class HeaderAnalyzerV2 implements FrequencyAnalyzer<HeaderSpecificData> {
     };
   }
 
-  /**
-   * Check if header should be skipped for semantic filtering
-   */
-  private shouldSkipHeader(headerName: string): boolean {
-    return SKIP_HEADERS.has(headerName.toLowerCase());
-  }
 
   /**
    * Check if header is a security-related header
