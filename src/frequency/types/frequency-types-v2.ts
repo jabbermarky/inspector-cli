@@ -35,6 +35,9 @@ export interface FrequencyOptions {
     includeCurrentFilters?: boolean;
     debugCalculations?: boolean;
 
+    /** Phase 4: Platform discrimination options */
+    focusPlatformDiscrimination?: boolean;  // Enable platform discrimination analysis and filtering
+
     /** Phase 3: Validation options */
     enableValidation?: boolean;
     includeValidation?: boolean;      // For reporter compatibility
@@ -210,7 +213,7 @@ export interface HeaderCategorization {
 }
 
 /**
- * Type for options with all required except dateRange
+ * Type for options with all required except dateRange and platform discrimination
  */
-export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode'>> &
-    Pick<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode'>;
+export type FrequencyOptionsWithDefaults = Required<Omit<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode' | 'focusPlatformDiscrimination'>> &
+    Pick<FrequencyOptions, 'dateRange' | 'includeValidation' | 'enableValidation' | 'skipStatisticalTests' | 'validationStopOnError' | 'validationDebugMode' | 'focusPlatformDiscrimination'>;

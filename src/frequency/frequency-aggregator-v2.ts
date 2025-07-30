@@ -10,6 +10,7 @@ import type {
     AggregatedResults,
     FrequencySummary,
     PatternSummary,
+    PlatformDiscriminationSummary,
 } from './types/analyzer-interface.js';
 import { DataPreprocessor } from './data-preprocessor-v2.js';
 import { HeaderAnalyzerV2 } from './analyzers/header-analyzer-v2.js';
@@ -66,6 +67,7 @@ export class FrequencyAggregator {
             includeExamples: true,
             maxExamples: 5,
             semanticFiltering: true,
+            focusPlatformDiscrimination: options.focusPlatformDiscrimination || false,
         };
 
         // Load and preprocess data once
@@ -259,12 +261,13 @@ export class FrequencyAggregator {
             biasCorrelations: biasResult.analyzerSpecific?.headerCorrelations?.size || 0,
         });
 
-        // Create summary
+        // Create summary with platform discrimination analysis
         const summary = this.createSummary(
             preprocessedData,
             headerResult,
             metaResult,
-            scriptResult
+            scriptResult,
+            options.focusPlatformDiscrimination
         );
 
         const duration = Date.now() - startTime;
@@ -292,7 +295,8 @@ export class FrequencyAggregator {
         data: PreprocessedData,
         headerResult: any,
         metaResult: any,
-        scriptResult: any
+        scriptResult: any,
+        focusPlatformDiscrimination?: boolean
     ): FrequencySummary {
         const topN = 10;
 
@@ -302,7 +306,7 @@ export class FrequencyAggregator {
         const topScripts = this.getTopPatterns(scriptResult, topN);
         const topTech: PatternSummary[] = []; // TODO: Implement when tech analyzer is ready
 
-        return {
+        const summary: FrequencySummary = {
             totalSitesAnalyzed: data.totalSites,
             totalPatternsFound:
                 headerResult.metadata.totalPatternsFound +
@@ -316,6 +320,136 @@ export class FrequencyAggregator {
                 scripts: topScripts,
                 technologies: topTech,
             },
+        };
+
+        // Add platform discrimination summary if enabled
+        if (focusPlatformDiscrimination) {
+            summary.platformDiscrimination = this.generatePlatformDiscriminationSummary(
+                headerResult,
+                metaResult,
+                scriptResult
+            );
+        }
+
+        return summary;
+    }
+
+    /**
+     * Generate platform discrimination summary from analysis results
+     */
+    private generatePlatformDiscriminationSummary(
+        headerResult: any,
+        metaResult: any,
+        scriptResult: any
+    ): PlatformDiscriminationSummary {
+        const allPatterns = new Map<string, any>();
+        
+        // Collect all patterns with platform discrimination data
+        if (headerResult?.patterns) {
+            for (const [key, pattern] of headerResult.patterns) {
+                if (pattern.platformDiscrimination) {
+                    allPatterns.set(`header:${key}`, pattern);
+                }
+            }
+        }
+        if (metaResult?.patterns) {
+            for (const [key, pattern] of metaResult.patterns) {
+                if (pattern.platformDiscrimination) {
+                    allPatterns.set(`meta:${key}`, pattern);
+                }
+            }
+        }
+        if (scriptResult?.patterns) {
+            for (const [key, pattern] of scriptResult.patterns) {
+                if (pattern.platformDiscrimination) {
+                    allPatterns.set(`script:${key}`, pattern);
+                }
+            }
+        }
+
+        // If no patterns have platform discrimination data, return empty summary
+        if (allPatterns.size === 0) {
+            return {
+                enabled: true,
+                totalPatternsAnalyzed: 0,
+                discriminatoryPatterns: 0,
+                infrastructureNoiseFiltered: 0,
+                averageDiscriminationScore: 0,
+                noiseReductionPercentage: 0,
+                topDiscriminatoryPatterns: [],
+                platformSpecificityDistribution: new Map(),
+                qualityMetrics: {
+                    signalToNoiseRatio: 0,
+                    platformCoverageScore: 0,
+                    detectionConfidenceBoost: 0,
+                }
+            };
+        }
+
+        const totalPatternsAnalyzed = allPatterns.size;
+        const discriminatoryPatterns = Array.from(allPatterns.values()).filter(
+            pattern => pattern.platformDiscrimination.discriminativeScore > 0.3
+        );
+        const infrastructureNoise = Array.from(allPatterns.values()).filter(
+            pattern => pattern.platformDiscrimination.discriminationMetrics.isInfrastructureNoise
+        );
+
+        const avgDiscriminationScore = totalPatternsAnalyzed > 0 
+            ? Array.from(allPatterns.values())
+                .reduce((sum, pattern) => sum + pattern.platformDiscrimination.discriminativeScore, 0) / totalPatternsAnalyzed
+            : 0;
+
+        const noiseReductionPercentage = totalPatternsAnalyzed > 0 
+            ? (infrastructureNoise.length / totalPatternsAnalyzed) * 100
+            : 0;
+
+        // Get top discriminatory patterns
+        const topDiscriminatoryPatterns = discriminatoryPatterns
+            .sort((a, b) => b.platformDiscrimination.discriminativeScore - a.platformDiscrimination.discriminativeScore)
+            .slice(0, 10)
+            .map(pattern => ({
+                pattern: pattern.pattern,
+                discriminativeScore: pattern.platformDiscrimination.discriminativeScore,
+                targetPlatform: pattern.platformDiscrimination.discriminationMetrics.targetPlatform,
+                frequency: pattern.frequency
+            }));
+
+        // Calculate platform specificity distribution
+        const platformSpecificityDistribution = new Map<string, number>();
+        for (const pattern of allPatterns.values()) {
+            for (const [platform, specificity] of pattern.platformDiscrimination.platformSpecificity) {
+                if (specificity > 0.7) { // High specificity threshold
+                    platformSpecificityDistribution.set(
+                        platform, 
+                        (platformSpecificityDistribution.get(platform) || 0) + 1
+                    );
+                }
+            }
+        }
+
+        // Calculate quality metrics
+        const signalToNoiseRatio = infrastructureNoise.length > 0 
+            ? discriminatoryPatterns.length / infrastructureNoise.length 
+            : discriminatoryPatterns.length;
+
+        const platformCoverageScore = platformSpecificityDistribution.size / 3; // Assuming 3 main platforms (WordPress, Shopify, Drupal)
+        
+        const detectionConfidenceBoost = avgDiscriminationScore * 0.5; // Estimated confidence boost from discrimination
+
+        return {
+            enabled: true,
+            totalPatternsAnalyzed,
+            discriminatoryPatterns: discriminatoryPatterns.length,
+            infrastructureNoiseFiltered: infrastructureNoise.length,
+            averageDiscriminationScore: Math.round(avgDiscriminationScore * 1000) / 1000,
+            noiseReductionPercentage: Math.round(noiseReductionPercentage * 100) / 100,
+            topDiscriminatoryPatterns,
+            platformSpecificityDistribution,
+            qualityMetrics: {
+                signalToNoiseRatio: Math.round(signalToNoiseRatio * 100) / 100,
+                platformCoverageScore: Math.round(platformCoverageScore * 100) / 100,
+                detectionConfidenceBoost: Math.round(detectionConfidenceBoost * 1000) / 1000,
+            }
         };
     }
 

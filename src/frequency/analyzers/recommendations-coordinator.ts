@@ -48,6 +48,7 @@ export class RecommendationsCoordinator {
             includeRecommendations: true,
             includeCurrentFilters: true,
             debugCalculations: false,
+            focusPlatformDiscrimination: false, // Phase 4: Default to false for V1 compatibility
             enableValidation: true,
             includeValidation: true,  // For reporter compatibility
             skipStatisticalTests: false,

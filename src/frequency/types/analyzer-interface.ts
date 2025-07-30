@@ -292,6 +292,28 @@ export interface FrequencySummary {
     scripts: PatternSummary[];
     technologies: PatternSummary[];
   };
+  platformDiscrimination?: PlatformDiscriminationSummary;
+}
+
+export interface PlatformDiscriminationSummary {
+  enabled: boolean;
+  totalPatternsAnalyzed: number;
+  discriminatoryPatterns: number;
+  infrastructureNoiseFiltered: number;
+  averageDiscriminationScore: number;
+  noiseReductionPercentage: number;
+  topDiscriminatoryPatterns: Array<{
+    pattern: string;
+    discriminativeScore: number;
+    targetPlatform: string | null;
+    frequency: number;
+  }>;
+  platformSpecificityDistribution: Map<string, number>; // platform -> pattern count with high specificity
+  qualityMetrics: {
+    signalToNoiseRatio: number;
+    platformCoverageScore: number;
+    detectionConfidenceBoost: number;
+  };
 }
 
 export interface PatternSummary {
