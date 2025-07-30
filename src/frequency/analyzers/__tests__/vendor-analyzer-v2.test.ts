@@ -356,16 +356,41 @@ describe('VendorAnalyzerV2 - V2 Enhancement Tests', () => {
     });
 
     it('should assign lower confidence to rare patterns', async () => {
-      mockData.totalSites = 100; // Make the rare header very rare
+      // Create a test with specifically rare, non-discriminative patterns
+      const rarePatternData: PreprocessedData = {
+        sites: new Map([
+          ['site1.com', {
+            url: 'https://site1.com',
+            normalizedUrl: 'site1.com', 
+            cms: 'WordPress',
+            confidence: 0.9,
+            headers: new Map([
+              ['cf-ray', new Set(['12345'])], // Infrastructure CDN - should have lower confidence when rare
+            ]),
+            metaTags: new Map(),
+            scripts: new Set(),
+            technologies: new Set(),
+            capturedAt: '2024-01-01T00:00:00Z'
+          }]
+        ]),
+        totalSites: 100, // Make cf-ray very rare (1/100 = 1% frequency)
+        metadata: {
+          version: 'v2',
+          preprocessedAt: '2024-01-01T00:00:00Z'
+        }
+      };
       
-      const result = await analyzer.analyze(mockData, defaultOptions);
+      // Disable platform discrimination to test pure frequency-based confidence
+      const frequencyOnlyOptions = { ...defaultOptions, focusPlatformDiscrimination: false };
       
-      // The rare header (if it maps to a vendor) should have lower confidence
-      const detections = Array.from(result.analyzerSpecific!.vendorsByHeader.values());
-      const rareDetections = detections.filter(d => d.frequency < 0.05);
+      const result = await analyzer.analyze(rarePatternData, frequencyOnlyOptions);
       
-      for (const detection of rareDetections) {
-        expect(detection.confidence).toBeLessThan(0.8); // Adjusted threshold
+      // The rare CDN header should have lower confidence due to rarity penalty
+      const cfRayDetection = result.analyzerSpecific!.vendorsByHeader.get('cf-ray');
+      if (cfRayDetection) {
+        // CDN headers don't get category boosts, so should be penalized for rarity
+        expect(cfRayDetection.frequency).toBe(0.01); // 1/100 sites
+        expect(cfRayDetection.confidence).toBeLessThan(0.8); // Should be penalized for being rare
       }
     });
 
@@ -639,6 +664,261 @@ describe('VendorAnalyzerV2 - Integration Tests', () => {
       // Should successfully perform consistency checks without errors
       expect(result).toBeDefined();
       expect(result.analyzerSpecific).toBeDefined();
+    });
+  });
+
+  describe('Phase 2 - Platform Discrimination Tests', () => {
+    let discriminationData: PreprocessedData;
+    let discriminationOptions: AnalysisOptions;
+
+    beforeEach(() => {
+      // Create test data with mixed infrastructure and discriminative vendors
+      discriminationData = {
+        sites: new Map([
+          ['wordpress-site.com', {
+            url: 'https://wordpress-site.com',
+            normalizedUrl: 'wordpress-site.com',
+            cms: 'WordPress',
+            confidence: 0.9,
+            headers: new Map([
+              ['cf-ray', new Set(['12345-LAX'])],           // Infrastructure CDN
+              ['x-wp-total', new Set(['150'])],             // Discriminative CMS
+              ['x-pingback', new Set(['https://wordpress-site.com/xmlrpc.php'])], // Discriminative CMS
+              ['x-shopify-shop-id', new Set(['12345'])],    // Discriminative ecommerce (cross-platform test)
+            ]),
+            metaTags: new Map(),
+            scripts: new Set(),
+            technologies: new Set(),
+            capturedAt: '2024-01-01T00:00:00Z'
+          }],
+          ['shopify-site.com', {
+            url: 'https://shopify-site.com',
+            normalizedUrl: 'shopify-site.com',
+            cms: 'Shopify',
+            confidence: 0.85,
+            headers: new Map([
+              ['cf-ray', new Set(['67890-NYC'])],           // Infrastructure CDN
+              ['x-shopify-shop-id', new Set(['67890'])],    // Discriminative ecommerce
+              ['x-shopify-stage', new Set(['production'])], // Discriminative ecommerce
+            ]),
+            metaTags: new Map(),
+            scripts: new Set(),
+            technologies: new Set(),
+            capturedAt: '2024-01-01T00:00:00Z'
+          }],
+          ['generic-site.com', {
+            url: 'https://generic-site.com',
+            normalizedUrl: 'generic-site.com',
+            cms: null,
+            confidence: 0.0,
+            headers: new Map([
+              ['cf-ray', new Set(['11111-SFO'])],           // Infrastructure CDN
+              ['x-frame-options', new Set(['DENY'])]        // Mixed security
+            ]),
+            metaTags: new Map(),
+            scripts: new Set(),
+            technologies: new Set(),
+            capturedAt: '2024-01-01T00:00:00Z'
+          }]
+        ]),
+        totalSites: 3,
+        metadata: {
+          dateRange: { start: new Date(), end: new Date() },
+          version: 'v2',
+          preprocessedAt: '2024-01-01T00:00:00Z'
+        }
+      };
+
+      discriminationOptions = {
+        minOccurrences: 1,
+        includeExamples: true,
+        maxExamples: 3,
+        semanticFiltering: false,
+        focusPlatformDiscrimination: true // Enable platform discrimination
+      };
+    });
+
+    it('should classify vendor categories correctly', () => {
+      const result = analyzer.analyze(discriminationData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Check discriminative vendors are included
+        const wpTotalVendor = vendorsByHeader.get('x-wp-total')?.vendor;
+        expect(wpTotalVendor?.discriminationType).toBe('discriminative');
+        expect(wpTotalVendor?.platformSpecific).toBe(true);
+        
+        const shopifyVendor = vendorsByHeader.get('x-shopify-shop-id')?.vendor;
+        expect(shopifyVendor?.discriminationType).toBe('discriminative');
+        expect(shopifyVendor?.platformSpecific).toBe(true);
+        
+        // Check infrastructure vendors are filtered out when focusPlatformDiscrimination is true
+        const cfRayVendor = vendorsByHeader.get('cf-ray');
+        expect(cfRayVendor).toBeUndefined(); // Should be filtered out
+      });
+    });
+
+    it('should boost confidence for discriminative vendors', () => {
+      const result = analyzer.analyze(discriminationData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Discriminative vendors should have higher confidence
+        const wpTotalDetection = vendorsByHeader.get('x-wp-total');
+        expect(wpTotalDetection?.confidence).toBeGreaterThan(0.8);
+        
+        const shopifyDetection = vendorsByHeader.get('x-shopify-shop-id');
+        expect(shopifyDetection?.confidence).toBeGreaterThan(0.8);
+        
+        // WordPress-specific header should have high confidence
+        const pingbackDetection = vendorsByHeader.get('x-pingback');
+        expect(pingbackDetection?.confidence).toBeGreaterThan(0.8);
+      });
+    });
+
+    it('should include all vendors when platform discrimination is disabled', () => {
+      const noDiscriminationOptions = {
+        ...discriminationOptions,
+        focusPlatformDiscrimination: false
+      };
+      
+      const result = analyzer.analyze(discriminationData, noDiscriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Infrastructure vendors should be included when discrimination is disabled
+        expect(vendorsByHeader.get('cf-ray')).toBeDefined();
+        
+        // Discriminative vendors should still be included
+        expect(vendorsByHeader.get('x-wp-total')).toBeDefined();
+        expect(vendorsByHeader.get('x-shopify-shop-id')).toBeDefined();
+      });
+    });
+
+    it('should calculate discrimination statistics correctly', () => {
+      const result = analyzer.analyze(discriminationData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Count expected vendor categories
+        let discriminativeCount = 0;
+        let infrastructureCount = 0;
+        let mixedCount = 0;
+        let platformSpecificCount = 0;
+        
+        for (const [, detection] of vendorsByHeader) {
+          const vendor = detection.vendor;
+          if (vendor.discriminationType === 'discriminative') discriminativeCount++;
+          if (vendor.discriminationType === 'infrastructure') infrastructureCount++;
+          if (vendor.discriminationType === 'mixed') mixedCount++;
+          if (vendor.platformSpecific) platformSpecificCount++;
+        }
+        
+        // Should have mostly discriminative vendors when filtering is enabled
+        expect(discriminativeCount).toBeGreaterThan(0);
+        expect(infrastructureCount).toBe(0); // Filtered out
+        expect(platformSpecificCount).toBeGreaterThan(0);
+      });
+    });
+
+    it('should handle mixed vendor types correctly', () => {
+      // Add a mixed vendor type to test data
+      discriminationData.sites.get('wordpress-site.com')!.headers.set('x-frame-options', new Set(['DENY']));
+      
+      const result = analyzer.analyze(discriminationData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Mixed security header should be included (not filtered as infrastructure)
+        const frameOptionsVendor = vendorsByHeader.get('x-frame-options')?.vendor;
+        if (frameOptionsVendor) {
+          expect(frameOptionsVendor.discriminationType).toBe('mixed');
+          // Mixed vendors without platform specificity should have moderate confidence
+          expect(vendorsByHeader.get('x-frame-options')!.confidence).toBeLessThan(0.9);
+          expect(vendorsByHeader.get('x-frame-options')!.confidence).toBeGreaterThan(0.6);
+        }
+      });
+    });
+
+    it('should preserve backward compatibility when platform discrimination is disabled', () => {
+      const backwardCompatOptions = {
+        ...discriminationOptions,
+        focusPlatformDiscrimination: false
+      };
+      
+      const result = analyzer.analyze(discriminationData, backwardCompatOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // All vendor patterns should be included
+        expect(vendorsByHeader.size).toBeGreaterThan(0);
+        
+        // Vendors should not have discrimination metadata when feature is disabled
+        for (const [, detection] of vendorsByHeader) {
+          const vendor = detection.vendor;
+          // Discrimination metadata might still be present but shouldn't affect filtering
+          expect(detection.confidence).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    it('should correctly identify platform-specific CDN patterns', () => {
+      // Add Shopify-specific CDN pattern
+      discriminationData.sites.get('shopify-site.com')!.headers.set('shopify-cdn-request-id', new Set(['abc123']));
+      
+      const result = analyzer.analyze(discriminationData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        const vendorsByHeader = analysisResult.analyzerSpecific!.vendorsByHeader;
+        
+        // Platform-specific CDN should be included and marked as discriminative
+        const shopifyCdnVendor = vendorsByHeader.get('shopify-cdn-request-id')?.vendor;
+        if (shopifyCdnVendor) {
+          expect(shopifyCdnVendor.discriminationType).toBe('mixed'); // CDN with platform specificity
+          expect(shopifyCdnVendor.platformSpecific).toBe(true);
+        }
+      });
+    });
+
+    it('should handle empty vendor detection gracefully', () => {
+      // Create data with no recognizable vendor headers
+      const emptyVendorData: PreprocessedData = {
+        sites: new Map([
+          ['empty-site.com', {
+            url: 'https://empty-site.com',
+            normalizedUrl: 'empty-site.com',
+            cms: null,
+            confidence: 0.0,
+            headers: new Map([
+              ['unknown-header', new Set(['value'])],
+              ['custom-header', new Set(['test'])]
+            ]),
+            metaTags: new Map(),
+            scripts: new Set(),
+            technologies: new Set(),
+            capturedAt: '2024-01-01T00:00:00Z'
+          }]
+        ]),
+        totalSites: 1,
+        metadata: {
+          version: 'v2',
+          preprocessedAt: '2024-01-01T00:00:00Z'
+        }
+      };
+
+      const result = analyzer.analyze(emptyVendorData, discriminationOptions);
+      
+      return result.then(analysisResult => {
+        expect(analysisResult).toBeDefined();
+        expect(analysisResult.analyzerSpecific!.vendorsByHeader.size).toBe(0);
+        expect(analysisResult.analyzerSpecific!.summary.totalVendorsDetected).toBe(0);
+      });
     });
   });
 });

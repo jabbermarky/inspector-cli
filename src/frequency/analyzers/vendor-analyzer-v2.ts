@@ -19,7 +19,7 @@ import { createModuleLogger } from '../../utils/logger.js';
 const logger = createModuleLogger('vendor-analyzer-v2');
 
 /**
- * V2 Vendor Pattern - Enhanced from V1 with confidence scoring
+ * V2 Vendor Pattern - Enhanced from V1 with confidence scoring and platform discrimination
  */
 export interface VendorPattern {
   name: string;
@@ -27,6 +27,9 @@ export interface VendorPattern {
   headerPatterns: string[];
   description: string;
   website?: string;
+  // Phase 2: Platform discrimination metadata
+  discriminationType?: 'infrastructure' | 'discriminative' | 'mixed';
+  platformSpecific?: boolean; // True if vendor is strongly associated with specific platforms
 }
 
 /**
@@ -300,6 +303,84 @@ const VENDOR_PATTERNS: VendorPattern[] = [
   }
 ];
 
+/**
+ * Phase 2: Vendor Category Classification for Platform Discrimination
+ * Classifies vendor categories as infrastructure (non-discriminative) or discriminative
+ */
+function classifyVendorDiscrimination(category: string, vendorName: string): {
+  discriminationType: 'infrastructure' | 'discriminative' | 'mixed';
+  platformSpecific: boolean;
+} {
+  switch (category.toLowerCase()) {
+    case 'cdn':
+      // Most CDNs are infrastructure noise, but some are platform-specific
+      const platformSpecificCDNs = ['shopify-cdn', 'wordpress.com', 'wp.com'];
+      const isPlatformSpecific = platformSpecificCDNs.some(cdnPattern => 
+        vendorName.toLowerCase().includes(cdnPattern)
+      );
+      return {
+        discriminationType: isPlatformSpecific ? 'mixed' : 'infrastructure',
+        platformSpecific: isPlatformSpecific
+      };
+      
+    case 'hosting':
+      // Hosting providers are generally infrastructure noise
+      return {
+        discriminationType: 'infrastructure',
+        platformSpecific: false
+      };
+      
+    case 'security':
+      // Security tools can be mixed - some are platform-specific (Wordfence for WordPress)
+      const platformSpecificSecurity = ['wordfence', 'wp-', 'wordpress', 'jetpack'];
+      const isSecurityPlatformSpecific = platformSpecificSecurity.some(pattern => 
+        vendorName.toLowerCase().includes(pattern)
+      );
+      return {
+        discriminationType: isSecurityPlatformSpecific ? 'discriminative' : 'mixed',
+        platformSpecific: isSecurityPlatformSpecific
+      };
+      
+    case 'cms':
+      // CMS vendors are highly discriminative for platform identification
+      return {
+        discriminationType: 'discriminative',
+        platformSpecific: true
+      };
+      
+    case 'ecommerce':
+      // E-commerce platforms are highly discriminative
+      return {
+        discriminationType: 'discriminative',
+        platformSpecific: true
+      };
+      
+    case 'framework':
+      // Frameworks are discriminative for tech stack identification
+      return {
+        discriminationType: 'discriminative',
+        platformSpecific: true
+      };
+      
+    case 'analytics':
+      // Analytics tools are mixed - some integrations are platform-specific
+      const platformSpecificAnalytics = ['woocommerce', 'shopify', 'wordpress'];
+      const isAnalyticsPlatformSpecific = platformSpecificAnalytics.some(pattern => 
+        vendorName.toLowerCase().includes(pattern)
+      );
+      return {
+        discriminationType: isAnalyticsPlatformSpecific ? 'discriminative' : 'mixed',
+        platformSpecific: isAnalyticsPlatformSpecific
+      };
+      
+    default:
+      return {
+        discriminationType: 'mixed',
+        platformSpecific: false
+      };
+  }
+}
+
 export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
   getName(): string {
     return 'VendorAnalyzerV2';
@@ -323,8 +404,8 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
     // Phase 3.3: Use validation results to improve vendor detection
     const validationEnhancedHeaders = this.applyValidationContext(allHeaders, data);
     
-    // Perform vendor detection for each header with validation enhancement
-    const vendorsByHeader = this.detectVendorsByHeader(allHeaders, data, validationEnhancedHeaders);
+    // Perform vendor detection for each header with validation enhancement and platform discrimination
+    const vendorsByHeader = this.detectVendorsByHeader(allHeaders, data, validationEnhancedHeaders, options);
     
     // Calculate vendor statistics
     const vendorStats = this.calculateVendorStats(allHeaders, vendorsByHeader);
@@ -361,10 +442,15 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
     };
 
     const duration = Date.now() - startTime;
+    
+    // Phase 2: Log platform discrimination statistics
+    const discriminationStats = this.calculateDiscriminationStats(vendorsByHeader, options);
+    
     logger.info('V2 vendor analysis completed', {
       duration,
       vendorsDetected: vendorsByHeader.size,
-      totalVendors: summary.totalVendorsDetected
+      totalVendors: summary.totalVendorsDetected,
+      platformDiscrimination: options?.focusPlatformDiscrimination ? discriminationStats : undefined
     });
 
     return {
@@ -471,13 +557,28 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
   private detectVendorsByHeader(
     headers: string[], 
     data: PreprocessedData,
-    validationEnhancements?: Map<string, ValidationEnhancedHeader>
+    validationEnhancements?: Map<string, ValidationEnhancedHeader>,
+    options?: AnalysisOptions
   ): Map<string, VendorDetection> {
     const vendorDetections = new Map<string, VendorDetection>();
 
     for (const headerName of headers) {
       const vendor = this.findVendorByHeader(headerName);
       if (vendor) {
+        // Phase 2: Apply platform discrimination classification
+        const discrimination = classifyVendorDiscrimination(vendor.category, vendor.name);
+        
+        // Phase 2: Filter infrastructure noise if platform discrimination is enabled
+        if (options?.focusPlatformDiscrimination && discrimination.discriminationType === 'infrastructure') {
+          logger.debug('Filtering infrastructure vendor for platform discrimination', {
+            header: headerName,
+            vendor: vendor.name,
+            category: vendor.category,
+            discriminationType: discrimination.discriminationType
+          });
+          continue; // Skip infrastructure vendors when focusing on platform discrimination
+        }
+        
         // Calculate sites where this header appears
         const matchedSites = this.findSitesWithHeader(headerName, data);
         const frequency = matchedSites.length / data.totalSites;
@@ -485,25 +586,34 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
         // Get validation enhancement for this header
         const validationEnhancement = validationEnhancements?.get(headerName);
         
-        // Calculate confidence with validation enhancement
-        const confidence = this.calculateHeaderVendorConfidence(vendor, frequency, validationEnhancement);
+        // Calculate confidence with validation enhancement and platform discrimination boost
+        const confidence = this.calculateHeaderVendorConfidence(vendor, frequency, validationEnhancement, discrimination);
+
+        // Phase 2: Enhanced vendor pattern with discrimination metadata
+        const enhancedVendor: VendorPattern = {
+          ...vendor,
+          discriminationType: discrimination.discriminationType,
+          platformSpecific: discrimination.platformSpecific
+        };
 
         vendorDetections.set(headerName, {
-          vendor,
+          vendor: enhancedVendor,
           confidence,
           matchedHeaders: [headerName],
           matchedSites,
           frequency
         });
 
-        // Log enhanced vendor detection
-        if (validationEnhancement?.validationPassed) {
-          logger.debug('Enhanced vendor detection with validation', {
+        // Log enhanced vendor detection with discrimination info
+        if (validationEnhancement?.validationPassed || options?.focusPlatformDiscrimination) {
+          logger.debug('Enhanced vendor detection with validation and discrimination', {
             header: headerName,
             vendor: vendor.name,
-            baseConfidence: 0.7,
+            category: vendor.category,
+            discriminationType: discrimination.discriminationType,
+            platformSpecific: discrimination.platformSpecific,
             enhancedConfidence: confidence,
-            qualityScore: validationEnhancement.qualityScore
+            qualityScore: validationEnhancement?.qualityScore
           });
         }
       }
@@ -561,7 +671,8 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
   private calculateHeaderVendorConfidence(
     vendor: VendorPattern, 
     frequency: number,
-    validationEnhancement?: ValidationEnhancedHeader
+    validationEnhancement?: ValidationEnhancedHeader,
+    discrimination?: { discriminationType: 'infrastructure' | 'discriminative' | 'mixed'; platformSpecific: boolean }
   ): number {
     // Base confidence from pattern specificity
     let confidence = 0.7;
@@ -590,6 +701,26 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
       });
     }
     
+    // Phase 2: Apply platform discrimination confidence boosts
+    if (discrimination) {
+      switch (discrimination.discriminationType) {
+        case 'discriminative':
+          confidence += 0.15; // Boost discriminative vendors significantly
+          if (discrimination.platformSpecific) {
+            confidence += 0.1; // Extra boost for platform-specific vendors
+          }
+          break;
+        case 'mixed':
+          if (discrimination.platformSpecific) {
+            confidence += 0.05; // Small boost for mixed but platform-specific
+          }
+          break;
+        case 'infrastructure':
+          confidence -= 0.1; // Reduce confidence for infrastructure noise
+          break;
+      }
+    }
+    
     // Boost confidence for high-frequency patterns (but not too high to avoid false positives)
     if (frequency > 0.1) confidence += 0.2;
     if (frequency > 0.3) confidence += 0.1;
@@ -609,6 +740,60 @@ export class VendorAnalyzerV2 implements FrequencyAnalyzer<VendorSpecificData> {
     }
     
     return Math.max(0, Math.min(1, confidence));
+  }
+
+  /**
+   * Phase 2: Calculate platform discrimination statistics for logging
+   */
+  private calculateDiscriminationStats(
+    vendorsByHeader: Map<string, VendorDetection>,
+    options?: AnalysisOptions
+  ): any {
+    if (!options?.focusPlatformDiscrimination) {
+      return null;
+    }
+
+    let discriminativeCount = 0;
+    let infrastructureCount = 0;
+    let mixedCount = 0;
+    let platformSpecificCount = 0;
+    let totalConfidenceScore = 0;
+
+    for (const [, detection] of vendorsByHeader) {
+      const vendor = detection.vendor;
+      if (vendor.discriminationType) {
+        switch (vendor.discriminationType) {
+          case 'discriminative':
+            discriminativeCount++;
+            break;
+          case 'infrastructure':
+            infrastructureCount++;
+            break;
+          case 'mixed':
+            mixedCount++;
+            break;
+        }
+      }
+      
+      if (vendor.platformSpecific) {
+        platformSpecificCount++;
+      }
+      
+      totalConfidenceScore += detection.confidence;
+    }
+
+    const totalVendors = vendorsByHeader.size;
+    const averageConfidence = totalVendors > 0 ? totalConfidenceScore / totalVendors : 0;
+
+    return {
+      totalVendors,
+      discriminativeVendors: discriminativeCount,
+      infrastructureVendors: infrastructureCount,
+      mixedVendors: mixedCount,
+      platformSpecificVendors: platformSpecificCount,
+      averageConfidence: Math.round(averageConfidence * 1000) / 1000, // Round to 3 decimal places
+      discriminativeRatio: totalVendors > 0 ? Math.round((discriminativeCount / totalVendors) * 1000) / 1000 : 0
+    };
   }
 
   /**
